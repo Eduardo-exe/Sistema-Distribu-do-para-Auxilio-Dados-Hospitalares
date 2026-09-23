@@ -1,0 +1,32 @@
+# Ambientes virtuais
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Bancos de dados gerados em runtime
+databases/*.db
+!databases/.gitkeep
+
+# Arquivos auxiliares do LaTeX (mantém o .tex e o .pdf)
+relatorio/*.aux
+relatorio/*.log
+relatorio/*.out
+relatorio/*.toc
+
+# Arquivos compactados de backup
+*.zip
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

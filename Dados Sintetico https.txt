@@ -1,0 +1,3 @@
+Dados Sintetico: https://www.kaggle.com/datasets/gourangomandal/patient-data-healthcare-monitoring-system?resource=download
+
+Dados: https://zenodo.org/records/5549632?utm_source=chatgpt.com&preview_file=five+vital+signs+of+normal+people.csv

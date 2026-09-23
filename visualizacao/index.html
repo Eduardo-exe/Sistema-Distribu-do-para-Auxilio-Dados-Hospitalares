@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Distribuído Hospitalar — Visualização Didática</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0a0e17;
+      --bg-surface: #111827;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --bg-card-hover: rgba(31, 41, 55, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(59, 130, 246, 0.4);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+
+      --color-csv: #10b981;
+      --color-csv-glow: rgba(16, 185, 129, 0.3);
+      --color-client: #06b6d4;
+      --color-client-glow: rgba(6, 182, 212, 0.3);
+      --color-lb: #f59e0b;
+      --color-lb-glow: rgba(245, 158, 11, 0.3);
+      --color-s1: #3b82f6;
+      --color-s1-glow: rgba(59, 130, 246, 0.3);
+      --color-s2: #8b5cf6;
+      --color-s2-glow: rgba(139, 92, 246, 0.3);
+      --color-s3: #ec4899;
+      --color-s3-glow: rgba(236, 72, 153, 0.3);
+      --color-db: #6366f1;
+      --color-db-glow: rgba(99, 102, 241, 0.3);
+      --color-success: #10b981;
+      --color-danger: #ef4444;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(10, 14, 23, 0.85);
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+    }
+
+    .brand-title h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge-milestone {
+      font-size: 0.68rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-full);
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-title p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Controls Bar */
+    .controls-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-group {
+      display: flex;
+      background: rgba(31, 41, 55, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .btn {
+      padding: 0.5rem 0.95rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      color: var(--text-main);
+      background: transparent;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: white;
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      transform: translateY(-1px);
+    }
+
+    .btn-step {
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-step:hover {
+      background: rgba(59, 130, 246, 0.25);
+    }
+
+    .btn-pause {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fcd34d;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-pause:hover {
+      background: rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-reset {
+      color: #f87171;
+    }
+
+    .btn-reset:hover {
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    .control-setting {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: rgba(31, 41, 55, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.4rem 0.75rem;
+    }
+
+    .control-setting select {
+      background: #1f2937;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .toggle-presentation {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      user-select: none;
+    }
+
+    .toggle-presentation input {
+      accent-color: #3b82f6;
+      cursor: pointer;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 1.5rem 2rem;
+      display: grid;
+      grid-template-columns: 1fr 390px;
+      gap: 1.5rem;
+      max-width: 1780px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    body.presentation-mode main {
+      grid-template-columns: 1fr;
+    }
+
+    body.presentation-mode .dashboard-sidebar {
+      display: none;
+    }
+
+    /* Architecture Visualizer Card */
+    .arch-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .arch-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .arch-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .round-robin-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: rgba(31, 41, 55, 0.7);
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-color);
+      font-size: 0.78rem;
+    }
+
+    .rr-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .rr-nodes {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .rr-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .rr-dot.active-s1 {
+      color: #60a5fa;
+      background: rgba(59, 130, 246, 0.25);
+      border-color: #3b82f6;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+      transform: scale(1.15);
+    }
+
+    .rr-dot.active-s2 {
+      color: #c084fc;
+      background: rgba(139, 92, 246, 0.25);
+      border-color: #8b5cf6;
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+      transform: scale(1.15);
+    }
+
+    .rr-dot.active-s3 {
+      color: #f472b6;
+      background: rgba(236, 72, 153, 0.25);
+      border-color: #ec4899;
+      box-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+      transform: scale(1.15);
+    }
+
+    /* SVG Canvas Area */
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      min-height: 580px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    svg#arch-canvas {
+      width: 100%;
+      height: 100%;
+      min-height: 580px;
+      overflow: visible;
+    }
+
+    /* SVG Elements Styling */
+    .pipe {
+      stroke: rgba(255, 255, 255, 0.1);
+      stroke-width: 2.5;
+      stroke-dasharray: 6 6;
+      fill: none;
+      transition: stroke 0.4s ease, stroke-width 0.4s ease;
+    }
+
+    .pipe.active-flow {
+      stroke-dasharray: 8 4;
+      animation: pipeFlow 0.8s linear infinite;
+    }
+
+    .pipe-s1.active-flow {
+      stroke: var(--color-s1);
+      stroke-width: 3.5;
+      filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.8));
+    }
+    .pipe-s2.active-flow {
+      stroke: var(--color-s2);
+      stroke-width: 3.5;
+      filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.8));
+    }
+    .pipe-s3.active-flow {
+      stroke: var(--color-s3);
+      stroke-width: 3.5;
+      filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.8));
+    }
+    .pipe-common.active-flow {
+      stroke: var(--color-client);
+      stroke-width: 3.5;
+      filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.8));
+    }
+
+    @keyframes pipeFlow {
+      from { stroke-dashoffset: 24; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* Node Card Groups in SVG */
+    .node-box {
+      cursor: default;
+    }
+
+    .node-box:hover .node-bg {
+      stroke: rgba(255, 255, 255, 0.4);
+      filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.7));
+    }
+
+    .node-bg {
+      fill: rgba(17, 24, 39, 0.92);
+      stroke: var(--border-color);
+      stroke-width: 1.5;
+      rx: 12;
+      ry: 12;
+      transition: all 0.3s ease;
+    }
+
+    .node-box.active-node .node-bg {
+      stroke-width: 2.5;
+      transform-origin: center;
+      animation: pulseGlow 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { filter: drop-shadow(0 0 8px currentColor); }
+      to { filter: drop-shadow(0 0 22px currentColor); }
+    }
+
+    .node-csv.active-node .node-bg { stroke: var(--color-csv); color: var(--color-csv); }
+    .node-client.active-node .node-bg { stroke: var(--color-client); color: var(--color-client); }
+    .node-lb.active-node .node-bg { stroke: var(--color-lb); color: var(--color-lb); }
+    .node-s1.active-node .node-bg { stroke: var(--color-s1); color: var(--color-s1); }
+    .node-s2.active-node .node-bg { stroke: var(--color-s2); color: var(--color-s2); }
+    .node-s3.active-node .node-bg { stroke: var(--color-s3); color: var(--color-s3); }
+    .node-db.active-node .node-bg { stroke: var(--color-db); color: var(--color-db); }
+
+    /* Animated Flying Packet */
+    #flying-packet {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    #flying-packet.visible {
+      opacity: 1;
+    }
+
+    .packet-halo {
+      fill: rgba(59, 130, 246, 0.4);
+      filter: blur(6px);
+      animation: packetPulse 0.6s infinite alternate;
+    }
+
+    .packet-core {
+      fill: #ffffff;
+      stroke: #3b82f6;
+      stroke-width: 3;
+    }
+
+    @keyframes packetPulse {
+      from { r: 12; opacity: 0.5; }
+      to { r: 18; opacity: 0.9; }
+    }
+
+    /* Floating Status Pill */
+    .status-pill {
+      position: absolute;
+      bottom: 1.2rem;
+      left: 1.5rem;
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      padding: 0.45rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      font-family: 'JetBrains Mono', monospace;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+    }
+
+    .status-dot.busy {
+      background: #f59e0b;
+      box-shadow: 0 0 10px #f59e0b;
+      animation: blink 0.8s infinite alternate;
+    }
+
+    .status-dot.error {
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+    }
+
+    @keyframes blink {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
+    /* Sidebar Dashboard */
+    .dashboard-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .panel-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    /* Telemetry / Patient Card */
+    .patient-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .vital-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .vital-label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .vital-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .vital-value.heart {
+      color: #f87171;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .heart-icon {
+      display: inline-block;
+      animation: heartbeat 1s ease-in-out infinite;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      14% { transform: scale(1.25); }
+      28% { transform: scale(1); }
+      42% { transform: scale(1.15); }
+    }
+
+    .vital-value.oxygen { color: #38bdf8; }
+    .vital-value.temp { color: #fbbf24; }
+    .vital-value.bp { color: #a78bfa; }
+
+    /* Metrics & Counters */
+    .metrics-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .metric-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem;
+      text-align: center;
+    }
+
+    .metric-number {
+      font-size: 1.3rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .metric-number.total { color: #60a5fa; }
+    .metric-number.success { color: #34d399; }
+    .metric-number.errors { color: #f87171; }
+
+    .metric-caption {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-top: 0.15rem;
+    }
+
+    /* Server Distribution Bars */
+    .server-dist {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    .dist-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .dist-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .dist-header .s-name {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .dist-header .s-val {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+    }
+
+    .dist-track {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dist-bar {
+      height: 100%;
+      border-radius: var(--radius-full);
+      width: 0%;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dist-bar.bar-s1 { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+    .dist-bar.bar-s2 { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+    .dist-bar.bar-s3 { background: linear-gradient(90deg, #db2777, #f472b6); }
+
+    /* Live Events Terminal Log */
+    .events-log {
+      height: 200px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 0.35rem;
+      padding-right: 0.3rem;
+    }
+
+    .events-log::-webkit-scrollbar {
+      width: 4px;
+    }
+    .events-log::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    .log-item {
+      padding: 0.35rem 0.55rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 2px solid transparent;
+      display: flex;
+      gap: 0.45rem;
+      line-height: 1.35;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .log-time {
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .log-item.log-csv { border-color: var(--color-csv); }
+    .log-item.log-client { border-color: var(--color-client); }
+    .log-item.log-lb { border-color: var(--color-lb); }
+    .log-item.log-s1 { border-color: var(--color-s1); }
+    .log-item.log-s2 { border-color: var(--color-s2); }
+    .log-item.log-s3 { border-color: var(--color-s3); }
+    .log-item.log-complete { border-color: var(--color-success); background: rgba(16, 185, 129, 0.05); }
+    .log-item.log-error { border-color: var(--color-danger); background: rgba(239, 68, 68, 0.08); }
+
+    /* Footer */
+    footer {
+      padding: 0.75rem 2rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      background: rgba(10, 14, 23, 0.7);
+    }
+
+    .footer-tags {
+      display: flex;
+      gap: 1.2rem;
+    }
+
+    .footer-tag {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation & Controls -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      </div>
+      <div class="brand-title">
+        <h1>
+          Monitor do Sistema Distribuído
+          <span class="badge-milestone">Marcos 1 & 2</span>
+        </h1>
+        <p>Visualização Didática em Tempo Real — Hospital Data Stream</p>
+      </div>
+    </div>
+
+    <div class="controls-wrapper">
+      <div class="btn-group">
+        <button id="btn-start" class="btn btn-primary" title="Iniciar simulação automática">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Iniciar
+        </button>
+        <button id="btn-step" class="btn btn-step" title="Processar apenas a próxima requisição">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+          Próximo
+        </button>
+        <button id="btn-pause" class="btn btn-pause" title="Pausar simulação">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          Pausar
+        </button>
+        <button id="btn-reset" class="btn btn-reset" title="Reiniciar contadores e posição">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Reiniciar
+        </button>
+      </div>
+
+      <div class="control-setting">
+        <span>Qtd:</span>
+        <select id="sel-limit">
+          <option value="6">6 registros</option>
+          <option value="12" selected>12 registros</option>
+          <option value="24">24 registros</option>
+          <option value="60">60 registros</option>
+          <option value="0">Todos</option>
+        </select>
+      </div>
+
+      <div class="control-setting">
+        <span>Velocidade:</span>
+        <select id="sel-speed">
+          <option value="0.5">Lenta (0.5x)</option>
+          <option value="1.0" selected>Normal (1.0x)</option>
+          <option value="2.0">Rápida (2.0x)</option>
+        </select>
+      </div>
+
+      <label class="toggle-presentation">
+        <input type="checkbox" id="chk-presentation">
+        <span>Modo Foco</span>
+      </label>
+    </div>
+  </header>
+
+  <!-- Main Grid Content -->
+  <main>
+    <!-- Left Column: Architecture Visualization -->
+    <section class="arch-card">
+      <div class="arch-header">
+        <div class="arch-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          Topologia e Tráfego do Sistema
+        </div>
+        <div class="round-robin-indicator">
+          <span class="rr-label">Round Robin Turno:</span>
+          <div class="rr-nodes">
+            <div id="rr-1" class="rr-dot">1</div>
+            <div id="rr-2" class="rr-dot">2</div>
+            <div id="rr-3" class="rr-dot">3</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive SVG Topology -->
+      <div class="canvas-container">
+        <svg id="arch-canvas" viewBox="0 0 940 560" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <!-- Node Shadows and Filters -->
+            <filter id="glow-filter" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="8" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+
+            <!-- Gradients -->
+            <linearGradient id="grad-csv" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#059669" />
+              <stop offset="100%" stop-color="#10b981" />
+            </linearGradient>
+            <linearGradient id="grad-client" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#0891b2" />
+              <stop offset="100%" stop-color="#06b6d4" />
+            </linearGradient>
+            <linearGradient id="grad-lb" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#d97706" />
+              <stop offset="100%" stop-color="#f59e0b" />
+            </linearGradient>
+            <linearGradient id="grad-s1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#1d4ed8" />
+              <stop offset="100%" stop-color="#3b82f6" />
+            </linearGradient>
+            <linearGradient id="grad-s2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#6d28d9" />
+              <stop offset="100%" stop-color="#8b5cf6" />
+            </linearGradient>
+            <linearGradient id="grad-s3" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#be185d" />
+              <stop offset="100%" stop-color="#ec4899" />
+            </linearGradient>
+            <linearGradient id="grad-db" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4338ca" />
+              <stop offset="100%" stop-color="#6366f1" />
+            </linearGradient>
+          </defs>
+
+          <!-- ============================================== -->
+          <!-- CONNECTION PIPES (Background Network Routing)   -->
+          <!-- ============================================== -->
+          <!-- CSV -> Client -->
+          <path id="pipe-csv-client" class="pipe pipe-common" d="M 230 70 L 370 70" />
+
+          <!-- Client -> Load Balancer -->
+          <path id="pipe-client-lb" class="pipe pipe-common" d="M 470 105 L 470 170" />
+
+          <!-- Load Balancer -> Server 1 -->
+          <path id="pipe-lb-s1" class="pipe pipe-s1" d="M 410 205 C 330 205, 175 240, 175 300" />
+
+          <!-- Load Balancer -> Server 2 -->
+          <path id="pipe-lb-s2" class="pipe pipe-s2" d="M 470 240 L 470 300" />
+
+          <!-- Load Balancer -> Server 3 -->
+          <path id="pipe-lb-s3" class="pipe pipe-s3" d="M 530 205 C 610 205, 765 240, 765 300" />
+
+          <!-- Server 1 -> Database 1 -->
+          <path id="pipe-s1-db" class="pipe pipe-s1" d="M 175 370 L 175 440" />
+
+          <!-- Server 2 -> Database 2 -->
+          <path id="pipe-s2-db" class="pipe pipe-s2" d="M 470 370 L 470 440" />
+
+          <!-- Server 3 -> Database 3 -->
+          <path id="pipe-s3-db" class="pipe pipe-s3" d="M 765 370 L 765 440" />
+
+
+          <!-- ============================================== -->
+          <!-- TOPOLOGY NODES                                 -->
+          <!-- ============================================== -->
+
+          <!-- 1. CSV DATASET NODE -->
+          <g id="node-csv" class="node-box node-csv" transform="translate(60, 35)">
+            <rect class="node-bg" width="170" height="70" />
+            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-csv)" />
+            <circle cx="32" cy="35" r="16" fill="rgba(16, 185, 129, 0.15)" />
+            <text x="32" y="40" font-size="16" text-anchor="middle">📄</text>
+            <text x="58" y="30" font-size="12" font-weight="700" fill="#f3f4f6">Dataset CSV</text>
+            <text x="58" y="46" font-size="9.5" fill="#9ca3af">data/dataset.csv</text>
+            <text x="58" y="58" font-size="8.5" fill="#10b981" font-weight="600">Dados Reais Kaggle</text>
+          </g>
+
+          <!-- 2. CSV SENDER CLIENT NODE -->
+          <g id="node-client" class="node-box node-client" transform="translate(370, 35)">
+            <rect class="node-bg" width="200" height="70" />
+            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-client)" />
+            <circle cx="32" cy="35" r="16" fill="rgba(6, 182, 212, 0.15)" />
+            <text x="32" y="40" font-size="16" text-anchor="middle">🚀</text>
+            <text x="58" y="30" font-size="12" font-weight="700" fill="#f3f4f6">CSV Sender (Cliente)</text>
+            <text x="58" y="46" font-size="9.5" fill="#9ca3af">client/csv_sender.py</text>
+            <text x="58" y="58" font-size="8.5" fill="#06b6d4" font-weight="600">POST /dados via HTTP</text>
+          </g>
+
+          <!-- 3. LOAD BALANCER NODE -->
+          <g id="node-lb" class="node-box node-lb" transform="translate(350, 170)">
+            <rect class="node-bg" width="240" height="70" />
+            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-lb)" />
+            <circle cx="35" cy="35" r="18" fill="rgba(245, 158, 11, 0.15)" />
+            <text x="35" y="41" font-size="18" text-anchor="middle">⚖️</text>
+            <text x="64" y="28" font-size="13" font-weight="700" fill="#f3f4f6">Load Balancer</text>
+            <text x="64" y="44" font-size="10" fill="#f59e0b" font-weight="600">Porta 8000 • Round Robin</text>
+            <text x="64" y="58" font-size="9" fill="#9ca3af">Distribuição Cíclica 1→2→3</text>
+          </g>
+
+          <!-- 4. DISTRIBUTED SERVER NODES (Marco 1 & 2) -->
+          <!-- Server 01 -->
+          <g id="node-s1" class="node-box node-s1" transform="translate(80, 300)">
+            <rect class="node-bg" width="190" height="70" />
+            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-s1)" />
+            <circle cx="30" cy="35" r="16" fill="rgba(59, 130, 246, 0.15)" />
+            <text x="30" y="40" font-size="16" text-anchor="middle">🏥</text>
+            <text x="54" y="28" font-size="12" font-weight="700" fill="#f3f4f6">Servidor 01</text>
+            <text x="54" y="44" font-size="9.5" fill="#60a5fa" font-weight="600">Porta 8001 • FastAPI</text>
+            <text id="badge-s1-count" x="54" y="58" font-size="9" fill="#9ca3af">0 requisições</text>
+          </g>
+
+          <!-- Server 02 -->
+          <g id="node-s2" class="node-box node-s2" transform="translate(375, 300)">
+            <rect class="node-bg" width="190" height="70" />
+            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-s2)" />
+            <circle cx="30" cy="35" r="16" fill="rgba(139, 92, 246, 0.15)" />
+            <text x="30" y="40" font-size="16" text-anchor="middle">🏥</text>
+            <text x="54" y="28" font-size="12" font-weight="700" fill="#f3f4f6">Servidor 02</text>
+            <text x="54" y="44" font-size="9.5" fill="#c084fc" font-weight="600">Porta 8002 • FastAPI</text>
+            <text id="badge-s2-count" x="54" y="58" font-size="9" fill="#9ca3af">0 requisições</text>
+          </g>
+
+          <!-- Server 03 -->
+          <g id="node-s3" class="node-box node-s3" transform="translate(670, 300)">
+            <rect class="node-bg" width="190" height="70" />
+            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-s3)" />
+            <circle cx="30" cy="35" r="16" fill="rgba(236, 72, 153, 0.15)" />
+            <text x="30" y="40" font-size="16" text-anchor="middle">🏥</text>
+            <text x="54" y="28" font-size="12" font-weight="700" fill="#f3f4f6">Servidor 03</text>
+            <text x="54" y="44" font-size="9.5" fill="#f472b6" font-weight="600">Porta 8003 • FastAPI</text>
+            <text id="badge-s3-count" x="54" y="58" font-size="9" fill="#9ca3af">0 requisições</text>
+          </g>
+
+          <!-- 5. LOCAL SQLITE DATABASES -->
+          <!-- Database 1 -->
+          <g id="node-db1" class="node-box node-db" transform="translate(100, 440)">
+            <rect class="node-bg" width="150" height="60" />
+            <rect x="0" y="0" width="5" height="60" rx="2.5" fill="url(#grad-db)" />
+            <text x="25" y="36" font-size="18">💾</text>
+            <text x="52" y="27" font-size="11" font-weight="700" fill="#f3f4f6">server1.db</text>
+            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Local</text>
+          </g>
+
+          <!-- Database 2 -->
+          <g id="node-db2" class="node-box node-db" transform="translate(395, 440)">
+            <rect class="node-bg" width="150" height="60" />
+            <rect x="0" y="0" width="5" height="60" rx="2.5" fill="url(#grad-db)" />
+            <text x="25" y="36" font-size="18">💾</text>
+            <text x="52" y="27" font-size="11" font-weight="700" fill="#f3f4f6">server2.db</text>
+            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Local</text>
+          </g>
+
+          <!-- Database 3 -->
+          <g id="node-db3" class="node-box node-db" transform="translate(690, 440)">
+            <rect class="node-bg" width="150" height="60" />
+            <rect x="0" y="0" width="5" height="60" rx="2.5" fill="url(#grad-db)" />
+            <text x="25" y="36" font-size="18">💾</text>
+            <text x="52" y="27" font-size="11" font-weight="700" fill="#f3f4f6">server3.db</text>
+            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Local</text>
+          </g>
+
+          <!-- FLYING PACKET ELEMENT -->
+          <g id="flying-packet">
+            <circle class="packet-halo" cx="0" cy="0" r="14" />
+            <circle class="packet-core" cx="0" cy="0" r="7" />
+          </g>
+        </svg>
+
+        <!-- Current Status Pill -->
+        <div class="status-pill">
+          <div id="status-indicator" class="status-dot"></div>
+          <span id="status-text">Pronto para demonstrar</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Live Data & Metrics Dashboard -->
+    <aside class="dashboard-sidebar">
+      <!-- 1. Patient Vital Signs Card -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            Dados Vitais do Paciente
+          </div>
+          <span id="patient-badge" class="badge-milestone">Aguardando</span>
+        </div>
+        <div class="patient-grid">
+          <div class="vital-item">
+            <div class="vital-label">ID Paciente</div>
+            <div id="val-paciente" class="vital-value">—</div>
+          </div>
+          <div class="vital-item">
+            <div class="vital-label">Freq. Cardíaca</div>
+            <div class="vital-value heart">
+              <span id="val-fc">—</span>
+              <span class="heart-icon">❤️</span>
+            </div>
+          </div>
+          <div class="vital-item">
+            <div class="vital-label">Oxigênio (SpO2)</div>
+            <div id="val-spo2" class="vital-value oxygen">—</div>
+          </div>
+          <div class="vital-item">
+            <div class="vital-label">Pressão Art.</div>
+            <div id="val-pa" class="vital-value bp">—</div>
+          </div>
+          <div class="vital-item">
+            <div class="vital-label">Temperatura</div>
+            <div id="val-temp" class="vital-value temp">—</div>
+          </div>
+          <div class="vital-item">
+            <div class="vital-label">Diagnóstico / Queda</div>
+            <div id="val-dor" class="vital-value" style="font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Metrics & Load Distribution -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            Métricas & Distribuição
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-dim);">Marco 2</span>
+        </div>
+
+        <div class="metrics-summary">
+          <div class="metric-box">
+            <div id="metric-total" class="metric-number total">0</div>
+            <div class="metric-caption">Total</div>
+          </div>
+          <div class="metric-box">
+            <div id="metric-success" class="metric-number success">0</div>
+            <div class="metric-caption">Sucesso</div>
+          </div>
+          <div class="metric-box">
+            <div id="metric-errors" class="metric-number errors">0</div>
+            <div class="metric-caption">Erros</div>
+          </div>
+        </div>
+
+        <div class="server-dist">
+          <!-- Server 1 -->
+          <div class="dist-row">
+            <div class="dist-header">
+              <span class="s-name" style="color: #60a5fa;">● Servidor 01 (:8001)</span>
+              <span id="dist-count-s1" class="s-val">0 (0%)</span>
+            </div>
+            <div class="dist-track">
+              <div id="dist-bar-s1" class="dist-bar bar-s1"></div>
+            </div>
+          </div>
+
+          <!-- Server 2 -->
+          <div class="dist-row">
+            <div class="dist-header">
+              <span class="s-name" style="color: #c084fc;">● Servidor 02 (:8002)</span>
+              <span id="dist-count-s2" class="s-val">0 (0%)</span>
+            </div>
+            <div class="dist-track">
+              <div id="dist-bar-s2" class="dist-bar bar-s2"></div>
+            </div>
+          </div>
+
+          <!-- Server 3 -->
+          <div class="dist-row">
+            <div class="dist-header">
+              <span class="s-name" style="color: #f472b6;">● Servidor 03 (:8003)</span>
+              <span id="dist-count-s3" class="s-val">0 (0%)</span>
+            </div>
+            <div class="dist-track">
+              <div id="dist-bar-s3" class="dist-bar bar-s3"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Live Events Log -->
+      <section class="panel" style="flex: 1; display: flex; flex-direction: column;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.2"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+            Log de Eventos em Tempo Real
+          </div>
+          <button id="btn-clear-log" style="background: none; border: none; font-size: 0.72rem; color: var(--text-dim); cursor: pointer;">Limpar</button>
+        </div>
+        <div id="events-log" class="events-log">
+          <div class="log-item">
+            <span class="log-time">--:--:--</span>
+            <span>Aguardando início da demonstração...</span>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Footer Info -->
+  <footer>
+    <div>Sistema Distribuído Hospitalar • Disciplina de Sistemas Distribuídos</div>
+    <div class="footer-tags">
+      <div class="footer-tag"><span>●</span> Marco 1: Ingestão CSV + SQLite</div>
+      <div class="footer-tag"><span>●</span> Marco 2: Load Balancer Round Robin</div>
+      <div class="footer-tag" style="color: #10b981;"><span>●</span> SSE Streaming Ativo</div>
+    </div>
+  </footer>
+
+  <!-- Visualizer Logic -->
+  <script>
+    // Elements references
+    const btnStart = document.getElementById('btn-start');
+    const btnStep = document.getElementById('btn-step');
+    const btnPause = document.getElementById('btn-pause');
+    const btnReset = document.getElementById('btn-reset');
+    const selLimit = document.getElementById('sel-limit');
+    const selSpeed = document.getElementById('sel-speed');
+    const chkPresentation = document.getElementById('chk-presentation');
+    const btnClearLog = document.getElementById('btn-clear-log');
+
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+
+    const rr1 = document.getElementById('rr-1');
+    const rr2 = document.getElementById('rr-2');
+    const rr3 = document.getElementById('rr-3');
+
+    const valPaciente = document.getElementById('val-paciente');
+    const valFc = document.getElementById('val-fc');
+    const valSpo2 = document.getElementById('val-spo2');
+    const valPa = document.getElementById('val-pa');
+    const valTemp = document.getElementById('val-temp');
+    const valDor = document.getElementById('val-dor');
+    const patientBadge = document.getElementById('patient-badge');
+
+    const metricTotal = document.getElementById('metric-total');
+    const metricSuccess = document.getElementById('metric-success');
+    const metricErrors = document.getElementById('metric-errors');
+
+    const distCountS1 = document.getElementById('dist-count-s1');
+    const distCountS2 = document.getElementById('dist-count-s2');
+    const distCountS3 = document.getElementById('dist-count-s3');
+    const distBarS1 = document.getElementById('dist-bar-s1');
+    const distBarS2 = document.getElementById('dist-bar-s2');
+    const distBarS3 = document.getElementById('dist-bar-s3');
+
+    const badgeS1Count = document.getElementById('badge-s1-count');
+    const badgeS2Count = document.getElementById('badge-s2-count');
+    const badgeS3Count = document.getElementById('badge-s3-count');
+
+    const eventsLog = document.getElementById('events-log');
+    const flyingPacket = document.getElementById('flying-packet');
+
+    // SVG Node references
+    const nodeCsv = document.getElementById('node-csv');
+    const nodeClient = document.getElementById('node-client');
+    const nodeLb = document.getElementById('node-lb');
+    const nodeS1 = document.getElementById('node-s1');
+    const nodeS2 = document.getElementById('node-s2');
+    const nodeS3 = document.getElementById('node-s3');
+    const nodeDb1 = document.getElementById('node-db1');
+    const nodeDb2 = document.getElementById('node-db2');
+    const nodeDb3 = document.getElementById('node-db3');
+
+    // SVG Pipe references
+    const pipeCsvClient = document.getElementById('pipe-csv-client');
+    const pipeClientLb = document.getElementById('pipe-client-lb');
+    const pipeLbS1 = document.getElementById('pipe-lb-s1');
+    const pipeLbS2 = document.getElementById('pipe-lb-s2');
+    const pipeLbS3 = document.getElementById('pipe-lb-s3');
+    const pipeS1Db = document.getElementById('pipe-s1-db');
+    const pipeS2Db = document.getElementById('pipe-s2-db');
+    const pipeS3Db = document.getElementById('pipe-s3-db');
+
+    // State
+    let isRunning = false;
+    let packetAnimationTimer = null;
+
+    // Toggle Presentation Mode
+    chkPresentation.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        document.body.classList.add('presentation-mode');
+      } else {
+        document.body.classList.remove('presentation-mode');
+      }
+    });
+
+    // Clear log
+    btnClearLog.addEventListener('click', () => {
+      eventsLog.innerHTML = '';
+    });
+
+    // Logging helper
+    function addLog(time, text, type = 'info') {
+      const item = document.createElement('div');
+      item.className = `log-item log-${type}`;
+      item.innerHTML = `<span class="log-time">${time}</span><span>${text}</span>`;
+      eventsLog.prepend(item);
+    }
+
+    // Set Status
+    function setStatus(text, state = 'ready') {
+      statusText.textContent = text;
+      statusIndicator.className = 'status-dot';
+      if (state === 'busy') statusIndicator.classList.add('busy');
+      if (state === 'error') statusIndicator.classList.add('error');
+    }
+
+    // Update Round Robin Indicator
+    function updateRoundRobinTurn(serverNum) {
+      rr1.className = 'rr-dot' + (serverNum === 1 ? ' active-s1' : '');
+      rr2.className = 'rr-dot' + (serverNum === 2 ? ' active-s2' : '');
+      rr3.className = 'rr-dot' + (serverNum === 3 ? ' active-s3' : '');
+    }
+
+    // Clear all node highlights
+    function clearActiveNodes() {
+      [nodeCsv, nodeClient, nodeLb, nodeS1, nodeS2, nodeS3, nodeDb1, nodeDb2, nodeDb3].forEach(n => {
+        n.classList.remove('active-node');
+      });
+      [pipeCsvClient, pipeClientLb, pipeLbS1, pipeLbS2, pipeLbS3, pipeS1Db, pipeS2Db, pipeS3Db].forEach(p => {
+        p.classList.remove('active-flow');
+      });
+    }
+
+    // Animate packet smoothly along an SVG path
+    function animatePacketAlongPath(pathElement, durationMs = 600, callback = null) {
+      if (!pathElement) {
+        if (callback) callback();
+        return;
+      }
+
+      if (packetAnimationTimer) {
+        cancelAnimationFrame(packetAnimationTimer);
+      }
+
+      const length = pathElement.getTotalLength();
+      flyingPacket.classList.add('visible');
+      pathElement.classList.add('active-flow');
+
+      const startTime = performance.now();
+
+      function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        const point = pathElement.getPointAtLength(progress * length);
+
+        flyingPacket.setAttribute('transform', `translate(${point.x}, ${point.y})`);
+
+        if (progress < 1) {
+          packetAnimationTimer = requestAnimationFrame(step);
+        } else {
+          packetAnimationTimer = null;
+          if (callback) callback();
+        }
+      }
+
+      packetAnimationTimer = requestAnimationFrame(step);
+    }
+
+    // Update Metrics
+    function updateMetrics(counters) {
+      if (!counters) return;
+      metricTotal.textContent = counters.total || 0;
+      metricSuccess.textContent = counters.sucesso || 0;
+      metricErrors.textContent = counters.erros || 0;
+
+      const total = counters.total || 1;
+      const s1 = counters['server-01'] || 0;
+      const s2 = counters['server-02'] || 0;
+      const s3 = counters['server-03'] || 0;
+
+      const p1 = Math.round((s1 / total) * 100) || 0;
+      const p2 = Math.round((s2 / total) * 100) || 0;
+      const p3 = Math.round((s3 / total) * 100) || 0;
+
+      distCountS1.textContent = `${s1} (${p1}%)`;
+      distCountS2.textContent = `${s2} (${p2})%`;
+      distCountS3.textContent = `${s3} (${p3}%)`;
+
+      distBarS1.style.width = `${p1}%`;
+      distBarS2.style.width = `${p2}%`;
+      distBarS3.style.width = `${p3}%`;
+
+      badgeS1Count.textContent = `${s1} requisições`;
+      badgeS2Count.textContent = `${s2} requisições`;
+      badgeS3Count.textContent = `${s3} requisições`;
+    }
+
+    // Update Patient Card
+    function updatePatientCard(data, numero) {
+      if (!data) return;
+      patientBadge.textContent = `Registro #${numero}`;
+      valPaciente.textContent = `#${data.paciente_id ?? numero}`;
+      valFc.textContent = data.frequencia_cardiaca ? `${data.frequencia_cardiaca} bpm` : '—';
+      
+      const spo2 = data.spo2 ?? data.nivel_oxigenio;
+      valSpo2.textContent = (spo2 !== undefined && spo2 !== null) ? `${spo2}%` : '—';
+
+      const sistolica = data.pressao_sistolica ?? data.pressao_arterial_sistolica;
+      const diastolica = data.pressao_diastolica ?? data.pressao_arterial_diastolica;
+      valPa.textContent = (sistolica !== undefined && diastolica !== undefined)
+        ? `${sistolica}/${diastolica} mmHg`
+        : '—';
+
+      valTemp.textContent = data.temperatura ? `${data.temperatura}°C` : '—';
+
+      const doenca = data.doenca_prevista || 'Normal';
+      const queda = data.deteccao_queda === 'Yes' ? ' [⚠️ Queda]' : '';
+      valDor.textContent = `${doenca}${queda}`;
+      valDor.title = `${doenca}${queda}`;
+    }
+
+    // ============================================================
+    // Server-Sent Events (SSE) Listener
+    // ============================================================
+    let evtSource = null;
+
+    function connectSSE() {
+      if (evtSource) {
+        evtSource.close();
+      }
+
+      evtSource = new EventSource('/api/eventos');
+
+      evtSource.addEventListener('connected', (e) => {
+        const data = JSON.parse(e.data);
+        addLog(new Date().toLocaleTimeString(), `Conectado ao monitor (${data.total_records} registros disponíveis)`, 'info');
+        updateMetrics(data.contadores);
+      });
+
+      // 1. Leitura do CSV
+      evtSource.addEventListener('csv_read', (e) => {
+        const d = JSON.parse(e.data);
+        clearActiveNodes();
+        nodeCsv.classList.add('active-node');
+        setStatus(`Lendo registro #${d.numero} do CSV...`, 'busy');
+        updatePatientCard(d.dados, d.numero);
+        addLog(d.timestamp, `[CSV] Registro #${d.numero} lido (Paciente ${d.dados.paciente_id})`, 'csv');
+        
+        // Move packet from CSV to Client
+        animatePacketAlongPath(pipeCsvClient, 350);
+      });
+
+      // 2. CSV Sender preparando
+      evtSource.addEventListener('sending', (e) => {
+        const d = JSON.parse(e.data);
+        clearActiveNodes();
+        nodeClient.classList.add('active-node');
+        setStatus(`CSV Sender preparando HTTP POST #${d.numero}...`, 'busy');
+        addLog(d.timestamp, `[Cliente] Preparando payload HTTP do registro #${d.numero}`, 'client');
+      });
+
+      // 3. HTTP POST ao Load Balancer
+      evtSource.addEventListener('http_post', (e) => {
+        const d = JSON.parse(e.data);
+        clearActiveNodes();
+        setStatus(`Enviando POST /dados para o Load Balancer (:8000)...`, 'busy');
+        addLog(d.timestamp, `[HTTP] POST http://localhost:8000/dados`, 'client');
+        animatePacketAlongPath(pipeClientLb, 350);
+      });
+
+      // 4. Load Balancer Roteando Round Robin
+      evtSource.addEventListener('lb_routing', (e) => {
+        const d = JSON.parse(e.data);
+        clearActiveNodes();
+        nodeLb.classList.add('active-node');
+        updateRoundRobinTurn(d.server_num);
+        setStatus(`Load Balancer: Round Robin direcionou para ${d.server_id}`, 'busy');
+        addLog(d.timestamp, `[LB :8000] Roteado via Round Robin → ${d.server_id}`, 'lb');
+
+        // Path to selected server
+        let pipe = pipeLbS1;
+        if (d.server_num === 2) pipe = pipeLbS2;
+        if (d.server_num === 3) pipe = pipeLbS3;
+        animatePacketAlongPath(pipe, 400);
+      });
+
+      // 5. Servidor recebeu
+      evtSource.addEventListener('server_received', (e) => {
+        const d = JSON.parse(e.data);
+        clearActiveNodes();
+        const serverNum = d.server_id.split('-')[1];
+        if (serverNum === '01') nodeS1.classList.add('active-node');
+        if (serverNum === '02') nodeS2.classList.add('active-node');
+        if (serverNum === '03') nodeS3.classList.add('active-node');
+
+        setStatus(`${d.server_id} (: ${d.porta}) processando requisição #${d.numero}...`, 'busy');
+        addLog(d.timestamp, `[${d.server_id}] Requisição recebida e validada via Pydantic`, `s${parseInt(serverNum)}`);
+      });
+
+      // 6. Salvando no SQLite
+      evtSource.addEventListener('db_saving', (e) => {
+        const d = JSON.parse(e.data);
+        const serverNum = d.server_id.split('-')[1];
+        clearActiveNodes();
+
+        let pipe = pipeS1Db;
+        let dbNode = nodeDb1;
+        if (serverNum === '02') { pipe = pipeS2Db; dbNode = nodeDb2; }
+        if (serverNum === '03') { pipe = pipeS3Db; dbNode = nodeDb3; }
+
+        dbNode.classList.add('active-node');
+        setStatus(`Gravando dados no banco ${d.db_name}...`, 'busy');
+        addLog(d.timestamp, `[SQLite] INSERT executado em ${d.db_name}`, `s${parseInt(serverNum)}`);
+        animatePacketAlongPath(pipe, 300);
+      });
+
+      // 7. Concluído
+      evtSource.addEventListener('complete', (e) => {
+        const d = JSON.parse(e.data);
+        flyingPacket.classList.remove('visible');
+        clearActiveNodes();
+        setStatus(`Requisição #${d.numero} concluída com sucesso (HTTP 200 OK)`, 'ready');
+        updateMetrics(d.contadores);
+        addLog(d.timestamp, `[HTTP 200 OK] Registro #${d.numero} gravado por ${d.server_id}`, 'complete');
+      });
+
+      // Erro
+      evtSource.addEventListener('error', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          flyingPacket.classList.remove('visible');
+          clearActiveNodes();
+          setStatus(`Erro no registro #${d.numero}: ${d.erro}`, 'error');
+          updateMetrics(d.contadores);
+          addLog(d.timestamp, `[ERRO] ${d.erro}`, 'error');
+        } catch {
+          // Keepalive ou erro SSE
+        }
+      });
+
+      // Pausado
+      evtSource.addEventListener('paused', (e) => {
+        const d = JSON.parse(e.data);
+        setStatus('Simulação pausada', 'ready');
+        addLog(new Date().toLocaleTimeString(), d.mensagem, 'info');
+      });
+
+      // Reset
+      evtSource.addEventListener('reset', (e) => {
+        const d = JSON.parse(e.data);
+        clearActiveNodes();
+        flyingPacket.classList.remove('visible');
+        updateRoundRobinTurn(0);
+        updateMetrics(d.contadores);
+        setStatus('Simulação reiniciada', 'ready');
+        addLog(new Date().toLocaleTimeString(), d.mensagem, 'info');
+      });
+
+      // Finished
+      evtSource.addEventListener('finished', (e) => {
+        const d = JSON.parse(e.data);
+        setStatus(d.mensagem, 'ready');
+        addLog(new Date().toLocaleTimeString(), d.mensagem, 'complete');
+      });
+
+      evtSource.onerror = () => {
+        setStatus('Conexão SSE perdida. Tentando reconectar...', 'error');
+      };
+    }
+
+    // ============================================================
+    // API Actions (Controles)
+    // ============================================================
+
+    btnStart.addEventListener('click', async () => {
+      const limit = selLimit.value;
+      const speed = selSpeed.value;
+      setStatus('Iniciando simulação...', 'busy');
+      try {
+        await fetch(`/api/iniciar?limite=${limit}&velocidade=${speed}`, { method: 'POST' });
+      } catch (err) {
+        addLog(new Date().toLocaleTimeString(), `Erro ao iniciar: ${err.message}`, 'error');
+      }
+    });
+
+    btnStep.addEventListener('click', async () => {
+      setStatus('Processando próximo registro...', 'busy');
+      try {
+        await fetch('/api/proximo', { method: 'POST' });
+      } catch (err) {
+        addLog(new Date().toLocaleTimeString(), `Erro no passo a passo: ${err.message}`, 'error');
+      }
+    });
+
+    btnPause.addEventListener('click', async () => {
+      try {
+        await fetch('/api/pausar', { method: 'POST' });
+      } catch (err) {
+        addLog(new Date().toLocaleTimeString(), `Erro ao pausar: ${err.message}`, 'error');
+      }
+    });
+
+    btnReset.addEventListener('click', async () => {
+      try {
+        await fetch('/api/reiniciar', { method: 'POST' });
+      } catch (err) {
+        addLog(new Date().toLocaleTimeString(), `Erro ao reiniciar: ${err.message}`, 'error');
+      }
+    });
+
+    selSpeed.addEventListener('change', async (e) => {
+      const val = e.target.value;
+      try {
+        await fetch(`/api/velocidade?valor=${val}`, { method: 'POST' });
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Start SSE Connection on load
+    window.addEventListener('DOMContentLoaded', () => {
+      connectSSE();
+    });
+  </script>
+</body>
+</html>
