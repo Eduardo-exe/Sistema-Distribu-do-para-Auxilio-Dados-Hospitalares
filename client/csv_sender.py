@@ -5,8 +5,13 @@ Leitor e reprodutor do CSV de dados hospitalares.
 Lê o CSV progressivamente e envia cada registro via HTTP POST,
 simulando a chegada de dados de telemetria de pacientes.
 
+Suporta dois modos de envio:
+  - HTTP direto (padrão): envia via requests.post ao Load Balancer
+  - Via RabbitMQ (--via-rabbitmq): publica na fila AMQP do middleware
+
 Uso:
     python client/csv_sender.py --url http://localhost:8000/dados --intervalo 1.0 --limite 10
+    python client/csv_sender.py --via-rabbitmq --intervalo 0.5 --limite 20
 """
 
 import argparse
@@ -38,7 +43,7 @@ def enviar_dados(url: str, csv_path: str, intervalo: float, limite: int = 0):
         sys.exit(1)
 
     print("=" * 60)
-    print("  LEITOR DE DADOS — CSV Sender")
+    print("  LEITOR DE DADOS — CSV Sender (modo HTTP direto)")
     print("=" * 60)
     print(f"  Arquivo:   {csv_path}")
     print(f"  Destino:   {url}")
@@ -114,6 +119,32 @@ def enviar_dados(url: str, csv_path: str, intervalo: float, limite: int = 0):
     print("=" * 60)
 
 
+def enviar_dados_via_rabbitmq(csv_path: str, intervalo: float, limite: int = 0):
+    """
+    Lê o CSV e publica cada registro na fila do RabbitMQ (middleware MOM).
+
+    Delega para o módulo middleware/produtor.py, mantendo a mesma interface
+    de linha de comando do csv_sender.
+
+    Args:
+        csv_path: Caminho para o arquivo CSV.
+        intervalo: Intervalo em segundos entre cada publicação.
+        limite: Número máximo de registros a publicar (0 = todos).
+    """
+    from middleware.produtor import publicar_dados
+
+    print("=" * 60)
+    print("  LEITOR DE DADOS — CSV Sender (modo MIDDLEWARE RabbitMQ)")
+    print("=" * 60)
+    print()
+
+    publicar_dados(
+        csv_path=csv_path,
+        intervalo=intervalo,
+        limite=limite,
+    )
+
+
 # ============================================================
 # Ponto de entrada
 # ============================================================
@@ -142,12 +173,25 @@ if __name__ == "__main__":
         "--limite", type=int, default=0,
         help="Número máximo de registros a enviar, 0 = todos (padrão: 0)"
     )
+    parser.add_argument(
+        "--via-rabbitmq", action="store_true", default=False,
+        help="Enviar via middleware RabbitMQ em vez de HTTP direto"
+    )
 
     args = parser.parse_args()
 
-    enviar_dados(
-        url=args.url,
-        csv_path=args.csv,
-        intervalo=args.intervalo,
-        limite=args.limite,
-    )
+    if args.via_rabbitmq:
+        # Modo middleware: publicar na fila RabbitMQ
+        enviar_dados_via_rabbitmq(
+            csv_path=args.csv,
+            intervalo=args.intervalo,
+            limite=args.limite,
+        )
+    else:
+        # Modo HTTP direto (padrão — compatível com Marcos 1 e 2)
+        enviar_dados(
+            url=args.url,
+            csv_path=args.csv,
+            intervalo=args.intervalo,
+            limite=args.limite,
+        )

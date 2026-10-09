@@ -1,0 +1,147 @@
+# docker-compose.yml
+# ==============================================================================
+# Ambiente de Desenvolvimento Local — Sistema Distribuído Hospitalar
+# ==============================================================================
+#
+# Sobe o RabbitMQ e opcionalmente todos os componentes do sistema em containers.
+#
+# Uso rápido (apenas RabbitMQ para desenvolvimento):
+#     docker-compose up rabbitmq
+#
+# Uso completo (todos os componentes):
+#     docker-compose up
+#
+# Interface de gerenciamento do RabbitMQ:
+#     http://localhost:15672  (guest/guest)
+#
+# ==============================================================================
+
+services:
+  # ── RabbitMQ (Middleware MOM) ─────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-middleware
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"      # AMQP
+      - "15672:15672"    # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rede_hospitalar
+
+  # ── Servidor 1 ───────────────────────────────────────────────
+  server1:
+    build: .
+    container_name: server-01
+    command: >
+      python server/app.py
+        --port 8001
+        --server-id server-01
+        --db-path databases/server1.db
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./databases:/app/databases
+    networks:
+      - rede_hospitalar
+
+  # ── Servidor 2 ───────────────────────────────────────────────
+  server2:
+    build: .
+    container_name: server-02
+    command: >
+      python server/app.py
+        --port 8002
+        --server-id server-02
+        --db-path databases/server2.db
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./databases:/app/databases
+    networks:
+      - rede_hospitalar
+
+  # ── Servidor 3 ───────────────────────────────────────────────
+  server3:
+    build: .
+    container_name: server-03
+    command: >
+      python server/app.py
+        --port 8003
+        --server-id server-03
+        --db-path databases/server3.db
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./databases:/app/databases
+    networks:
+      - rede_hospitalar
+
+  # ── Balanceador de Carga ─────────────────────────────────────
+  balanceador:
+    build: .
+    container_name: balanceador
+    command: >
+      python load_balancer/balancer.py
+        --port 8000
+        --servidores http://server1:8001,http://server2:8002,http://server3:8003
+    ports:
+      - "8000:8000"
+    depends_on:
+      - server1
+      - server2
+      - server3
+    networks:
+      - rede_hospitalar
+
+  # ── Consumidor AMQP (Middleware → Load Balancer) ─────────────
+  consumidor:
+    build: .
+    container_name: consumidor-amqp
+    command: >
+      python middleware/consumidor.py
+        --lb-url http://balanceador:8000
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      balanceador:
+        condition: service_started
+    networks:
+      - rede_hospitalar
+
+  # ── Produtor AMQP (Leitor CSV → RabbitMQ) ───────────────────
+  # Usar com: docker-compose run produtor --limite 20 --intervalo 0.3
+  produtor:
+    build: .
+    container_name: produtor-amqp
+    command: >
+      python middleware/produtor.py
+        --intervalo 0.5
+        --limite 12
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    profiles:
+      - envio     # Só sobe se usar: docker-compose --profile envio up
+    networks:
+      - rede_hospitalar
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  rede_hospitalar:
+    driver: bridge

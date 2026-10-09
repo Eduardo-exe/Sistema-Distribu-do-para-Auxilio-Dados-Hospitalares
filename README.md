@@ -16,13 +16,24 @@ Demonstrar conceitos de sistemas distribuídos através de uma arquitetura com:
 - **Servidores independentes**: cada instância recebe, valida e armazena os
   dados em seu próprio banco SQLite.
 
-### Arquitetura
+### Arquitetura (com Middleware RabbitMQ)
 
 ```
                      CSV
                       |
                       v
                LEITOR DE DADOS
+                      |
+                      v  [publica via AMQP]
+              ┌────────────────────┐
+              │   MIDDLEWARE MOM   │
+              │     RabbitMQ       │
+              │  (porta 5672)      │
+              │  Exchange + Fila   │
+              └────────────────────┘
+                      |
+                      v  [consome via AMQP]
+               CONSUMIDOR AMQP
                       |
                       v
                 BALANCEADOR (:8000)
@@ -37,6 +48,10 @@ Demonstrar conceitos de sistemas distribuídos através de uma arquitetura com:
        server1.db  server2.db  server3.db
 ```
 
+> O cliente publica mensagens na fila do RabbitMQ (Middleware Orientado a Mensagens).
+> Um consumidor AMQP consome da fila e encaminha via HTTP ao balanceador.
+> O sistema também suporta o modo HTTP direto (sem middleware) para compatibilidade.
+
 ## Estrutura do Projeto
 
 ```
@@ -49,7 +64,12 @@ Projeto SD/
 │   ├── database.py                  # Camada de banco de dados SQLite
 │   └── models.py                    # Modelos Pydantic + mapeamento CSV
 ├── client/
-│   └── csv_sender.py                # Leitor/reprodutor do CSV
+│   └── csv_sender.py                # Leitor/reprodutor do CSV (HTTP ou RabbitMQ)
+├── middleware/                      # ★ MIDDLEWARE MOM (RabbitMQ)
+│   ├── __init__.py
+│   ├── config.py                    # Configuração centralizada do RabbitMQ
+│   ├── produtor.py                  # Publicador AMQP (CSV → fila)
+│   └── consumidor.py                # Consumidor AMQP (fila → Load Balancer)
 ├── load_balancer/
 │   └── balancer.py                  # Balanceador Round Robin
 ├── visualizacao/                    # Camada de Visualização Didática
@@ -57,8 +77,12 @@ Projeto SD/
 │   └── index.html                   # Interface web animada em tempo real
 ├── tests/
 │   ├── test_marco1.py               # Testes do Marco 1
-│   └── test_marco2.py               # Testes do Marco 2
+│   ├── test_marco2.py               # Testes do Marco 2
+│   └── test_middleware.py           # Testes do Middleware RabbitMQ
 ├── databases/                       # Bancos SQLite (criados automaticamente)
+├── docker-compose.yml               # Docker Compose (RabbitMQ + sistema)
+├── Dockerfile                       # Imagem Docker do sistema
+├── Vagrantfile                      # Definição das 4 VMs (VirtualBox)
 ├── requirements.txt                 # Dependências Python
 ├── README.md                        # Este arquivo
 └── Synthetic_patient-HealthCare-Monitoring_dataset.csv  # CSV original (Kaggle)
@@ -71,7 +95,11 @@ Projeto SD/
 - Uvicorn
 - Requests
 - HTTPX
+- **Pika** (cliente AMQP para RabbitMQ)
 - Pytest
+- **RabbitMQ 3.x** (para modo middleware)
+- **Docker + Docker Compose** (opcional, para desenvolvimento local)
+- **Vagrant + VirtualBox** (opcional, para deploy em VMs separadas)
 
 ## Instalação
 
@@ -169,7 +197,7 @@ Opções disponíveis:
 python load_balancer/balancer.py --port 8000 --servidores http://localhost:8001,http://localhost:8002,http://localhost:8003
 ```
 
-### Terminal 5 — Leitor do CSV
+### Terminal 5 — Leitor do CSV (modo HTTP direto)
 
 Enviar 12 registros com intervalo de 0.5 segundos:
 
@@ -191,6 +219,164 @@ python client/csv_sender.py --url http://localhost:8000/dados --intervalo 1.0
 | `--csv` | `data/dataset.csv` | Caminho do arquivo CSV |
 | `--intervalo` | `1.0` | Segundos entre cada envio |
 | `--limite` | `0` (todos) | Número máximo de registros |
+| `--via-rabbitmq` | desativado | Enviar via middleware RabbitMQ |
+
+---
+
+## Middleware RabbitMQ (MOM)
+
+O sistema possui uma camada de **Middleware Orientado a Mensagens (MOM)** usando
+**RabbitMQ**, que desacopla temporalmente o produtor de dados dos servidores de
+processamento.
+
+### O que é o Middleware no contexto de SD?
+
+Em Sistemas Distribuídos, **middleware** é a camada de software entre o sistema
+operacional e a aplicação distribuída. Ele provê:
+
+- **Transparência de acesso**: o produtor não precisa saber quais servidores estão ativos
+- **Desacoplamento temporal**: mensagens são enfileiradas mesmo que os servidores estejam fora
+- **Confiabilidade**: mensagens persistentes sobrevivem a reinícios do broker
+- **Escalabilidade**: múltiplos consumidores podem processar a fila em paralelo
+
+### Componentes do Middleware
+
+| Componente | Arquivo | Descrição |
+|---|---|---|
+| Configuração | `middleware/config.py` | Exchange, fila, credenciais |
+| Produtor AMQP | `middleware/produtor.py` | Publica dados do CSV na fila |
+| Consumidor AMQP | `middleware/consumidor.py` | Consome e encaminha ao LB |
+
+### Como Executar com Middleware
+
+#### 1. Iniciar o RabbitMQ
+
+Usando Docker (mais rápido):
+
+```bash
+docker run -d --rm --name rabbitmq \
+  -p 5672:5672 -p 15672:15672 \
+  rabbitmq:3-management
+```
+
+Acesse a interface de gerenciamento: http://localhost:15672 (guest/guest)
+
+#### 2. Executar o sistema com middleware
+
+```bash
+./executar.sh --middleware
+```
+
+#### 3. Enviar dados via middleware
+
+```bash
+python client/csv_sender.py --via-rabbitmq --intervalo 0.3 --limite 20
+```
+
+Ou usando o produtor diretamente:
+
+```bash
+python middleware/produtor.py --intervalo 0.3 --limite 20
+```
+
+### Fluxo das Mensagens
+
+```
+CSV Sender → [publica AMQP] → RabbitMQ (fila) → [consome AMQP] → HTTP POST → Load Balancer → Server
+```
+
+1. O **Produtor** lê o CSV e publica cada registro como mensagem JSON persistente
+2. O **RabbitMQ** armazena na fila `fila_dados_pacientes` (exchange `telemetria_hospitalar`)
+3. O **Consumidor** lê uma mensagem de cada vez (prefetch=1)
+4. Para cada mensagem, faz `HTTP POST /dados` ao Load Balancer
+5. Só envia **ACK** após confirmação do Load Balancer (HTTP 200)
+6. Se houver erro, envia **NACK** com requeue para retentar
+
+---
+
+## Deploy em Máquinas Virtuais (VirtualBox + Vagrant)
+
+O projeto inclui um `Vagrantfile` com 6 VMs totalmente isoladas:
+
+| VM | IP | Componentes |
+|---|---|---|
+| `vm-cliente` | 192.168.56.10 | Leitor CSV + Produtor AMQP |
+| `vm-middleware` | 192.168.56.11 | RabbitMQ Server (portas 5672 e 15672) |
+| `vm-balanceador` | 192.168.56.12 | Consumidor AMQP + Balanceador Round Robin (:8000) |
+| `vm-servidor1` | 192.168.56.13 | Servidor 01 (FastAPI :8001) + `server1.db` |
+| `vm-servidor2` | 192.168.56.14 | Servidor 02 (FastAPI :8002) + `server2.db` |
+| `vm-servidor3` | 192.168.56.15 | Servidor 03 (FastAPI :8003) + `server3.db` |
+
+### Pré-requisitos
+
+- [VirtualBox](https://www.virtualbox.org/)
+- [Vagrant](https://www.vagrantup.com/)
+
+### Criar e Provisionar as VMs
+
+```bash
+vagrant up
+```
+
+### Executar em VMs Separadas
+
+**VM-SERVIDOR-01** (192.168.56.13):
+```bash
+vagrant ssh vm-servidor1
+cd /opt/projeto-sd
+python3 server/app.py --port 8001 --server-id server-01 --db-path databases/server1.db
+```
+
+**VM-SERVIDOR-02** (192.168.56.14):
+```bash
+vagrant ssh vm-servidor2
+cd /opt/projeto-sd
+python3 server/app.py --port 8002 --server-id server-02 --db-path databases/server2.db
+```
+
+**VM-SERVIDOR-03** (192.168.56.15):
+```bash
+vagrant ssh vm-servidor3
+cd /opt/projeto-sd
+python3 server/app.py --port 8003 --server-id server-03 --db-path databases/server3.db
+```
+
+**VM-BALANCEADOR** (192.168.56.12):
+```bash
+vagrant ssh vm-balanceador
+cd /opt/projeto-sd
+python3 load_balancer/balancer.py --port 8000 \
+  --servidores http://192.168.56.13:8001,http://192.168.56.14:8002,http://192.168.56.15:8003 &
+RABBITMQ_HOST=192.168.56.11 python3 middleware/consumidor.py --lb-url http://localhost:8000
+```
+
+**VM-CLIENTE** (192.168.56.10):
+```bash
+vagrant ssh vm-cliente
+cd /opt/projeto-sd
+RABBITMQ_HOST=192.168.56.11 python3 middleware/produtor.py --limite 20 --intervalo 0.3
+```
+
+### Acessar a Interface do RabbitMQ
+
+No navegador do host: http://192.168.56.11:15672 (guest/guest)
+
+---
+
+## Docker Compose (Desenvolvimento Local)
+
+Para rodar tudo localmente com containers:
+
+```bash
+# Apenas RabbitMQ (para desenvolvimento)
+docker-compose up rabbitmq
+
+# Sistema completo (servidores + balanceador + consumidor + RabbitMQ)
+docker-compose up
+
+# Enviar dados via produtor
+docker-compose --profile envio up produtor
+```
 
 ---
 
@@ -353,6 +539,13 @@ python -m pytest tests/test_marco1.py -v
 python -m pytest tests/test_marco2.py -v
 ```
 
+### Apenas Middleware
+
+```bash
+# Requer RabbitMQ rodando
+python -m pytest tests/test_middleware.py -v
+```
+
 ### Testes incluídos
 
 **Marco 1 (17 testes)**:
@@ -375,3 +568,17 @@ python -m pytest tests/test_marco2.py -v
 - POST via balanceador funciona
 - Distribuição Round Robin é verificável
 - Dados são armazenados no servidor correto
+
+**Middleware RabbitMQ (12 testes)**:
+- Configuração importa e valida
+- Parâmetros de conexão são válidos
+- Exchange e fila são declarados corretamente
+- Produtor publica mensagens na fila
+- Múltiplas mensagens são enfileiradas
+- Conteúdo JSON é preservado
+- Consumidor lê mensagens da fila
+- Mensagens persistem sem consumidor ativo
+- NACK com requeue devolve mensagem
+- Fluxo publicar/consumir esvazia a fila
+- Ordem FIFO é mantida
+- ACK remove mensagem definitivamente

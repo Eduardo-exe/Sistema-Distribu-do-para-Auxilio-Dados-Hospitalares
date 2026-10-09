@@ -26,6 +26,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 import httpx
 import uvicorn
@@ -270,6 +271,14 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
         lifespan=lifespan,
     )
 
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     # ── Servir HTML ──────────────────────────────────────────
 
     @app.get("/", response_class=HTMLResponse)
@@ -324,6 +333,9 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
         """Inicia simulação automática."""
         if state.running or state.processing:
             return {"status": "ocupado"}
+        # Se atingiu o limite anterior ou o final do arquivo, reinicia do zero
+        if (state.limit > 0 and state.current_index >= state.limit) or state.current_index >= len(state.records):
+            state.reset()
         state.speed = velocidade
         state.limit = limite
         state.simulation_task = asyncio.create_task(run_simulation(state))
@@ -334,6 +346,12 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
         """Processa apenas a próxima requisição (step-by-step)."""
         if state.running or state.processing:
             return {"status": "ocupado"}
+        # Se atingiu o limite mas não o final do arquivo, expande o limite para permitir avançar
+        if 0 < state.limit <= state.current_index and state.current_index < len(state.records):
+            state.limit = state.current_index + 1
+        elif state.current_index >= len(state.records):
+            state.reset()
+            state.limit = 1
         state.processing = True
 
         async def _process():
@@ -427,4 +445,4 @@ if __name__ == "__main__":
     print()
 
     app = create_app(args.csv, args.lb_url)
-    uvicorn.run(app, host="0.0.0.0", port=args.port)
+    uvicorn.run(app, host="0.0.0.0", port=args.port, access_log=False)

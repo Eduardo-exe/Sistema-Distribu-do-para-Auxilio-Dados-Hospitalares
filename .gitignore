@@ -18,15 +18,22 @@ htmlcov/
 databases/*.db
 !databases/.gitkeep
 
-# Arquivos auxiliares do LaTeX (mantém o .tex e o .pdf)
-relatorio/*.aux
-relatorio/*.log
-relatorio/*.out
-relatorio/*.toc
+# Pasta de relatórios (não versionar no git)
+relatorio/
 
 # Arquivos compactados de backup
 *.zip
 
+# Logs de runtime
+logs/*.log
+
+# Vagrant / VirtualBox
+.vagrant/
+
+# Docker
+.docker/
+
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
