@@ -325,12 +325,17 @@ def criar_balanceador(
                 content={"detail": "Nenhum servidor reserva disponível no momento."},
             )
         print(f"[BALANCEADOR] 🚀 ESCALA HORIZONTAL: Servidor reserva {alvo} ATIVADO na rota!")
+        n = len(balancer.servidores)
+        pct = f"{(100.0 / n):.1f}%" if n > 0 else "0%"
         return {
-            "status": "ativado",
+            "status": "ok",
+            "acao": "servidor_reserva_ativado",
+            "mensagem": f"Servidor reserva {alvo} ativado! Pool agora com {n} nós.",
             "servidor_ativado": alvo,
             "servidores_ativos": balancer.servidores,
             "servidores_reserva": balancer.servidores_reserva,
-            "total_ativos": len(balancer.servidores),
+            "total_servidores": n,
+            "distribuicao_esperada": pct,
         }
 
     @app.post("/servidores/desativar-reserva")
@@ -343,12 +348,17 @@ def criar_balanceador(
                 content={"detail": "Nenhum servidor reserva ativo para desativar."},
             )
         print(f"[BALANCEADOR] ⬇️ SCALE-IN: Servidor reserva {alvo} DESATIVADO da rota!")
+        n = len(balancer.servidores)
+        pct = f"{(100.0 / n):.1f}%" if n > 0 else "0%"
         return {
-            "status": "desativado",
+            "status": "ok",
+            "acao": "servidor_reserva_desativado",
+            "mensagem": f"Servidor reserva {alvo} desativado. Pool com {n} nós.",
             "servidor_desativado": alvo,
             "servidores_ativos": balancer.servidores,
             "servidores_reserva": balancer.servidores_reserva,
-            "total_ativos": len(balancer.servidores),
+            "total_servidores": n,
+            "distribuicao_esperada": pct,
         }
 
     @app.get("/health")

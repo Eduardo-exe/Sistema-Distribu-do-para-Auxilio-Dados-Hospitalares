@@ -46,6 +46,22 @@ PORTAS_TESTE = [19101, 19102, 19103, 19104]  # S1, S2, S3 e S4 (reserva)
 PORTA_LB_TESTE = 19100
 
 
+def _rabbitmq_disponivel():
+    """Retorna True se o RabbitMQ está acessível na porta 5672."""
+    try:
+        conn = pika.BlockingConnection(get_connection_params())
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
+requer_rabbitmq = pytest.mark.skipif(
+    not _rabbitmq_disponivel(),
+    reason="RabbitMQ não está rodando (docker start rabbitmq-sd)",
+)
+
+
 def _exemplo_telemetria(paciente_id: int = 100) -> dict:
     return {
         "paciente_id": paciente_id,
@@ -137,6 +153,7 @@ class TestMarco3ReplicacaoEEscalabilidade:
         assert len(data["servidores_reserva"]) == 1
         assert data["distribuicao_esperada_por_no"] == "33.3%"
 
+    @requer_rabbitmq
     def test_03_replicacao_fanout_em_todos_os_bancos(self):
         """
         Publica uma mensagem na exchange Fanout e consome pelas 4 filas.
@@ -189,6 +206,7 @@ class TestMarco3ReplicacaoEEscalabilidade:
             assert registros[0]["frequencia_cardiaca"] == 82
             assert registros[0]["spo2"] == 98
 
+    @requer_rabbitmq
     def test_04_consultas_get_sem_erro_404(self):
         """
         Como todos os 4 servidores possuem o paciente 777,
@@ -210,8 +228,9 @@ class TestMarco3ReplicacaoEEscalabilidade:
         resp = requests.post(f"{self.lb_url}/servidores/ativar-reserva", timeout=3)
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "ativado"
-        assert data["total_ativos"] == 4
+        assert data["status"] == "ok"
+        assert data["acao"] == "servidor_reserva_ativado"
+        assert data["total_servidores"] == 4
         assert len(data["servidores_reserva"]) == 0
 
         # Checar status atualizado do balanceador
@@ -219,6 +238,7 @@ class TestMarco3ReplicacaoEEscalabilidade:
         assert st["total_servidores"] == 4
         assert st["distribuicao_esperada_por_no"] == "25.0%"
 
+    @requer_rabbitmq
     def test_06_distribuicao_uniforme_com_4_servidores(self):
         """
         Com 4 servidores ativos, 4 requisições consecutivas devem
@@ -243,8 +263,9 @@ class TestMarco3ReplicacaoEEscalabilidade:
         resp = requests.post(f"{self.lb_url}/servidores/desativar-reserva", timeout=3)
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "desativado"
-        assert data["total_ativos"] == 3
+        assert data["status"] == "ok"
+        assert data["acao"] == "servidor_reserva_desativado"
+        assert data["total_servidores"] == 3
         assert len(data["servidores_reserva"]) == 1
 
         st = requests.get(f"{self.lb_url}/status", timeout=3).json()
