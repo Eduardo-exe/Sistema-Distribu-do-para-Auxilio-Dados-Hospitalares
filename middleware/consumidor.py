@@ -1,25 +1,33 @@
 # middleware/consumidor.py
 """
-Consumidor AMQP — Consome mensagens do RabbitMQ e encaminha ao Load Balancer.
+Consumidor AMQP — Middleware RabbitMQ (MOM).
 
-O consumidor:
-1. Conecta ao RabbitMQ via AMQP
-2. Declara a exchange e a fila (idempotente)
-3. Consome mensagens da fila uma a uma (prefetch=1)
-4. Para cada mensagem, faz HTTP POST ao Load Balancer
-5. Envia ACK somente após confirmação do Load Balancer
-6. Em caso de erro no POST, faz NACK (requeue) para retentar
+Marco 3 — Replicação de Dados (Fanout):
+- Consome mensagens das filas individuais de cada servidor
+- Encaminha diretamente ao endpoint do servidor backend (/dados)
+- Garante persistência com ACK manual e reenfileiramento (NACK) em caso de falha
+- Suporta modo unitário (1 fila/servidor) ou modo multi-servidor (--multi)
 
 Uso:
-    python middleware/consumidor.py
-    python middleware/consumidor.py --lb-url http://192.168.56.12:8000
-    RABBITMQ_HOST=192.168.56.11 python middleware/consumidor.py
+    # Modo replicador completo (consome todas as 4 filas em paralelo):
+    python middleware/consumidor.py --multi
+
+    # Modo por nó (ideal para deploy em VMs independentes):
+    python middleware/consumidor.py --fila fila_servidor_1 --servidor-url http://localhost:8001
+    python middleware/consumidor.py --fila fila_servidor_2 --servidor-url http://localhost:8002
+    python middleware/consumidor.py --fila fila_servidor_3 --servidor-url http://localhost:8003
+    python middleware/consumidor.py --fila fila_servidor_4 --servidor-url http://localhost:8004
+
+    # Modo legado (via Load Balancer):
+    python middleware/consumidor.py --lb-url http://localhost:8000
 """
 
 import argparse
 import json
 import os
 import sys
+import threading
+import time
 
 import pika
 import requests
@@ -31,8 +39,10 @@ from middleware.config import (
     get_connection_params,
     declarar_infraestrutura,
     EXCHANGE_NAME,
+    EXCHANGE_TYPE,
     QUEUE_NAME,
     ROUTING_KEY,
+    FILAS_SERVIDORES,
     LOAD_BALANCER_URL,
     PREFETCH_COUNT,
 )
@@ -40,175 +50,183 @@ from middleware.config import (
 
 class ConsumidorAMQP:
     """
-    Consumidor de mensagens AMQP do RabbitMQ.
+    Consumidor de mensagens AMQP do RabbitMQ para um servidor de destino.
 
-    Consome mensagens da fila de telemetria hospitalar e encaminha
-    cada uma via HTTP POST ao Load Balancer, garantindo entrega
-    com ACK/NACK manual.
+    Consome dados de uma fila específica e encaminha via HTTP POST ao servidor
+    backend associado, garantindo confiabilidade com ACK/NACK manual.
     """
 
-    def __init__(self, lb_url: str = None):
+    def __init__(
+        self,
+        queue_name: str = None,
+        target_url: str = None,
+        server_id: str = None,
+    ):
         """
         Args:
-            lb_url: URL base do Load Balancer.
+            queue_name: Nome da fila RabbitMQ a escutar.
+            target_url: URL base do servidor ou balanceador de destino.
+            server_id: Identificador descritivo do nó.
         """
-        self.lb_url = lb_url or LOAD_BALANCER_URL
+        self.queue_name = queue_name or QUEUE_NAME
+        self.target_url = (target_url or LOAD_BALANCER_URL).rstrip("/")
+        self.server_id = server_id or self.queue_name
         self.total_consumidos = 0
         self.total_sucesso = 0
         self.total_erros = 0
         self.connection = None
         self.channel = None
+        self.ativo = True
 
     def conectar(self):
-        """Estabelece conexão com o RabbitMQ e configura o canal."""
+        """Estabelece conexão com o RabbitMQ e configura canal e prefetch."""
         params = get_connection_params()
-        print(f"[CONSUMIDOR] Conectando ao RabbitMQ em {params.host}:{params.port}...")
+        print(f"[{self.server_id}] Conectando ao RabbitMQ em {params.host}:{params.port}...")
 
         try:
             self.connection = pika.BlockingConnection(params)
         except pika.exceptions.AMQPConnectionError as e:
-            print(f"[CONSUMIDOR] ERRO: Não foi possível conectar ao RabbitMQ: {e}")
-            print(f"[CONSUMIDOR] Verifique se o RabbitMQ está rodando em {params.host}:{params.port}")
+            print(f"[{self.server_id}] ERRO: Não foi possível conectar ao RabbitMQ: {e}")
             sys.exit(1)
 
         self.channel = self.connection.channel()
 
-        # Declarar infraestrutura (idempotente)
+        # Declarar infraestrutura completa (idempotente)
         declarar_infraestrutura(self.channel)
 
-        # Configurar QoS: processar uma mensagem de cada vez
+        # Configurar QoS
         self.channel.basic_qos(prefetch_count=PREFETCH_COUNT)
 
-        print(f"[CONSUMIDOR] Conectado com sucesso!")
-        print(f"[CONSUMIDOR] Fila: {QUEUE_NAME}")
-        print(f"[CONSUMIDOR] Load Balancer: {self.lb_url}")
-        print(f"[CONSUMIDOR] Prefetch: {PREFETCH_COUNT}")
+        print(f"[{self.server_id}] ✓ Conectado! Fila: '{self.queue_name}' → Destino: {self.target_url}")
 
     def _callback(self, ch, method, properties, body):
-        """
-        Callback executado para cada mensagem recebida da fila.
+        """Processa mensagem recebida da fila."""
+        if not self.ativo:
+            return
 
-        Args:
-            ch: Canal pika.
-            method: Metadados da entrega (delivery_tag, routing_key, etc.).
-            properties: Propriedades da mensagem (content_type, etc.).
-            body: Corpo da mensagem em bytes.
-        """
         self.total_consumidos += 1
 
         try:
-            # Decodificar mensagem JSON
             dados = json.loads(body.decode("utf-8"))
             paciente_id = dados.get("paciente_id", "?")
 
-            print(
-                f"[CONSUMIDOR] [{self.total_consumidos:>5}] Consumido: "
-                f"paciente_id={paciente_id} ← fila '{QUEUE_NAME}'"
-            )
-
-            # Encaminhar ao Load Balancer via HTTP POST
-            url = f"{self.lb_url}/dados"
-            response = requests.post(url, json=dados, timeout=10)
+            # Encaminhar ao servidor de destino via POST /dados
+            url = f"{self.target_url}/dados"
+            response = requests.post(url, json=dados, timeout=8)
 
             if response.status_code == 200:
-                resp_json = response.json()
-                server_id = resp_json.get("server_id", "desconhecido")
                 self.total_sucesso += 1
-
+                resp_json = response.json()
+                sid = resp_json.get("server_id", self.server_id)
                 print(
-                    f"[CONSUMIDOR] [{self.total_consumidos:>5}] ✓ Encaminhado: "
-                    f"paciente_id={paciente_id} → {server_id} "
-                    f"(via {self.lb_url})"
+                    f"[{self.server_id}] [{self.total_consumidos:>4}] ✓ Replicado: "
+                    f"paciente_id={paciente_id} em {sid} (200 OK)"
                 )
-
-                # ACK: mensagem processada com sucesso, remover da fila
                 ch.basic_ack(delivery_tag=method.delivery_tag)
-
             else:
                 self.total_erros += 1
                 print(
-                    f"[CONSUMIDOR] [{self.total_consumidos:>5}] ✗ HTTP {response.status_code}: "
-                    f"paciente_id={paciente_id} → {response.text[:100]}"
+                    f"[{self.server_id}] [{self.total_consumidos:>4}] ✗ HTTP {response.status_code} "
+                    f"ao persistir paciente {paciente_id}: {response.text[:80]}"
                 )
-                # NACK com requeue: devolver à fila para retentar
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
         except requests.exceptions.ConnectionError:
             self.total_erros += 1
             print(
-                f"[CONSUMIDOR] [{self.total_consumidos:>5}] ✗ Não foi possível "
-                f"conectar ao Load Balancer ({self.lb_url})"
+                f"[{self.server_id}] [{self.total_consumidos:>4}] ✗ Destino {self.target_url} offline. "
+                f"Mensagem mantida na fila RabbitMQ (requeue=True)."
             )
-            # NACK com requeue: o Load Balancer pode estar temporariamente fora
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            time.sleep(1)
 
         except requests.exceptions.Timeout:
             self.total_erros += 1
-            print(
-                f"[CONSUMIDOR] [{self.total_consumidos:>5}] ✗ Timeout ao "
-                f"conectar ao Load Balancer"
-            )
+            print(f"[{self.server_id}] ✗ Timeout em {self.target_url}")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
         except json.JSONDecodeError as e:
             self.total_erros += 1
-            print(
-                f"[CONSUMIDOR] [{self.total_consumidos:>5}] ✗ Mensagem inválida "
-                f"(não é JSON): {e}"
-            )
-            # ACK mesmo com erro: mensagem corrompida não deve voltar à fila
+            print(f"[{self.server_id}] ✗ JSON inválido descartado: {e}")
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
             self.total_erros += 1
-            print(
-                f"[CONSUMIDOR] [{self.total_consumidos:>5}] ✗ Erro inesperado: {e}"
-            )
+            print(f"[{self.server_id}] ✗ Erro inesperado: {e}")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
     def iniciar(self):
-        """
-        Inicia o consumo de mensagens (loop bloqueante).
+        """Inicia escuta bloqueante da fila."""
+        if not self.channel:
+            self.conectar()
 
-        Fica ouvindo a fila indefinidamente até receber Ctrl+C.
-        """
-        print()
-        print("=" * 60)
-        print("  CONSUMIDOR AMQP — Middleware RabbitMQ")
-        print("=" * 60)
-        print(f"  Fila:           {QUEUE_NAME}")
-        print(f"  Exchange:       {EXCHANGE_NAME}")
-        print(f"  Routing Key:    {ROUTING_KEY}")
-        print(f"  Load Balancer:  {self.lb_url}")
-        print(f"  Prefetch Count: {PREFETCH_COUNT}")
-        print("=" * 60)
-        print()
-        print("[CONSUMIDOR] Aguardando mensagens... (Ctrl+C para parar)")
-        print()
-
-        # Registrar callback e iniciar consumo
         self.channel.basic_consume(
-            queue=QUEUE_NAME,
+            queue=self.queue_name,
             on_message_callback=self._callback,
-            auto_ack=False,  # ACK manual para garantir processamento
+            auto_ack=False,
         )
 
         try:
             self.channel.start_consuming()
         except KeyboardInterrupt:
-            print("\n[CONSUMIDOR] Interrompido pelo usuário.")
-            self.channel.stop_consuming()
-        finally:
-            if self.connection and self.connection.is_open:
-                self.connection.close()
+            self.parar()
 
-            print()
-            print("=" * 60)
-            print(f"  Consumo finalizado!")
-            print(f"  Total consumidos: {self.total_consumidos}")
-            print(f"  Sucesso:          {self.total_sucesso}")
-            print(f"  Erros:            {self.total_erros}")
-            print("=" * 60)
+    def parar(self):
+        """Interrompe o consumo com segurança."""
+        self.ativo = False
+        if self.channel and self.channel.is_open:
+            try:
+                self.channel.stop_consuming()
+            except Exception:
+                pass
+        if self.connection and self.connection.is_open:
+            try:
+                self.connection.close()
+            except Exception:
+                pass
+
+
+def iniciar_multi_consumidores():
+    """
+    Inicia consumidores dedicados para todas as filas de replicação
+    em threads paralelas (Marco 3).
+    """
+    print()
+    print("=" * 65)
+    print("  MIDDLEWARE FANOUT — Replicação e Sincronização de Bancos")
+    print("=" * 65)
+    print(f"  Exchange:       {EXCHANGE_NAME} (tipo: {EXCHANGE_TYPE})")
+    print(f"  Filas Ativas:   {len(FILAS_SERVIDORES)}")
+    for f in FILAS_SERVIDORES:
+        print(f"    • {f['fila']:<18} → {f['servidor_url']} ({f['server_id']})")
+    print("=" * 65)
+    print()
+
+    consumidores = []
+    threads = []
+
+    for info in FILAS_SERVIDORES:
+        c = ConsumidorAMQP(
+            queue_name=info["fila"],
+            target_url=info["servidor_url"],
+            server_id=info["server_id"],
+        )
+        consumidores.append(c)
+        t = threading.Thread(target=c.iniciar, daemon=True)
+        threads.append(t)
+        t.start()
+
+    print("[MULTI-CONSUMIDOR] Todos os ouvintes de replicação iniciados!")
+    print("[MULTI-CONSUMIDOR] Pressione Ctrl+C para encerrar.")
+    print()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n[MULTI-CONSUMIDOR] Encerrando ouvintes...")
+        for c in consumidores:
+            c.parar()
 
 
 # ============================================================
@@ -217,15 +235,43 @@ class ConsumidorAMQP:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Consumidor AMQP — Consome da fila e encaminha ao Load Balancer"
+        description="Consumidor AMQP — Middleware RabbitMQ (Marco 3: Replicação Fanout)"
     )
     parser.add_argument(
-        "--lb-url", type=str, default=LOAD_BALANCER_URL,
-        help=f"URL do Load Balancer (padrão: {LOAD_BALANCER_URL})"
+        "--multi", action="store_true",
+        help="Inicia consumidores para todas as filas de replicação em paralelo"
+    )
+    parser.add_argument(
+        "--fila", type=str, default="",
+        help="Nome da fila específica a escutar"
+    )
+    parser.add_argument(
+        "--servidor-url", type=str, default="",
+        help="URL do servidor backend de destino (ex: http://localhost:8001)"
+    )
+    parser.add_argument(
+        "--lb-url", type=str, default="",
+        help="URL do Load Balancer (modo legado)"
+    )
+    parser.add_argument(
+        "--server-id", type=str, default="",
+        help="Identificador do nó para logs"
     )
 
     args = parser.parse_args()
 
-    consumidor = ConsumidorAMQP(lb_url=args.lb_url)
-    consumidor.conectar()
-    consumidor.iniciar()
+    if args.multi:
+        iniciar_multi_consumidores()
+    else:
+        # Se passado --lb-url ou nenhum argumento, usa a fila legada e aponta para o LB
+        target = args.servidor_url or args.lb_url or LOAD_BALANCER_URL
+        queue = args.fila or QUEUE_NAME
+        sid = args.server_id or ("LB" if args.lb_url else queue)
+
+        consumidor = ConsumidorAMQP(
+            queue_name=queue,
+            target_url=target,
+            server_id=sid,
+        )
+        consumidor.conectar()
+        consumidor.iniciar()

@@ -31,6 +31,8 @@
       --color-s2-glow: rgba(139, 92, 246, 0.3);
       --color-s3: #ec4899;
       --color-s3-glow: rgba(236, 72, 153, 0.3);
+      --color-s4: #10b981;
+      --color-s4-glow: rgba(16, 185, 129, 0.3);
       --color-mw: #f97316;
       --color-mw-glow: rgba(249, 115, 22, 0.3);
       --color-db: #6366f1;
@@ -116,6 +118,12 @@
       letter-spacing: 0.05em;
     }
 
+    .badge-milestone.badge-m3 {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
     .brand-title p {
       font-size: 0.8rem;
       color: var(--text-muted);
@@ -197,6 +205,30 @@
       background: rgba(239, 68, 68, 0.15);
     }
 
+    /* Elastic Scaling Button */
+    .btn-reserve {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-reserve:hover {
+      background: rgba(16, 185, 129, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .btn-reserve.ativo {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      box-shadow: 0 2px 10px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-reserve.ativo:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
     .control-setting {
       display: flex;
       align-items: center;
@@ -242,7 +274,7 @@
       display: grid;
       grid-template-columns: 1fr 390px;
       gap: 1.5rem;
-      max-width: 1780px;
+      max-width: 1880px;
       width: 100%;
       margin: 0 auto;
     }
@@ -346,11 +378,24 @@
       transform: scale(1.15);
     }
 
+    .rr-dot.active-s4 {
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #10b981;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+      transform: scale(1.15);
+    }
+
+    .rr-dot.standby {
+      opacity: 0.4;
+      border-style: dashed;
+    }
+
     /* SVG Canvas Area */
     .canvas-container {
       flex: 1;
       position: relative;
-      min-height: 680px;
+      min-height: 700px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -359,7 +404,7 @@
     svg#arch-canvas {
       width: 100%;
       height: 100%;
-      min-height: 680px;
+      min-height: 700px;
       overflow: visible;
     }
 
@@ -391,6 +436,11 @@
       stroke: var(--color-s3);
       stroke-width: 3.5;
       filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.8));
+    }
+    .pipe-s4.active-flow {
+      stroke: var(--color-s4);
+      stroke-width: 3.5;
+      filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.8));
     }
     .pipe-common.active-flow {
       stroke: var(--color-client);
@@ -444,6 +494,7 @@
     .node-s1.active-node .node-bg { stroke: var(--color-s1); color: var(--color-s1); }
     .node-s2.active-node .node-bg { stroke: var(--color-s2); color: var(--color-s2); }
     .node-s3.active-node .node-bg { stroke: var(--color-s3); color: var(--color-s3); }
+    .node-s4.active-node .node-bg { stroke: var(--color-s4); color: var(--color-s4); }
     .node-mw.active-node .node-bg { stroke: var(--color-mw); color: var(--color-mw); }
     .node-db.active-node .node-bg { stroke: var(--color-db); color: var(--color-db); }
 
@@ -691,6 +742,7 @@
     .dist-bar.bar-s1 { background: linear-gradient(90deg, #2563eb, #60a5fa); }
     .dist-bar.bar-s2 { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
     .dist-bar.bar-s3 { background: linear-gradient(90deg, #db2777, #f472b6); }
+    .dist-bar.bar-s4 { background: linear-gradient(90deg, #059669, #34d399); }
 
     /* Live Events Terminal Log */
     .events-log {
@@ -739,6 +791,7 @@
     .log-item.log-s1 { border-color: var(--color-s1); }
     .log-item.log-s2 { border-color: var(--color-s2); }
     .log-item.log-s3 { border-color: var(--color-s3); }
+    .log-item.log-s4 { border-color: var(--color-s4); }
     .log-item.log-complete { border-color: var(--color-success); background: rgba(16, 185, 129, 0.05); }
     .log-item.log-error { border-color: var(--color-danger); background: rgba(239, 68, 68, 0.08); }
 
@@ -779,9 +832,9 @@
       <div class="brand-title">
         <h1>
           Monitor do Sistema Distribuído
-          <span class="badge-milestone">Marcos 1 & 2</span>
+          <span class="badge-milestone badge-m3">Marcos 1, 2 & 3 • Fanout + Standby</span>
         </h1>
-        <p>Visualização Didática em Tempo Real — Hospital Data Stream</p>
+        <p>Visualização Didática em Tempo Real — Hospital Data Stream & Elastic Standby</p>
       </div>
     </div>
 
@@ -804,6 +857,12 @@
           Reiniciar
         </button>
       </div>
+
+      <!-- Scale-Out Elastic Pooling Button -->
+      <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
+        <span id="reserva-icon">⚡</span>
+        <span id="reserva-label">Ativar Reserva (Scale-Out)</span>
+      </button>
 
       <div class="control-setting">
         <span>Qtd:</span>
@@ -842,18 +901,20 @@
           Topologia e Tráfego do Sistema
         </div>
         <div class="round-robin-indicator">
-          <span class="rr-label">Round Robin Turno:</span>
+          <span id="lbl-balanceamento-modo" style="color: #60a5fa; font-weight: 600; font-family: 'JetBrains Mono', monospace;">Carga: 33.3% por nó (3 nós)</span>
+          <span class="rr-label">| Turno:</span>
           <div class="rr-nodes">
             <div id="rr-1" class="rr-dot">1</div>
             <div id="rr-2" class="rr-dot">2</div>
             <div id="rr-3" class="rr-dot">3</div>
+            <div id="rr-4" class="rr-dot standby" title="Servidor 04 Reserva (Standby)">4</div>
           </div>
         </div>
       </div>
 
       <!-- Interactive SVG Topology -->
       <div class="canvas-container">
-        <svg id="arch-canvas" viewBox="0 0 940 680" preserveAspectRatio="xMidYMid meet">
+        <svg id="arch-canvas" viewBox="0 0 1180 700" preserveAspectRatio="xMidYMid meet">
           <defs>
             <!-- Node Shadows and Filters -->
             <filter id="glow-filter" x="-20%" y="-20%" width="140%" height="140%">
@@ -890,6 +951,10 @@
               <stop offset="0%" stop-color="#be185d" />
               <stop offset="100%" stop-color="#ec4899" />
             </linearGradient>
+            <linearGradient id="grad-s4" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#059669" />
+              <stop offset="100%" stop-color="#34d399" />
+            </linearGradient>
             <linearGradient id="grad-db" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stop-color="#4338ca" />
               <stop offset="100%" stop-color="#6366f1" />
@@ -900,31 +965,37 @@
           <!-- CONNECTION PIPES (Background Network Routing)   -->
           <!-- ============================================== -->
           <!-- CSV -> Client -->
-          <path id="pipe-csv-client" class="pipe pipe-common" d="M 230 70 L 370 70" />
+          <path id="pipe-csv-client" class="pipe pipe-common" d="M 370 70 L 480 70" />
 
           <!-- Client -> Middleware RabbitMQ (AMQP publish) -->
-          <path id="pipe-client-mw" class="pipe pipe-mw" d="M 470 105 L 470 170" />
+          <path id="pipe-client-mw" class="pipe pipe-mw" d="M 590 105 L 590 170" />
 
           <!-- Middleware RabbitMQ -> Load Balancer (AMQP consume + HTTP POST) -->
-          <path id="pipe-mw-lb" class="pipe pipe-mw" d="M 470 240 L 470 290" />
+          <path id="pipe-mw-lb" class="pipe pipe-mw" d="M 590 245 L 590 290" />
 
           <!-- Load Balancer -> Server 1 -->
-          <path id="pipe-lb-s1" class="pipe pipe-s1" d="M 410 325 C 330 325, 175 360, 175 410" />
+          <path id="pipe-lb-s1" class="pipe pipe-s1" d="M 500 345 C 380 360, 160 370, 160 420" />
 
           <!-- Load Balancer -> Server 2 -->
-          <path id="pipe-lb-s2" class="pipe pipe-s2" d="M 470 360 L 470 410" />
+          <path id="pipe-lb-s2" class="pipe pipe-s2" d="M 540 360 C 510 380, 445 385, 445 420" />
 
           <!-- Load Balancer -> Server 3 -->
-          <path id="pipe-lb-s3" class="pipe pipe-s3" d="M 530 325 C 610 325, 765 360, 765 410" />
+          <path id="pipe-lb-s3" class="pipe pipe-s3" d="M 640 360 C 670 380, 730 385, 730 420" />
+
+          <!-- Load Balancer -> Server 4 (Reserva) -->
+          <path id="pipe-lb-s4" class="pipe pipe-s4" d="M 680 345 C 800 360, 1017 370, 1017 420" />
 
           <!-- Server 1 -> Database 1 -->
-          <path id="pipe-s1-db" class="pipe pipe-s1" d="M 175 480 L 175 550" />
+          <path id="pipe-s1-db" class="pipe pipe-s1" d="M 160 490 L 160 560" />
 
           <!-- Server 2 -> Database 2 -->
-          <path id="pipe-s2-db" class="pipe pipe-s2" d="M 470 480 L 470 550" />
+          <path id="pipe-s2-db" class="pipe pipe-s2" d="M 445 490 L 445 560" />
 
           <!-- Server 3 -> Database 3 -->
-          <path id="pipe-s3-db" class="pipe pipe-s3" d="M 765 480 L 765 550" />
+          <path id="pipe-s3-db" class="pipe pipe-s3" d="M 730 490 L 730 560" />
+
+          <!-- Server 4 -> Database 4 -->
+          <path id="pipe-s4-db" class="pipe pipe-s4" d="M 1017 490 L 1017 560" />
 
 
           <!-- ============================================== -->
@@ -932,75 +1003,87 @@
           <!-- ============================================== -->
 
           <!-- VM 1: CLIENTE (192.168.56.10) -->
-          <rect x="45" y="18" width="540" height="100" rx="14" ry="14"
+          <rect x="180" y="18" width="530" height="100" rx="14" ry="14"
                 fill="none" stroke="rgba(6, 182, 212, 0.25)" stroke-width="1.5"
                 stroke-dasharray="8 5" />
-          <rect x="47" y="20" width="130" height="22" rx="6" fill="rgba(6, 182, 212, 0.12)" />
-          <text x="56" y="35" font-size="9" font-weight="700" fill="#06b6d4" font-family="JetBrains Mono, monospace">
+          <rect x="182" y="20" width="130" height="22" rx="6" fill="rgba(6, 182, 212, 0.12)" />
+          <text x="191" y="35" font-size="9" font-weight="700" fill="#06b6d4" font-family="JetBrains Mono, monospace">
             🖥 VM-CLIENTE
           </text>
-          <text x="155" y="35" font-size="8" fill="rgba(6, 182, 212, 0.7)" font-family="JetBrains Mono, monospace">
+          <text x="290" y="35" font-size="8" fill="rgba(6, 182, 212, 0.7)" font-family="JetBrains Mono, monospace">
             192.168.56.10
           </text>
 
           <!-- VM 2: MIDDLEWARE (192.168.56.11) -->
-          <rect x="315" y="153" width="300" height="100" rx="14" ry="14"
+          <rect x="420" y="153" width="340" height="105" rx="14" ry="14"
                 fill="none" stroke="rgba(249, 115, 22, 0.25)" stroke-width="1.5"
                 stroke-dasharray="8 5" />
-          <rect x="317" y="155" width="155" height="22" rx="6" fill="rgba(249, 115, 22, 0.12)" />
-          <text x="326" y="170" font-size="9" font-weight="700" fill="#f97316" font-family="JetBrains Mono, monospace">
+          <rect x="422" y="155" width="155" height="22" rx="6" fill="rgba(249, 115, 22, 0.12)" />
+          <text x="431" y="170" font-size="9" font-weight="700" fill="#f97316" font-family="JetBrains Mono, monospace">
             🖥 VM-MIDDLEWARE
           </text>
-          <text x="445" y="170" font-size="8" fill="rgba(249, 115, 22, 0.7)" font-family="JetBrains Mono, monospace">
+          <text x="550" y="170" font-size="8" fill="rgba(249, 115, 22, 0.7)" font-family="JetBrains Mono, monospace">
             192.168.56.11
           </text>
 
           <!-- VM 3: BALANCEADOR (192.168.56.12) -->
-          <rect x="335" y="263" width="260" height="100" rx="14" ry="14"
+          <rect x="450" y="273" width="280" height="100" rx="14" ry="14"
                 fill="none" stroke="rgba(245, 158, 11, 0.25)" stroke-width="1.5"
                 stroke-dasharray="8 5" />
-          <rect x="337" y="265" width="160" height="22" rx="6" fill="rgba(245, 158, 11, 0.12)" />
-          <text x="346" y="280" font-size="9" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono, monospace">
+          <rect x="452" y="275" width="160" height="22" rx="6" fill="rgba(245, 158, 11, 0.12)" />
+          <text x="461" y="290" font-size="9" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono, monospace">
             🖥 VM-BALANCEADOR
           </text>
-          <text x="472" y="280" font-size="8" fill="rgba(245, 158, 11, 0.7)" font-family="JetBrains Mono, monospace">
+          <text x="587" y="290" font-size="8" fill="rgba(245, 158, 11, 0.7)" font-family="JetBrains Mono, monospace">
             192.168.56.12
           </text>
 
           <!-- VM 4: SERVIDOR 01 (192.168.56.13) -->
-          <rect x="60" y="388" width="230" height="235" rx="14" ry="14"
+          <rect x="40" y="400" width="240" height="240" rx="14" ry="14"
                 fill="none" stroke="rgba(59, 130, 246, 0.3)" stroke-width="1.5"
                 stroke-dasharray="8 5" />
-          <rect x="62" y="380" width="165" height="22" rx="6" fill="rgba(59, 130, 246, 0.12)" />
-          <text x="70" y="395" font-size="9" font-weight="700" fill="#60a5fa" font-family="JetBrains Mono, monospace">
+          <rect x="42" y="392" width="165" height="22" rx="6" fill="rgba(59, 130, 246, 0.12)" />
+          <text x="50" y="407" font-size="9" font-weight="700" fill="#60a5fa" font-family="JetBrains Mono, monospace">
             🖥 VM-SERVIDOR-01
           </text>
-          <text x="175" y="395" font-size="8" fill="rgba(96, 165, 250, 0.7)" font-family="JetBrains Mono, monospace">
+          <text x="155" y="407" font-size="8" fill="rgba(96, 165, 250, 0.7)" font-family="JetBrains Mono, monospace">
             192.168.56.13
           </text>
 
           <!-- VM 5: SERVIDOR 02 (192.168.56.14) -->
-          <rect x="355" y="388" width="230" height="235" rx="14" ry="14"
+          <rect x="325" y="400" width="240" height="240" rx="14" ry="14"
                 fill="none" stroke="rgba(139, 92, 246, 0.3)" stroke-width="1.5"
                 stroke-dasharray="8 5" />
-          <rect x="357" y="380" width="165" height="22" rx="6" fill="rgba(139, 92, 246, 0.12)" />
-          <text x="365" y="395" font-size="9" font-weight="700" fill="#a78bfa" font-family="JetBrains Mono, monospace">
+          <rect x="327" y="392" width="165" height="22" rx="6" fill="rgba(139, 92, 246, 0.12)" />
+          <text x="335" y="407" font-size="9" font-weight="700" fill="#a78bfa" font-family="JetBrains Mono, monospace">
             🖥 VM-SERVIDOR-02
           </text>
-          <text x="470" y="395" font-size="8" fill="rgba(167, 139, 250, 0.7)" font-family="JetBrains Mono, monospace">
+          <text x="440" y="407" font-size="8" fill="rgba(167, 139, 250, 0.7)" font-family="JetBrains Mono, monospace">
             192.168.56.14
           </text>
 
           <!-- VM 6: SERVIDOR 03 (192.168.56.15) -->
-          <rect x="650" y="388" width="230" height="235" rx="14" ry="14"
+          <rect x="610" y="400" width="240" height="240" rx="14" ry="14"
                 fill="none" stroke="rgba(236, 72, 153, 0.3)" stroke-width="1.5"
                 stroke-dasharray="8 5" />
-          <rect x="652" y="380" width="165" height="22" rx="6" fill="rgba(236, 72, 153, 0.12)" />
-          <text x="660" y="395" font-size="9" font-weight="700" fill="#f472b6" font-family="JetBrains Mono, monospace">
+          <rect x="612" y="392" width="165" height="22" rx="6" fill="rgba(236, 72, 153, 0.12)" />
+          <text x="620" y="407" font-size="9" font-weight="700" fill="#f472b6" font-family="JetBrains Mono, monospace">
             🖥 VM-SERVIDOR-03
           </text>
-          <text x="765" y="395" font-size="8" fill="rgba(244, 114, 182, 0.7)" font-family="JetBrains Mono, monospace">
+          <text x="725" y="407" font-size="8" fill="rgba(244, 114, 182, 0.7)" font-family="JetBrains Mono, monospace">
             192.168.56.15
+          </text>
+
+          <!-- VM 7: SERVIDOR 04 (RESERVA WARM STANDBY) -->
+          <rect x="895" y="400" width="245" height="240" rx="14" ry="14"
+                fill="none" stroke="rgba(16, 185, 129, 0.35)" stroke-width="1.5"
+                stroke-dasharray="8 5" />
+          <rect x="897" y="392" width="185" height="22" rx="6" fill="rgba(16, 185, 129, 0.15)" />
+          <text x="905" y="407" font-size="9" font-weight="700" fill="#34d399" font-family="JetBrains Mono, monospace">
+            🖥 VM-SERVIDOR-04 (RESERVA)
+          </text>
+          <text x="1040" y="407" font-size="8" fill="rgba(52, 211, 153, 0.7)" font-family="JetBrains Mono, monospace">
+            :8004
           </text>
 
 
@@ -1009,8 +1092,8 @@
           <!-- ============================================== -->
 
           <!-- 1. CSV DATASET NODE -->
-          <g id="node-csv" class="node-box node-csv" transform="translate(60, 35)">
-            <rect class="node-bg" width="170" height="70" />
+          <g id="node-csv" class="node-box node-csv" transform="translate(195, 35)">
+            <rect class="node-bg" width="175" height="70" />
             <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-csv)" />
             <circle cx="32" cy="35" r="16" fill="rgba(16, 185, 129, 0.15)" />
             <text x="32" y="40" font-size="16" text-anchor="middle">📄</text>
@@ -1020,43 +1103,43 @@
           </g>
 
           <!-- 2. CSV SENDER CLIENT NODE -->
-          <g id="node-client" class="node-box node-client" transform="translate(370, 35)">
-            <rect class="node-bg" width="200" height="70" />
+          <g id="node-client" class="node-box node-client" transform="translate(480, 35)">
+            <rect class="node-bg" width="220" height="70" />
             <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-client)" />
             <circle cx="32" cy="35" r="16" fill="rgba(6, 182, 212, 0.15)" />
             <text x="32" y="40" font-size="16" text-anchor="middle">🚀</text>
             <text x="58" y="30" font-size="12" font-weight="700" fill="#f3f4f6">Produtor (Cliente)</text>
             <text x="58" y="46" font-size="9.5" fill="#9ca3af">middleware/produtor.py</text>
-            <text x="58" y="58" font-size="8.5" fill="#06b6d4" font-weight="600">Publica via AMQP</text>
+            <text x="58" y="58" font-size="8.5" fill="#06b6d4" font-weight="600">Publica via AMQP :5672</text>
           </g>
 
-          <!-- 2.5 MIDDLEWARE RABBITMQ NODE -->
-          <g id="node-mw" class="node-box node-mw" transform="translate(330, 170)">
-            <rect class="node-bg" width="280" height="70" />
-            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-mw)" />
-            <circle cx="35" cy="35" r="18" fill="rgba(249, 115, 22, 0.15)" />
-            <text x="35" y="41" font-size="18" text-anchor="middle">🐰</text>
+          <!-- 2.5 MIDDLEWARE RABBITMQ NODE (FANOUT BROADCAST) -->
+          <g id="node-mw" class="node-box node-mw" transform="translate(435, 170)">
+            <rect class="node-bg" width="310" height="75" />
+            <rect x="0" y="0" width="6" height="75" rx="3" fill="url(#grad-mw)" />
+            <circle cx="35" cy="37" r="18" fill="rgba(249, 115, 22, 0.15)" />
+            <text x="35" y="43" font-size="18" text-anchor="middle">🐰</text>
             <text x="64" y="24" font-size="13" font-weight="700" fill="#f3f4f6">Middleware RabbitMQ</text>
-            <text x="64" y="40" font-size="10" fill="#f97316" font-weight="600">AMQP :5672 • MOM</text>
-            <text x="64" y="54" font-size="8.5" fill="#9ca3af">Exchange: telemetria_hospitalar</text>
-            <text id="badge-mw-queue" x="64" y="65" font-size="8" fill="#fb923c">Fila: fila_dados_pacientes</text>
+            <text x="64" y="40" font-size="10" fill="#f97316" font-weight="600">AMQP :5672 • Exchange Fanout (Pub-Sub)</text>
+            <text x="64" y="54" font-size="8.5" fill="#9ca3af">Exchange: telemetria_hospitalar (Broadcast)</text>
+            <text id="badge-mw-queue" x="64" y="66" font-size="8" fill="#fb923c">Filas: fila_servidor_1 .. fila_servidor_4</text>
           </g>
 
-          <!-- 3. LOAD BALANCER + CONSUMIDOR NODE -->
-          <g id="node-lb" class="node-box node-lb" transform="translate(350, 290)">
+          <!-- 3. LOAD BALANCER NODE -->
+          <g id="node-lb" class="node-box node-lb" transform="translate(470, 290)">
             <rect class="node-bg" width="240" height="70" />
             <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-lb)" />
             <circle cx="35" cy="35" r="18" fill="rgba(245, 158, 11, 0.15)" />
             <text x="35" y="41" font-size="18" text-anchor="middle">⚖️</text>
             <text x="64" y="24" font-size="13" font-weight="700" fill="#f3f4f6">Load Balancer</text>
             <text x="64" y="40" font-size="10" fill="#f59e0b" font-weight="600">Porta 8000 • Round Robin</text>
-            <text x="64" y="54" font-size="8.5" fill="#9ca3af">Consumidor AMQP + Balanceador</text>
-            <text x="64" y="65" font-size="8" fill="#fbbf24">consumidor.py → balancer.py</text>
+            <text x="64" y="54" font-size="8.5" fill="#9ca3af">Escala Dinâmica + Failover</text>
+            <text x="64" y="65" font-size="8" fill="#fbbf24">Pool: 3 a 4 servidores ativos</text>
           </g>
 
-          <!-- 4. DISTRIBUTED SERVER NODES (Marco 1 & 2) -->
+          <!-- 4. DISTRIBUTED SERVER NODES (Marcos 1, 2 & 3) -->
           <!-- Server 01 -->
-          <g id="node-s1" class="node-box node-s1" transform="translate(80, 410)">
+          <g id="node-s1" class="node-box node-s1" transform="translate(65, 420)">
             <rect class="node-bg" width="190" height="70" />
             <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-s1)" />
             <circle cx="30" cy="35" r="16" fill="rgba(59, 130, 246, 0.15)" />
@@ -1067,7 +1150,7 @@
           </g>
 
           <!-- Server 02 -->
-          <g id="node-s2" class="node-box node-s2" transform="translate(375, 410)">
+          <g id="node-s2" class="node-box node-s2" transform="translate(350, 420)">
             <rect class="node-bg" width="190" height="70" />
             <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-s2)" />
             <circle cx="30" cy="35" r="16" fill="rgba(139, 92, 246, 0.15)" />
@@ -1078,7 +1161,7 @@
           </g>
 
           <!-- Server 03 -->
-          <g id="node-s3" class="node-box node-s3" transform="translate(670, 410)">
+          <g id="node-s3" class="node-box node-s3" transform="translate(635, 420)">
             <rect class="node-bg" width="190" height="70" />
             <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-s3)" />
             <circle cx="30" cy="35" r="16" fill="rgba(236, 72, 153, 0.15)" />
@@ -1088,32 +1171,52 @@
             <text id="badge-s3-count" x="54" y="58" font-size="9" fill="#9ca3af">0 requisições</text>
           </g>
 
-          <!-- 5. LOCAL SQLITE DATABASES -->
+          <!-- Server 04 (Reserva Warm Standby) -->
+          <g id="node-s4" class="node-box node-s4" transform="translate(920, 420)">
+            <rect class="node-bg" width="195" height="70" />
+            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-s4)" />
+            <circle cx="30" cy="35" r="16" fill="rgba(16, 185, 129, 0.15)" />
+            <text x="30" y="40" font-size="16" text-anchor="middle">🛡️</text>
+            <text x="54" y="27" font-size="12" font-weight="700" fill="#f3f4f6">Servidor 04 (Reserva)</text>
+            <text id="badge-s4-svg" x="54" y="42" font-size="9" fill="#f59e0b" font-weight="600">🟡 Standby / Réplica Pronta (:8004)</text>
+            <text id="badge-s4-count" x="54" y="58" font-size="9" fill="#9ca3af">0 requisições</text>
+          </g>
+
+          <!-- 5. LOCAL SQLITE DATABASES (Replicação Fanout) -->
           <!-- Database 1 -->
-          <g id="node-db1" class="node-box node-db" transform="translate(100, 550)">
+          <g id="node-db1" class="node-box node-db" transform="translate(85, 560)">
             <rect class="node-bg" width="150" height="60" />
             <rect x="0" y="0" width="5" height="60" rx="2.5" fill="url(#grad-db)" />
             <text x="25" y="36" font-size="18">💾</text>
             <text x="52" y="27" font-size="11" font-weight="700" fill="#f3f4f6">server1.db</text>
-            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Local</text>
+            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Sincronizado</text>
           </g>
 
           <!-- Database 2 -->
-          <g id="node-db2" class="node-box node-db" transform="translate(395, 550)">
+          <g id="node-db2" class="node-box node-db" transform="translate(370, 560)">
             <rect class="node-bg" width="150" height="60" />
             <rect x="0" y="0" width="5" height="60" rx="2.5" fill="url(#grad-db)" />
             <text x="25" y="36" font-size="18">💾</text>
             <text x="52" y="27" font-size="11" font-weight="700" fill="#f3f4f6">server2.db</text>
-            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Local</text>
+            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Sincronizado</text>
           </g>
 
           <!-- Database 3 -->
-          <g id="node-db3" class="node-box node-db" transform="translate(690, 550)">
+          <g id="node-db3" class="node-box node-db" transform="translate(655, 560)">
             <rect class="node-bg" width="150" height="60" />
             <rect x="0" y="0" width="5" height="60" rx="2.5" fill="url(#grad-db)" />
             <text x="25" y="36" font-size="18">💾</text>
             <text x="52" y="27" font-size="11" font-weight="700" fill="#f3f4f6">server3.db</text>
-            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Local</text>
+            <text x="52" y="44" font-size="9" fill="#818cf8">SQLite Sincronizado</text>
+          </g>
+
+          <!-- Database 4 -->
+          <g id="node-db4" class="node-box node-db" transform="translate(942, 560)">
+            <rect class="node-bg" width="150" height="60" />
+            <rect x="0" y="0" width="5" height="60" rx="2.5" fill="url(#grad-db)" />
+            <text x="25" y="36" font-size="18">💾</text>
+            <text x="52" y="27" font-size="11" font-weight="700" fill="#f3f4f6">server4.db</text>
+            <text x="52" y="44" font-size="9" fill="#34d399">SQLite Sincronizado</text>
           </g>
 
           <!-- FLYING PACKET ELEMENT -->
@@ -1180,7 +1283,7 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
             Métricas & Distribuição
           </div>
-          <span style="font-size: 0.72rem; color: var(--text-dim);">Marco 2</span>
+          <span style="font-size: 0.72rem; color: #34d399; font-weight: 600;">Marco 3 (Fanout)</span>
         </div>
 
         <div class="metrics-summary">
@@ -1231,6 +1334,20 @@
               <div id="dist-bar-s3" class="dist-bar bar-s3"></div>
             </div>
           </div>
+
+          <!-- Server 4 (Reserva Standby) -->
+          <div class="dist-row" id="dist-row-s4">
+            <div class="dist-header">
+              <span class="s-name" style="color: #34d399;">
+                ● Servidor 04 (:8004)
+                <span id="badge-s4-status" style="font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700;">STANDBY</span>
+              </span>
+              <span id="dist-count-s4" class="s-val">0 (0%)</span>
+            </div>
+            <div class="dist-track">
+              <div id="dist-bar-s4" class="dist-bar bar-s4"></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1257,8 +1374,9 @@
   <footer>
     <div>Sistema Distribuído Hospitalar • Disciplina de Sistemas Distribuídos</div>
     <div class="footer-tags">
-      <div class="footer-tag"><span>●</span> Marco 1: Ingestão CSV + SQLite</div>
-      <div class="footer-tag"><span>●</span> Marco 2: Load Balancer Round Robin</div>
+      <div class="footer-tag" style="color: #60a5fa;"><span>●</span> Marco 1: Ingestão CSV + SQLite</div>
+      <div class="footer-tag" style="color: #a78bfa;"><span>●</span> Marco 2: Load Balancer Round Robin</div>
+      <div class="footer-tag" style="color: #34d399;"><span>●</span> Marco 3: Fanout Pub-Sub + Standby Elástico</div>
       <div class="footer-tag" style="color: #10b981;"><span>●</span> SSE Streaming Ativo</div>
     </div>
   </footer>
@@ -1270,6 +1388,11 @@
     const btnStep = document.getElementById('btn-step');
     const btnPause = document.getElementById('btn-pause');
     const btnReset = document.getElementById('btn-reset');
+    const btnToggleReserva = document.getElementById('btn-toggle-reserva');
+    const reservaIcon = document.getElementById('reserva-icon');
+    const reservaLabel = document.getElementById('reserva-label');
+    const lblBalanceamentoModo = document.getElementById('lbl-balanceamento-modo');
+
     const selLimit = document.getElementById('sel-limit');
     const selSpeed = document.getElementById('sel-speed');
     const chkPresentation = document.getElementById('chk-presentation');
@@ -1281,6 +1404,7 @@
     const rr1 = document.getElementById('rr-1');
     const rr2 = document.getElementById('rr-2');
     const rr3 = document.getElementById('rr-3');
+    const rr4 = document.getElementById('rr-4');
 
     const valPaciente = document.getElementById('val-paciente');
     const valFc = document.getElementById('val-fc');
@@ -1297,13 +1421,18 @@
     const distCountS1 = document.getElementById('dist-count-s1');
     const distCountS2 = document.getElementById('dist-count-s2');
     const distCountS3 = document.getElementById('dist-count-s3');
+    const distCountS4 = document.getElementById('dist-count-s4');
     const distBarS1 = document.getElementById('dist-bar-s1');
     const distBarS2 = document.getElementById('dist-bar-s2');
     const distBarS3 = document.getElementById('dist-bar-s3');
+    const distBarS4 = document.getElementById('dist-bar-s4');
+    const badgeS4Status = document.getElementById('badge-s4-status');
+    const badgeS4Svg = document.getElementById('badge-s4-svg');
 
     const badgeS1Count = document.getElementById('badge-s1-count');
     const badgeS2Count = document.getElementById('badge-s2-count');
     const badgeS3Count = document.getElementById('badge-s3-count');
+    const badgeS4Count = document.getElementById('badge-s4-count');
 
     const eventsLog = document.getElementById('events-log');
     const flyingPacket = document.getElementById('flying-packet');
@@ -1316,9 +1445,11 @@
     const nodeS1 = document.getElementById('node-s1');
     const nodeS2 = document.getElementById('node-s2');
     const nodeS3 = document.getElementById('node-s3');
+    const nodeS4 = document.getElementById('node-s4');
     const nodeDb1 = document.getElementById('node-db1');
     const nodeDb2 = document.getElementById('node-db2');
     const nodeDb3 = document.getElementById('node-db3');
+    const nodeDb4 = document.getElementById('node-db4');
 
     // SVG Pipe references
     const pipeCsvClient = document.getElementById('pipe-csv-client');
@@ -1327,13 +1458,16 @@
     const pipeLbS1 = document.getElementById('pipe-lb-s1');
     const pipeLbS2 = document.getElementById('pipe-lb-s2');
     const pipeLbS3 = document.getElementById('pipe-lb-s3');
+    const pipeLbS4 = document.getElementById('pipe-lb-s4');
     const pipeS1Db = document.getElementById('pipe-s1-db');
     const pipeS2Db = document.getElementById('pipe-s2-db');
     const pipeS3Db = document.getElementById('pipe-s3-db');
+    const pipeS4Db = document.getElementById('pipe-s4-db');
 
     // State
     let isRunning = false;
     let packetAnimationTimer = null;
+    let reservaAtiva = false;
 
     // Toggle Presentation Mode
     chkPresentation.addEventListener('change', (e) => {
@@ -1370,15 +1504,16 @@
       rr1.className = 'rr-dot' + (serverNum === 1 ? ' active-s1' : '');
       rr2.className = 'rr-dot' + (serverNum === 2 ? ' active-s2' : '');
       rr3.className = 'rr-dot' + (serverNum === 3 ? ' active-s3' : '');
+      rr4.className = 'rr-dot' + (serverNum === 4 ? ' active-s4' : (reservaAtiva ? '' : ' standby'));
     }
 
     // Clear all node highlights
     function clearActiveNodes() {
-      [nodeCsv, nodeClient, nodeMw, nodeLb, nodeS1, nodeS2, nodeS3, nodeDb1, nodeDb2, nodeDb3].forEach(n => {
-        n.classList.remove('active-node');
+      [nodeCsv, nodeClient, nodeMw, nodeLb, nodeS1, nodeS2, nodeS3, nodeS4, nodeDb1, nodeDb2, nodeDb3, nodeDb4].forEach(n => {
+        if (n) n.classList.remove('active-node');
       });
-      [pipeCsvClient, pipeClientMw, pipeMwLb, pipeLbS1, pipeLbS2, pipeLbS3, pipeS1Db, pipeS2Db, pipeS3Db].forEach(p => {
-        p.classList.remove('active-flow');
+      [pipeCsvClient, pipeClientMw, pipeMwLb, pipeLbS1, pipeLbS2, pipeLbS3, pipeLbS4, pipeS1Db, pipeS2Db, pipeS3Db, pipeS4Db].forEach(p => {
+        if (p) p.classList.remove('active-flow');
       });
     }
 
@@ -1428,22 +1563,27 @@
       const s1 = counters['server-01'] || 0;
       const s2 = counters['server-02'] || 0;
       const s3 = counters['server-03'] || 0;
+      const s4 = counters['server-04'] || 0;
 
       const p1 = Math.round((s1 / total) * 100) || 0;
       const p2 = Math.round((s2 / total) * 100) || 0;
       const p3 = Math.round((s3 / total) * 100) || 0;
+      const p4 = Math.round((s4 / total) * 100) || 0;
 
       distCountS1.textContent = `${s1} (${p1}%)`;
-      distCountS2.textContent = `${s2} (${p2})%`;
+      distCountS2.textContent = `${s2} (${p2}%)`;
       distCountS3.textContent = `${s3} (${p3}%)`;
+      distCountS4.textContent = `${s4} (${p4}%)`;
 
       distBarS1.style.width = `${p1}%`;
       distBarS2.style.width = `${p2}%`;
       distBarS3.style.width = `${p3}%`;
+      distBarS4.style.width = `${p4}%`;
 
       badgeS1Count.textContent = `${s1} requisições`;
       badgeS2Count.textContent = `${s2} requisições`;
       badgeS3Count.textContent = `${s3} requisições`;
+      if (badgeS4Count) badgeS4Count.textContent = `${s4} requisições`;
     }
 
     // Update Patient Card
@@ -1470,10 +1610,56 @@
       valDor.title = `${doenca}${queda}`;
     }
 
+    // Scale UI State helper
+    function setReservaUIState(ativo, totalAtivos = (ativo ? 4 : 3)) {
+      reservaAtiva = ativo;
+      if (ativo) {
+        btnToggleReserva.classList.add('ativo');
+        reservaIcon.textContent = '⬇️';
+        reservaLabel.textContent = 'Desativar Reserva (Scale-In)';
+        if (badgeS4Status) {
+          badgeS4Status.textContent = 'ATIVO (25%)';
+          badgeS4Status.style.background = 'rgba(16, 185, 129, 0.2)';
+          badgeS4Status.style.color = '#34d399';
+          badgeS4Status.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        }
+        if (badgeS4Svg) {
+          badgeS4Svg.textContent = '🟢 Ativo no Balanceamento (25%)';
+          badgeS4Svg.setAttribute('fill', '#10b981');
+        }
+        if (rr4) {
+          rr4.classList.remove('standby');
+          rr4.title = 'Servidor 04 Ativo no Round Robin';
+        }
+        if (lblBalanceamentoModo) {
+          lblBalanceamentoModo.textContent = 'Carga: 25.0% por nó (4 nós ativos)';
+        }
+      } else {
+        btnToggleReserva.classList.remove('ativo');
+        reservaIcon.textContent = '⚡';
+        reservaLabel.textContent = 'Ativar Reserva (Scale-Out)';
+        if (badgeS4Status) {
+          badgeS4Status.textContent = 'STANDBY';
+          badgeS4Status.style.background = 'rgba(245, 158, 11, 0.2)';
+          badgeS4Status.style.color = '#fbbf24';
+          badgeS4Status.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+        }
+        if (badgeS4Svg) {
+          badgeS4Svg.textContent = '🟡 Standby / Réplica Pronta (:8004)';
+          badgeS4Svg.setAttribute('fill', '#f59e0b');
+        }
+        if (rr4) {
+          rr4.classList.add('standby');
+          rr4.title = 'Servidor 04 Reserva (Standby)';
+        }
+        if (lblBalanceamentoModo) {
+          lblBalanceamentoModo.textContent = 'Carga: 33.3% por nó (3 nós ativos)';
+        }
+      }
+    }
+
     // ============================================================
     // API Configuration
-    // Suporta tanto acesso via http://localhost:5000 quanto
-    // abertura direta de index.html no navegador (file://) ou Live Server
     // ============================================================
     const API_BASE = (window.location.protocol === 'http:' || window.location.protocol === 'https:') && window.location.port === '5000'
       ? ''
@@ -1516,8 +1702,8 @@
         const d = JSON.parse(e.data);
         clearActiveNodes();
         nodeClient.classList.add('active-node');
-        setStatus(`Produtor publicando registro #${d.numero} no RabbitMQ...`, 'busy');
-        addLog(d.timestamp, `[Produtor AMQP] Publicando registro #${d.numero} na fila`, 'client');
+        setStatus(`Produtor publicando registro #${d.numero} no RabbitMQ Fanout...`, 'busy');
+        addLog(d.timestamp, `[Produtor AMQP] Publicando registro #${d.numero} na exchange telemetria_hospitalar`, 'client');
         // Animate: Client → Middleware
         animatePacketAlongPath(pipeClientMw, 350);
       });
@@ -1527,8 +1713,8 @@
         const d = JSON.parse(e.data);
         clearActiveNodes();
         nodeMw.classList.add('active-node');
-        setStatus(`Middleware: Consumidor AMQP encaminhando ao Load Balancer...`, 'busy');
-        addLog(d.timestamp, `[Middleware RabbitMQ] Consumido da fila → POST http://localhost:8000/dados`, 'lb');
+        setStatus(`Middleware Fanout: Replicado para todos os nós → HTTP POST :8000`, 'busy');
+        addLog(d.timestamp, `[Middleware RabbitMQ Fanout] Difusão broadcast das filas → POST http://localhost:8000/dados`, 'lb');
         // Animate: Middleware → Load Balancer
         animatePacketAlongPath(pipeMwLb, 350);
       });
@@ -1546,6 +1732,7 @@
         let pipe = pipeLbS1;
         if (d.server_num === 2) pipe = pipeLbS2;
         if (d.server_num === 3) pipe = pipeLbS3;
+        if (d.server_num === 4) pipe = pipeLbS4;
         animatePacketAlongPath(pipe, 400);
       });
 
@@ -1557,6 +1744,7 @@
         if (serverNum === '01') nodeS1.classList.add('active-node');
         if (serverNum === '02') nodeS2.classList.add('active-node');
         if (serverNum === '03') nodeS3.classList.add('active-node');
+        if (serverNum === '04') nodeS4.classList.add('active-node');
 
         setStatus(`${d.server_id} (: ${d.porta}) processando requisição #${d.numero}...`, 'busy');
         addLog(d.timestamp, `[${d.server_id}] Requisição recebida e validada via Pydantic`, `s${parseInt(serverNum)}`);
@@ -1572,9 +1760,10 @@
         let dbNode = nodeDb1;
         if (serverNum === '02') { pipe = pipeS2Db; dbNode = nodeDb2; }
         if (serverNum === '03') { pipe = pipeS3Db; dbNode = nodeDb3; }
+        if (serverNum === '04') { pipe = pipeS4Db; dbNode = nodeDb4; }
 
-        dbNode.classList.add('active-node');
-        setStatus(`Gravando dados no banco ${d.db_name}...`, 'busy');
+        if (dbNode) dbNode.classList.add('active-node');
+        setStatus(`Gravando dados no banco ${d.db_name} (Sincronizado)...`, 'busy');
         addLog(d.timestamp, `[SQLite] INSERT executado em ${d.db_name}`, `s${parseInt(serverNum)}`);
         animatePacketAlongPath(pipe, 300);
       });
@@ -1587,6 +1776,14 @@
         setStatus(`Requisição #${d.numero} concluída com sucesso (HTTP 200 OK)`, 'ready');
         updateMetrics(d.contadores);
         addLog(d.timestamp, `[HTTP 200 OK] Registro #${d.numero} gravado por ${d.server_id}`, 'complete');
+      });
+
+      // Escala alterada (SSE broadcast)
+      evtSource.addEventListener('escala_alterada', (e) => {
+        const d = JSON.parse(e.data);
+        const isAtivo = (d.acao === 'servidor_reserva_ativado');
+        setReservaUIState(isAtivo, d.total_servidores);
+        addLog(new Date().toLocaleTimeString(), `[ESCALA] ${d.mensagem}`, 'complete');
       });
 
       // Erro
@@ -1692,9 +1889,45 @@
       }
     });
 
+    // Scale-out / Scale-in Toggle
+    btnToggleReserva.addEventListener('click', async () => {
+      const endpoint = reservaAtiva ? '/api/escala/desativar-reserva' : '/api/escala/ativar-reserva';
+      const acaoNome = reservaAtiva ? 'Desativando Servidor 04 (Scale-In)...' : 'Ativando Servidor 04 Reserva (Scale-Out)...';
+      setStatus(acaoNome, 'busy');
+      addLog(new Date().toLocaleTimeString(), `[ESCALA] ${acaoNome}`, 'lb');
+      try {
+        const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST' });
+        const json = await res.json();
+        if (json.status === 'ok') {
+          const isAtivo = (json.acao === 'servidor_reserva_ativado');
+          setReservaUIState(isAtivo, json.total_servidores);
+          setStatus(json.mensagem, 'ready');
+          addLog(new Date().toLocaleTimeString(), `[ESCALA OK] ${json.mensagem} (${json.distribuicao_esperada})`, 'complete');
+        } else {
+          setStatus(`Erro na escala: ${json.detail || json.mensagem}`, 'error');
+        }
+      } catch (err) {
+        addLog(new Date().toLocaleTimeString(), `Erro ao alterar escala: ${err.message}`, 'error');
+        setStatus('Falha ao comunicar com a API de escala', 'error');
+      }
+    });
+
+    // Check initial scale status on load
+    async function checkEscalaInicial() {
+      try {
+        const res = await fetch(`${API_BASE}/api/escala/status`);
+        const d = await res.json();
+        const isAtivo = (d.servidores_ativos && d.servidores_ativos.some(s => s.includes('8004')));
+        setReservaUIState(isAtivo, d.total_servidores);
+      } catch (e) {
+        console.warn('Não foi possível consultar escala inicial:', e);
+      }
+    }
+
     // Start SSE Connection on load
     window.addEventListener('DOMContentLoaded', () => {
       connectSSE();
+      checkEscalaInicial();
     });
   </script>
 </body>

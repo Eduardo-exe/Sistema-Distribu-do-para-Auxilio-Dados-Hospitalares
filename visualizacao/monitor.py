@@ -59,6 +59,7 @@ class MonitorState:
             "server-01": 0,
             "server-02": 0,
             "server-03": 0,
+            "server-04": 0,
         }
         self.simulation_task = None
         self.event_queues: list[asyncio.Queue] = []
@@ -82,7 +83,7 @@ class MonitorState:
         self.processing = False
         self.contadores = {
             "total": 0, "sucesso": 0, "erros": 0,
-            "server-01": 0, "server-02": 0, "server-03": 0,
+            "server-01": 0, "server-02": 0, "server-03": 0, "server-04": 0,
         }
         if self.simulation_task and not self.simulation_task.done():
             self.simulation_task.cancel()
@@ -110,6 +111,7 @@ SERVER_INFO = {
     "01": {"porta": 8001, "db": "server1.db"},
     "02": {"porta": 8002, "db": "server2.db"},
     "03": {"porta": 8003, "db": "server3.db"},
+    "04": {"porta": 8004, "db": "server4.db"},
 }
 
 
@@ -404,6 +406,47 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
             "speed": state.speed,
             "contadores": state.contadores,
         }
+
+    # ── Escalabilidade Dinâmica ──────────────────────────────
+
+    @app.post("/api/escala/ativar-reserva")
+    async def api_ativar_reserva():
+        """Ativa o servidor reserva no Load Balancer (Scale-Out)."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.post(f"{state.lb_url}/servidores/ativar-reserva")
+                data = res.json()
+                await state.broadcast("escala_alterada", data)
+                return data
+        except Exception as e:
+            return {"status": "erro", "detail": str(e)}
+
+    @app.post("/api/escala/desativar-reserva")
+    async def api_desativar_reserva():
+        """Desativa o servidor reserva no Load Balancer (Scale-In)."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.post(f"{state.lb_url}/servidores/desativar-reserva")
+                data = res.json()
+                await state.broadcast("escala_alterada", data)
+                return data
+        except Exception as e:
+            return {"status": "erro", "detail": str(e)}
+
+    @app.get("/api/escala/status")
+    async def api_escala_status():
+        """Consulta status de nós ativos e reserva no Load Balancer."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.get(f"{state.lb_url}/status")
+                return res.json()
+        except Exception:
+            return {
+                "servidores_ativos": ["http://localhost:8001", "http://localhost:8002", "http://localhost:8003"],
+                "servidores_reserva": ["http://localhost:8004"],
+                "total_servidores": 3,
+                "distribuicao_esperada_por_no": "33.3%",
+            }
 
     return app
 

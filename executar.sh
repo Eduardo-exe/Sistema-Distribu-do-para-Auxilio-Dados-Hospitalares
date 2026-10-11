@@ -44,7 +44,7 @@ echo "------------------------------------------------------------"
 
 # Liberar portas caso instâncias antigas ainda estejam ativas
 echo "Verificando e liberando portas do sistema..."
-fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 2>/dev/null || true
+fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 2>/dev/null || true
 sleep 1
 
 PIDS=()
@@ -67,39 +67,45 @@ cleanup() {
 
 trap cleanup INT TERM
 
-# ── Iniciar Servidores ─────────────────────────────────────────
-echo "[1/5] Iniciando Servidor 01 (:8001)..."
+# ── Iniciar Servidores Backend ─────────────────────────────────
+echo "[1/6] Iniciando Servidor 01 (:8001)..."
 "$PYTHON" server/app.py --port 8001 --server-id server-01 --db-path databases/server1.db > logs/server1.log 2>&1 &
 PIDS+=($!)
 
-echo "[2/5] Iniciando Servidor 02 (:8002)..."
+echo "[2/6] Iniciando Servidor 02 (:8002)..."
 "$PYTHON" server/app.py --port 8002 --server-id server-02 --db-path databases/server2.db > logs/server2.log 2>&1 &
 PIDS+=($!)
 
-echo "[3/5] Iniciando Servidor 03 (:8003)..."
+echo "[3/6] Iniciando Servidor 03 (:8003)..."
 "$PYTHON" server/app.py --port 8003 --server-id server-03 --db-path databases/server3.db > logs/server3.log 2>&1 &
+PIDS+=($!)
+
+echo "[4/6] Iniciando Servidor 04 Reserva (:8004) [Warm Standby]..."
+"$PYTHON" server/app.py --port 8004 --server-id server-04 --db-path databases/server4.db > logs/server4.log 2>&1 &
 PIDS+=($!)
 
 sleep 1
 
 # ── Iniciar Balanceador de Carga ───────────────────────────────
-echo "[4/5] Iniciando Load Balancer Round Robin (:8000)..."
-"$PYTHON" load_balancer/balancer.py --port 8000 --servidores http://localhost:8001,http://localhost:8002,http://localhost:8003 > logs/balancer.log 2>&1 &
+echo "[5/6] Iniciando Load Balancer Round Robin (:8000)..."
+"$PYTHON" load_balancer/balancer.py --port 8000 \
+    --servidores http://localhost:8001,http://localhost:8002,http://localhost:8003 \
+    --servidores-reserva http://localhost:8004 > logs/balancer.log 2>&1 &
 PIDS+=($!)
 
 sleep 1
 
 # ── Iniciar Monitor / Interface Visual ─────────────────────────
-echo "[5/5] Iniciando Monitor e Interface Visual (:5000)..."
+echo "[6/6] Iniciando Monitor e Interface Visual (:5000)..."
 "$PYTHON" visualizacao/monitor.py --port 5000 > logs/monitor.log 2>&1 &
 PIDS+=($!)
 
 sleep 1.5
 
-# ── Se modo middleware, iniciar consumidor AMQP ────────────────
+# ── Se modo middleware, iniciar consumidores Fanout ───────────
 if [ "$MODO_MIDDLEWARE" = true ]; then
     echo ""
-    echo "── Middleware RabbitMQ ──────────────────────────────────────"
+    echo "── Middleware RabbitMQ (Marco 3: Replicação Fanout) ──────────"
 
     # Verificar se RabbitMQ está acessível
     RABBITMQ_HOST="${RABBITMQ_HOST:-localhost}"
@@ -121,17 +127,17 @@ if [ "$MODO_MIDDLEWARE" = true ]; then
     if [ $TENTATIVA -ge $MAX_TENTATIVAS ]; then
         echo "[MW] ✗ ERRO: RabbitMQ não está acessível em $RABBITMQ_HOST:$RABBITMQ_PORT"
         echo "[MW]   Inicie o RabbitMQ antes de usar o modo --middleware:"
-        echo "[MW]     docker run -d --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management"
+        echo "[MW]     docker run -d --rm --name rabbitmq-sd -p 5672:5672 -p 15672:15672 rabbitmq:3-management"
         echo "[MW]   Ou:"
         echo "[MW]     docker-compose up rabbitmq"
         echo ""
         echo "[MW] O sistema continua rodando no modo HTTP direto."
     else
-        echo "[MW] Iniciando Consumidor AMQP..."
-        RABBITMQ_HOST="$RABBITMQ_HOST" "$PYTHON" middleware/consumidor.py --lb-url http://localhost:8000 > logs/consumidor.log 2>&1 &
+        echo "[MW] Iniciando Consumidores AMQP Fanout (Marco 3)..."
+        RABBITMQ_HOST="$RABBITMQ_HOST" "$PYTHON" middleware/consumidor.py --multi > logs/consumidor.log 2>&1 &
         PIDS+=($!)
         sleep 1
-        echo "[MW] ✓ Consumidor AMQP iniciado!"
+        echo "[MW] ✓ Consumidores Fanout ativos (sincronizando server1.db a server4.db)!"
     fi
 fi
 
@@ -140,16 +146,22 @@ echo "  ✓ Todos os componentes estão prontos e ativos!"
 echo "------------------------------------------------------------"
 echo "  🌐 Interface Visual Web : http://localhost:5000"
 echo "  ⚖️  Load Balancer Status : http://localhost:8000/status"
-echo "  🖥️  Servidor 01 (API)    : http://localhost:8001"
-echo "  🖥️  Servidor 02 (API)    : http://localhost:8002"
-echo "  🖥️  Servidor 03 (API)    : http://localhost:8003"
+echo "  🏥 Servidor 01 (Ativo)  : http://localhost:8001"
+echo "  🏥 Servidor 02 (Ativo)  : http://localhost:8002"
+echo "  🏥 Servidor 03 (Ativo)  : http://localhost:8003"
+echo "  🛡️  Servidor 04 (Reserva): http://localhost:8004 (Warm Standby)"
 echo "  📁 Logs dos serviços    : $DIR/logs/"
+echo ""
+echo "  ⚡ Comandos de Escalabilidade Dinâmica:"
+echo "    Ativar Reserva (Scale-Out)   : curl -X POST http://localhost:8000/servidores/ativar-reserva"
+echo "    Desativar Reserva (Scale-In) : curl -X POST http://localhost:8000/servidores/desativar-reserva"
 
 if [ "$MODO_MIDDLEWARE" = true ]; then
-    echo "  🐰 RabbitMQ Management  : http://${RABBITMQ_HOST:-localhost}:15672"
-    echo "  📨 Consumidor AMQP      : ativo (logs/consumidor.log)"
     echo ""
-    echo "  Para enviar dados VIA MIDDLEWARE:"
+    echo "  🐰 RabbitMQ Management  : http://${RABBITMQ_HOST:-localhost}:15672"
+    echo "  📨 Replicação Fanout    : ativa em 4 filas (logs/consumidor.log)"
+    echo ""
+    echo "  Para enviar dados VIA MIDDLEWARE FANOUT:"
     echo "    python client/csv_sender.py --via-rabbitmq --intervalo 0.3 --limite 20"
     echo ""
     echo "  Ou usando o produtor diretamente:"

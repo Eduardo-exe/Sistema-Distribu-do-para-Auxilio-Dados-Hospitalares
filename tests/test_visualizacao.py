@@ -4,6 +4,11 @@ Testes unitários e de integração para a camada de visualização (monitor.py)
 """
 
 import os
+import sys
+
+# Adicionar diretório raiz ao path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pytest
 from fastapi.testclient import TestClient
 from visualizacao.monitor import create_app, MonitorState
@@ -61,3 +66,22 @@ class TestMonitor:
         status = monitor_client.get("/api/status").json()
         assert status["current_index"] == 0
         assert status["contadores"]["total"] == 0
+
+    def test_elementos_marco3_e_escala_no_html(self, monitor_client):
+        resp = monitor_client.get("/")
+        assert resp.status_code == 200
+        html = resp.text
+        assert "btn-toggle-reserva" in html
+        assert "node-s4" in html
+        assert "server4.db" in html
+        assert "Fanout" in html
+        assert "STANDBY" in html
+
+    def test_get_escala_status(self, monitor_client):
+        resp = monitor_client.get("/api/escala/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "servidores_ativos" in data
+        assert "servidores_reserva" in data
+        assert "distribuicao_esperada_por_no" in data
+

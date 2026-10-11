@@ -105,6 +105,15 @@ def criar_app(server_id: str = None, db_path: str = None) -> FastAPI:
             )
         return registros
 
+    @app.get("/health")
+    def health_check():
+        """Verificação de saúde do nó para balanceador e observabilidade."""
+        return {
+            "status": "healthy",
+            "server_id": _server_id,
+            "db_path": _db_path,
+        }
+
     return app
 
 
