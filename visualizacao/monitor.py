@@ -862,8 +862,8 @@ if __name__ == "__main__":
         description="Monitor de Visualização do Sistema Distribuído"
     )
     parser.add_argument(
-        "--port", type=int, default=5000,
-        help="Porta do monitor (padrão: 5000)"
+        "--port", type=int, default=int(os.environ.get("PORT", 5000)),
+        help="Porta do monitor (padrão: 5000 ou $PORT)"
     )
     parser.add_argument(
         "--csv", type=str, default=csv_padrao,

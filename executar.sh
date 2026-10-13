@@ -99,8 +99,9 @@ PIDS+=($!)
 sleep 1
 
 # ── Iniciar Monitor / Interface Visual ─────────────────────────
-echo "[6/6] Iniciando Monitor e Interface Visual (:5000)..."
-"$PYTHON" visualizacao/monitor.py --port 5000 > logs/monitor.log 2>&1 &
+PORTA_MONITOR="${PORT:-5000}"
+echo "[6/6] Iniciando Monitor e Interface Visual (:$PORTA_MONITOR)..."
+"$PYTHON" visualizacao/monitor.py --port "$PORTA_MONITOR" > logs/monitor.log 2>&1 &
 PIDS+=($!)
 
 sleep 1.5
