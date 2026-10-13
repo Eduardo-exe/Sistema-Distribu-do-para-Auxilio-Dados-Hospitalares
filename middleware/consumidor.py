@@ -135,10 +135,13 @@ class ConsumidorAMQP:
             self.total_erros += 1
             print(
                 f"[{self.server_id}] [{self.total_consumidos:>4}] ✗ Destino {self.target_url} offline. "
-                f"Mensagem mantida na fila RabbitMQ (requeue=True)."
+                f"Aguardando nó voltar... Mensagem mantida na fila RabbitMQ (requeue=True)."
             )
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-            time.sleep(1)
+            time.sleep(1.5)
+            try:
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            except Exception:
+                pass
 
         except requests.exceptions.Timeout:
             self.total_erros += 1

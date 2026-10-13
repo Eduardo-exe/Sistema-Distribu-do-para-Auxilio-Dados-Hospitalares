@@ -229,6 +229,180 @@
       background: rgba(239, 68, 68, 0.25);
     }
 
+    /* Chaos & Fault Injection Controls (Header) */
+    .chaos-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-md);
+      padding: 0.3rem 0.65rem;
+      transition: all 0.25s ease;
+    }
+
+    .chaos-group:hover {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .chaos-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #f87171;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .chaos-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+      animation: blink 1s infinite alternate;
+    }
+
+    .sel-chaos {
+      background: #111827;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #f3f4f6;
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-crash {
+      padding: 0.38rem 0.8rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+    }
+
+    .btn-crash-danger {
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.85), rgba(185, 28, 28, 0.95));
+      color: #ffffff;
+      border: 1px solid #ef4444;
+      box-shadow: 0 2px 10px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-crash-danger:hover {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 1));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.5);
+    }
+
+    .btn-crash-restore {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(5, 150, 105, 0.95));
+      color: #ffffff;
+      border: 1px solid #10b981;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-crash-restore:hover {
+      background: linear-gradient(135deg, rgba(52, 211, 153, 0.95), rgba(16, 185, 129, 1));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Server Distribution Items & Actions (Sidebar) */
+    .s-name-group {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .s-action-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .srv-status-badge {
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 0.12rem 0.4rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .srv-status-badge.online {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .srv-status-badge.offline {
+      background: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      animation: blink 0.9s infinite alternate;
+    }
+
+    .srv-status-badge.standby {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-srv-toggle {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #f87171;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-srv-toggle:hover {
+      background: rgba(239, 68, 68, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .btn-srv-toggle.is-down {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    .btn-srv-toggle.is-down:hover {
+      background: rgba(16, 185, 129, 0.3);
+    }
+
+    /* Offline Server Visual in SVG and RR */
+    .node-box.is-server-offline rect.node-bg {
+      stroke: #ef4444 !important;
+      stroke-width: 2.5 !important;
+      stroke-dasharray: 6 3;
+      fill: rgba(35, 10, 10, 0.9) !important;
+      filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.6));
+    }
+
+    .rr-dot.offline {
+      background: rgba(239, 68, 68, 0.35) !important;
+      border-color: #ef4444 !important;
+      color: #fca5a5 !important;
+      text-decoration: line-through;
+      animation: blink 1.2s infinite alternate;
+    }
+
     .control-setting {
       display: flex;
       align-items: center;
@@ -817,6 +991,454 @@
       align-items: center;
       gap: 0.3rem;
     }
+
+    /* ═══════════════════════════════════════════════════════════
+       Teste de Carga Modal
+       ═══════════════════════════════════════════════════════════ */
+
+    .btn-benchmark {
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(234, 88, 12, 0.3));
+      color: #fb923c;
+      border: 1px solid rgba(249, 115, 22, 0.45);
+      box-shadow: 0 2px 12px rgba(249, 115, 22, 0.25);
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+    }
+
+    .btn-benchmark:hover {
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.35), rgba(234, 88, 12, 0.45));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 18px rgba(249, 115, 22, 0.4);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-card {
+      background: linear-gradient(145deg, #111827, #0f1729);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      border-radius: 20px;
+      width: 680px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 2rem;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(249, 115, 22, 0.1);
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-header h2 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #fb923c, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .modal-close {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    /* Request Count Selector */
+    .tc-config {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tc-config-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .tc-chips {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .tc-chip {
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tc-chip:hover {
+      background: rgba(249, 115, 22, 0.12);
+      border-color: rgba(249, 115, 22, 0.4);
+      color: #fb923c;
+    }
+
+    .tc-chip.selected {
+      background: rgba(249, 115, 22, 0.2);
+      border-color: rgba(249, 115, 22, 0.6);
+      color: #fb923c;
+      box-shadow: 0 2px 10px rgba(249, 115, 22, 0.2);
+    }
+
+    .tc-input-custom {
+      width: 80px;
+      padding: 0.4rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      font-size: 0.82rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      outline: none;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .tc-input-custom:focus {
+      border-color: rgba(249, 115, 22, 0.6);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+    }
+
+    /* Action Buttons */
+    .tc-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tc-btn-start {
+      flex: 1;
+      padding: 0.7rem 1.2rem;
+      border-radius: var(--radius-md);
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      background: linear-gradient(135deg, #ea580c, #f97316);
+      color: white;
+      box-shadow: 0 4px 15px rgba(249, 115, 22, 0.35);
+    }
+
+    .tc-btn-start:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+    }
+
+    .tc-btn-start:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .tc-btn-stop {
+      padding: 0.7rem 1.2rem;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      font-family: inherit;
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
+    .tc-btn-stop:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    .tc-btn-stop:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* Progress Bar */
+    .tc-progress-wrap {
+      margin-bottom: 1.2rem;
+    }
+
+    .tc-progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tc-progress-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+
+    .tc-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ea580c, #f59e0b, #fbbf24);
+      border-radius: var(--radius-full);
+      transition: width 0.15s ease;
+      box-shadow: 0 0 12px rgba(249, 115, 22, 0.5);
+    }
+
+    /* KPI Grid */
+    .tc-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .tc-kpi {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 0.6rem;
+      text-align: center;
+    }
+
+    .tc-kpi-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.2;
+    }
+
+    .tc-kpi-label {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+
+    /* Distribution Bars */
+    .tc-dist-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tc-dist-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .tc-dist-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .tc-dist-label {
+      width: 90px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+
+    .tc-dist-bar-bg {
+      flex: 1;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .tc-dist-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.3s ease;
+      min-width: 0;
+    }
+
+    .tc-dist-bar-fill.s1 { background: linear-gradient(90deg, #2563eb, #3b82f6); box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+    .tc-dist-bar-fill.s2 { background: linear-gradient(90deg, #7c3aed, #8b5cf6); box-shadow: 0 0 8px rgba(139, 92, 246, 0.4); }
+    .tc-dist-bar-fill.s3 { background: linear-gradient(90deg, #db2777, #ec4899); box-shadow: 0 0 8px rgba(236, 72, 153, 0.4); }
+    .tc-dist-bar-fill.s4 { background: linear-gradient(90deg, #059669, #10b981); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+
+    .tc-dist-pct {
+      width: 65px;
+      text-align: right;
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+
+    /* Live Log Terminal */
+    .tc-log-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tc-log-terminal {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 0.75rem;
+      max-height: 180px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      line-height: 1.7;
+      color: var(--text-muted);
+    }
+
+    .tc-log-terminal::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .tc-log-terminal::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .tc-log-terminal::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    .tc-log-line {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.1rem 0;
+    }
+
+    .tc-log-num {
+      color: var(--text-dim);
+      min-width: 35px;
+    }
+
+    .tc-log-server {
+      font-weight: 700;
+      min-width: 80px;
+    }
+
+    .tc-log-server.s01 { color: #60a5fa; }
+    .tc-log-server.s02 { color: #a78bfa; }
+    .tc-log-server.s03 { color: #f472b6; }
+    .tc-log-server.s04 { color: #34d399; }
+    .tc-log-server.err { color: #f87171; }
+
+    .tc-log-latency {
+      color: var(--text-dim);
+    }
+
+    .tc-log-latency.fast { color: #34d399; }
+    .tc-log-latency.medium { color: #fbbf24; }
+    .tc-log-latency.slow { color: #f87171; }
+
+    .tc-log-code {
+      color: var(--text-dim);
+    }
+
+    /* Concluído badge */
+    .tc-concluido-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.18));
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-weight: 700;
+      color: #34d399;
+      font-size: 0.9rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tc-concluido-banner.visible {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -864,6 +1486,21 @@
         <span id="reserva-label">Ativar Reserva (Scale-Out)</span>
       </button>
 
+      <!-- Resiliência & Chaos Testing Controls -->
+      <div class="chaos-group" title="Simulação de Resiliência: Escolha qual servidor você quer derrubar">
+        <span class="chaos-title"><span class="chaos-pulse"></span>Resiliência:</span>
+        <select id="sel-server-crash" class="sel-chaos" title="Selecione o servidor que deseja derrubar ou religar">
+          <option value="1">Servidor 01 (:8001)</option>
+          <option value="2" selected>Servidor 02 (:8002)</option>
+          <option value="3">Servidor 03 (:8003)</option>
+          <option value="4">Servidor 04 (:8004)</option>
+        </select>
+        <button id="btn-crash-selected" class="btn btn-crash btn-crash-danger" title="Derrubar ou religar o servidor selecionado">
+          <span id="crash-icon">💥</span>
+          <span id="crash-label">Derrubar Servidor</span>
+        </button>
+      </div>
+
       <div class="control-setting">
         <span>Qtd:</span>
         <select id="sel-limit">
@@ -883,6 +1520,11 @@
           <option value="2.0">Rápida (2.0x)</option>
         </select>
       </div>
+
+      <!-- Teste de Carga (Benchmark) Button -->
+      <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
+        ⚡ Teste de Carga
+      </button>
 
       <label class="toggle-presentation">
         <input type="checkbox" id="chk-presentation">
@@ -1303,10 +1945,16 @@
 
         <div class="server-dist">
           <!-- Server 1 -->
-          <div class="dist-row">
+          <div class="dist-row" id="dist-row-s1">
             <div class="dist-header">
-              <span class="s-name" style="color: #60a5fa;">● Servidor 01 (:8001)</span>
-              <span id="dist-count-s1" class="s-val">0 (0%)</span>
+              <div class="s-name-group">
+                <span class="s-name" style="color: #60a5fa;">● Servidor 01 (:8001)</span>
+                <span id="badge-status-s1" class="srv-status-badge online">ONLINE</span>
+              </div>
+              <div class="s-action-group">
+                <span id="dist-count-s1" class="s-val">0 (0%)</span>
+                <button class="btn-srv-toggle" data-server="1" title="Derrubar ou religar Servidor 01">💥 Derrubar</button>
+              </div>
             </div>
             <div class="dist-track">
               <div id="dist-bar-s1" class="dist-bar bar-s1"></div>
@@ -1314,10 +1962,16 @@
           </div>
 
           <!-- Server 2 -->
-          <div class="dist-row">
+          <div class="dist-row" id="dist-row-s2">
             <div class="dist-header">
-              <span class="s-name" style="color: #c084fc;">● Servidor 02 (:8002)</span>
-              <span id="dist-count-s2" class="s-val">0 (0%)</span>
+              <div class="s-name-group">
+                <span class="s-name" style="color: #c084fc;">● Servidor 02 (:8002)</span>
+                <span id="badge-status-s2" class="srv-status-badge online">ONLINE</span>
+              </div>
+              <div class="s-action-group">
+                <span id="dist-count-s2" class="s-val">0 (0%)</span>
+                <button class="btn-srv-toggle" data-server="2" title="Derrubar ou religar Servidor 02">💥 Derrubar</button>
+              </div>
             </div>
             <div class="dist-track">
               <div id="dist-bar-s2" class="dist-bar bar-s2"></div>
@@ -1325,10 +1979,16 @@
           </div>
 
           <!-- Server 3 -->
-          <div class="dist-row">
+          <div class="dist-row" id="dist-row-s3">
             <div class="dist-header">
-              <span class="s-name" style="color: #f472b6;">● Servidor 03 (:8003)</span>
-              <span id="dist-count-s3" class="s-val">0 (0%)</span>
+              <div class="s-name-group">
+                <span class="s-name" style="color: #f472b6;">● Servidor 03 (:8003)</span>
+                <span id="badge-status-s3" class="srv-status-badge online">ONLINE</span>
+              </div>
+              <div class="s-action-group">
+                <span id="dist-count-s3" class="s-val">0 (0%)</span>
+                <button class="btn-srv-toggle" data-server="3" title="Derrubar ou religar Servidor 03">💥 Derrubar</button>
+              </div>
             </div>
             <div class="dist-track">
               <div id="dist-bar-s3" class="dist-bar bar-s3"></div>
@@ -1338,11 +1998,14 @@
           <!-- Server 4 (Reserva Standby) -->
           <div class="dist-row" id="dist-row-s4">
             <div class="dist-header">
-              <span class="s-name" style="color: #34d399;">
-                ● Servidor 04 (:8004)
-                <span id="badge-s4-status" style="font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700;">STANDBY</span>
-              </span>
-              <span id="dist-count-s4" class="s-val">0 (0%)</span>
+              <div class="s-name-group">
+                <span class="s-name" style="color: #34d399;">● Servidor 04 (:8004)</span>
+                <span id="badge-status-s4" class="srv-status-badge standby">STANDBY</span>
+              </div>
+              <div class="s-action-group">
+                <span id="dist-count-s4" class="s-val">0 (0%)</span>
+                <button class="btn-srv-toggle" data-server="4" title="Derrubar ou religar Servidor 04">💥 Derrubar</button>
+              </div>
             </div>
             <div class="dist-track">
               <div id="dist-bar-s4" class="dist-bar bar-s4"></div>
@@ -1369,6 +2032,106 @@
       </section>
     </aside>
   </main>
+
+  <!-- Modal: Teste de Carga -->
+  <div id="modal-load-test" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>⚡ Teste de Carga — Benchmark</h2>
+        <button id="tc-modal-close" class="modal-close" title="Fechar">✕</button>
+      </div>
+
+      <!-- Concluído Banner -->
+      <div id="tc-concluido-banner" class="tc-concluido-banner">
+        ✅ Teste concluído com sucesso!
+      </div>
+
+      <!-- Request Count Config -->
+      <div class="tc-config">
+        <span class="tc-config-label">Requisições:</span>
+        <div class="tc-chips">
+          <button class="tc-chip" data-val="10">10</button>
+          <button class="tc-chip selected" data-val="30">30</button>
+          <button class="tc-chip" data-val="50">50</button>
+          <button class="tc-chip" data-val="100">100</button>
+          <button class="tc-chip" data-val="200">200</button>
+        </div>
+        <input type="number" id="tc-custom-count" class="tc-input-custom" placeholder="N" min="1" max="60000" title="Valor personalizado">
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="tc-actions">
+        <button id="tc-btn-start" class="tc-btn-start" title="Iniciar teste de carga">
+          🚀 Disparar Carga
+        </button>
+        <button id="tc-btn-stop" class="tc-btn-stop" disabled title="Interromper teste em andamento">
+          ⏹️ Interromper
+        </button>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="tc-progress-wrap">
+        <div class="tc-progress-info">
+          <span id="tc-progress-label">Aguardando...</span>
+          <span id="tc-progress-pct">0%</span>
+        </div>
+        <div class="tc-progress-bar">
+          <div id="tc-progress-fill" class="tc-progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- KPI Grid -->
+      <div class="tc-kpi-grid">
+        <div class="tc-kpi">
+          <div id="tc-kpi-latency" class="tc-kpi-value" style="color: #fbbf24;">—</div>
+          <div class="tc-kpi-label">Latência Média</div>
+        </div>
+        <div class="tc-kpi">
+          <div id="tc-kpi-errors" class="tc-kpi-value" style="color: #f87171;">0</div>
+          <div class="tc-kpi-label">Erros</div>
+        </div>
+        <div class="tc-kpi">
+          <div id="tc-kpi-sent" class="tc-kpi-value" style="color: #60a5fa;">0</div>
+          <div class="tc-kpi-label">Enviadas</div>
+        </div>
+        <div class="tc-kpi">
+          <div id="tc-kpi-rps" class="tc-kpi-value" style="color: #a78bfa;">—</div>
+          <div class="tc-kpi-label">Req/s</div>
+        </div>
+      </div>
+
+      <!-- Distribution Bars -->
+      <div class="tc-dist-title">📊 Distribuição de Carga por Servidor</div>
+      <div class="tc-dist-list">
+        <div class="tc-dist-item">
+          <span class="tc-dist-label" style="color: #60a5fa;">Server 01</span>
+          <div class="tc-dist-bar-bg"><div id="tc-bar-s1" class="tc-dist-bar-fill s1" style="width:0%"></div></div>
+          <span id="tc-pct-s1" class="tc-dist-pct" style="color: #60a5fa;">0%</span>
+        </div>
+        <div class="tc-dist-item">
+          <span class="tc-dist-label" style="color: #a78bfa;">Server 02</span>
+          <div class="tc-dist-bar-bg"><div id="tc-bar-s2" class="tc-dist-bar-fill s2" style="width:0%"></div></div>
+          <span id="tc-pct-s2" class="tc-dist-pct" style="color: #a78bfa;">0%</span>
+        </div>
+        <div class="tc-dist-item">
+          <span class="tc-dist-label" style="color: #f472b6;">Server 03</span>
+          <div class="tc-dist-bar-bg"><div id="tc-bar-s3" class="tc-dist-bar-fill s3" style="width:0%"></div></div>
+          <span id="tc-pct-s3" class="tc-dist-pct" style="color: #f472b6;">0%</span>
+        </div>
+        <div class="tc-dist-item">
+          <span class="tc-dist-label" style="color: #34d399;">Server 04</span>
+          <div class="tc-dist-bar-bg"><div id="tc-bar-s4" class="tc-dist-bar-fill s4" style="width:0%"></div></div>
+          <span id="tc-pct-s4" class="tc-dist-pct" style="color: #34d399;">0%</span>
+        </div>
+      </div>
+
+      <!-- Live Log Terminal -->
+      <div class="tc-log-title">🖥️ Requisições em Tempo Real</div>
+      <div id="tc-log-terminal" class="tc-log-terminal">
+        <div class="tc-log-line" style="color: var(--text-dim);">Aguardando início do teste...</div>
+      </div>
+    </div>
+  </div>
 
   <!-- Footer Info -->
   <footer>
@@ -1631,9 +2394,7 @@
           rr4.classList.remove('standby');
           rr4.title = 'Servidor 04 Ativo no Round Robin';
         }
-        if (lblBalanceamentoModo) {
-          lblBalanceamentoModo.textContent = 'Carga: 25.0% por nó (4 nós ativos)';
-        }
+        atualizarIndicadorCarga();
       } else {
         btnToggleReserva.classList.remove('ativo');
         reservaIcon.textContent = '⚡';
@@ -1652,16 +2413,14 @@
           rr4.classList.add('standby');
           rr4.title = 'Servidor 04 Reserva (Standby)';
         }
-        if (lblBalanceamentoModo) {
-          lblBalanceamentoModo.textContent = 'Carga: 33.3% por nó (3 nós ativos)';
-        }
+        atualizarIndicadorCarga();
       }
     }
 
     // ============================================================
     // API Configuration
     // ============================================================
-    const API_BASE = (window.location.protocol === 'http:' || window.location.protocol === 'https:') && window.location.port === '5000'
+    const API_BASE = (window.location.protocol === 'http:' || window.location.protocol === 'https:')
       ? ''
       : 'http://localhost:5000';
 
@@ -1786,6 +2545,69 @@
         addLog(new Date().toLocaleTimeString(), `[ESCALA] ${d.mensagem}`, 'complete');
       });
 
+      // Status de servidor alterado (derrubado ou religado)
+      evtSource.addEventListener('servidor_status', (e) => {
+        const d = JSON.parse(e.data);
+        syncServidoresStatus();
+        const tipo = d.online ? 'complete' : 'error';
+        addLog(d.timestamp || new Date().toLocaleTimeString(), d.mensagem, tipo);
+      });
+
+      // Failover executado com sucesso
+      evtSource.addEventListener('failover', (e) => {
+        const d = JSON.parse(e.data);
+        setStatus(`⚠️ FAILOVER AUTOMÁTICO: Redirecionado para ${d.server_id}!`, 'busy');
+        addLog(d.timestamp || new Date().toLocaleTimeString(), d.mensagem, 'error');
+      });
+
+      // Fila retida (Middleware reteve mensagens quando nós caíram)
+      evtSource.addEventListener('fila_retida', (e) => {
+        const d = JSON.parse(e.data);
+        flyingPacket.classList.remove('visible');
+        clearActiveNodes();
+        if (nodeMw) nodeMw.classList.add('active-node');
+        const badgeMw = document.getElementById('badge-mw-queue');
+        if (badgeMw) {
+          badgeMw.textContent = `📦 FILA ATIVA: ${d.qtd_fila} retidas (Aguardando nós)`;
+          badgeMw.setAttribute('fill', '#f97316');
+        }
+        setStatus(`📦 [MIDDLEWARE] Registro #${d.numero} retido na fila (${d.qtd_fila} acumuladas)`, 'busy');
+        updateMetrics(d.contadores);
+        addLog(d.timestamp, d.mensagem, 'lb');
+      });
+
+      // Fila descarregada (Middleware esvaziou a fila assim que o servidor voltou)
+      evtSource.addEventListener('fila_descarregada', (e) => {
+        const d = JSON.parse(e.data);
+        clearActiveNodes();
+        if (nodeMw) nodeMw.classList.add('active-node');
+        const snum = parseInt(d.server_id.split('-')[1]);
+        const targetNode = snum === 1 ? nodeS1 : snum === 2 ? nodeS2 : snum === 3 ? nodeS3 : nodeS4;
+        const targetPipe = snum === 1 ? pipeLbS1 : snum === 2 ? pipeLbS2 : snum === 3 ? pipeLbS3 : pipeLbS4;
+        const targetDb = snum === 1 ? nodeDb1 : snum === 2 ? nodeDb2 : snum === 3 ? nodeDb3 : nodeDb4;
+        const targetPipeDb = snum === 1 ? pipeS1Db : snum === 2 ? pipeS2Db : snum === 3 ? pipeS3Db : pipeS4Db;
+
+        if (pipeMwLb) pipeMwLb.classList.add('active-flow');
+        if (targetPipe) targetPipe.classList.add('active-flow');
+        if (targetNode) targetNode.classList.add('active-node');
+        if (targetPipeDb) targetPipeDb.classList.add('active-flow');
+        if (targetDb) targetDb.classList.add('active-node');
+
+        const badgeMw = document.getElementById('badge-mw-queue');
+        if (badgeMw) {
+          if (d.qtd_restante > 0) {
+            badgeMw.textContent = `📦 FILA ATIVA: ${d.qtd_restante} retidas (Descarregando...)`;
+            badgeMw.setAttribute('fill', '#f97316');
+          } else {
+            badgeMw.textContent = 'Filas: fila_servidor_1 .. fila_servidor_4 (Vazia)';
+            badgeMw.setAttribute('fill', '#fb923c');
+          }
+        }
+        setStatus(`🚀 [MIDDLEWARE] Registro #${d.numero} drenado da fila e salvo em ${d.server_id}!`, 'ready');
+        updateMetrics(d.contadores);
+        addLog(d.timestamp, d.mensagem, 'complete');
+      });
+
       // Erro
       evtSource.addEventListener('error', (e) => {
         try {
@@ -1823,6 +2645,34 @@
         const d = JSON.parse(e.data);
         setStatus(d.mensagem, 'ready');
         addLog(new Date().toLocaleTimeString(), d.mensagem, 'complete');
+      });
+
+      // ── Teste de Carga (Benchmark) SSE Listeners ──
+      evtSource.addEventListener('teste_carga_iniciado', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          handleTesteCargaIniciado(d);
+        } catch (err) {
+          console.error('Erro ao processar teste_carga_iniciado:', err);
+        }
+      });
+
+      evtSource.addEventListener('teste_carga_progresso', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          handleTesteCargaProgresso(d);
+        } catch (err) {
+          console.error('Erro ao processar teste_carga_progresso:', err);
+        }
+      });
+
+      evtSource.addEventListener('teste_carga_concluido', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          handleTesteCargaConcluido(d);
+        } catch (err) {
+          console.error('Erro ao processar teste_carga_concluido:', err);
+        }
       });
 
       evtSource.onerror = () => {
@@ -1891,43 +2741,453 @@
 
     // Scale-out / Scale-in Toggle
     btnToggleReserva.addEventListener('click', async () => {
-      const endpoint = reservaAtiva ? '/api/escala/desativar-reserva' : '/api/escala/ativar-reserva';
-      const acaoNome = reservaAtiva ? 'Desativando Servidor 04 (Scale-In)...' : 'Ativando Servidor 04 Reserva (Scale-Out)...';
-      setStatus(acaoNome, 'busy');
+      // 1. Resposta visual imediata sem atraso
+      const novoEstado = !reservaAtiva;
+      const endpoint = novoEstado ? '/api/escala/ativar-reserva' : '/api/escala/desativar-reserva';
+      const acaoNome = novoEstado ? 'Ativando Servidor 04 Reserva (Scale-Out)...' : 'Desativando Servidor 04 (Scale-In)...';
+
+      setReservaUIState(novoEstado);
       addLog(new Date().toLocaleTimeString(), `[ESCALA] ${acaoNome}`, 'lb');
+
       try {
         const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST' });
         const json = await res.json();
-        if (json.status === 'ok') {
-          const isAtivo = (json.acao === 'servidor_reserva_ativado');
-          setReservaUIState(isAtivo, json.total_servidores);
-          setStatus(json.mensagem, 'ready');
-          addLog(new Date().toLocaleTimeString(), `[ESCALA OK] ${json.mensagem} (${json.distribuicao_esperada})`, 'complete');
+
+        if (res.ok) {
+          const totalNos = json.total_servidores || json.total_ativos || (novoEstado ? 4 : 3);
+          const pct = json.distribuicao_esperada || `${(100 / totalNos).toFixed(1)}%`;
+          const msg = json.mensagem || (novoEstado ? 'Servidor reserva ativado!' : 'Servidor reserva desativado.');
+          setReservaUIState(novoEstado, totalNos);
+          addLog(new Date().toLocaleTimeString(), `[ESCALA OK] ${msg} (${pct} por nó)`, 'complete');
         } else {
-          setStatus(`Erro na escala: ${json.detail || json.mensagem}`, 'error');
+          // Reverter se falhou
+          setReservaUIState(!novoEstado);
+          addLog(new Date().toLocaleTimeString(), `[ESCALA ERRO] ${json.detail || 'Operação rejeitada'}`, 'error');
+          syncEscalaStatus();
         }
       } catch (err) {
+        setReservaUIState(!novoEstado);
         addLog(new Date().toLocaleTimeString(), `Erro ao alterar escala: ${err.message}`, 'error');
-        setStatus('Falha ao comunicar com a API de escala', 'error');
+        syncEscalaStatus();
       }
     });
 
-    // Check initial scale status on load
-    async function checkEscalaInicial() {
+    // Sincronizar estado do botão com o balanceador real
+    async function syncEscalaStatus() {
       try {
         const res = await fetch(`${API_BASE}/api/escala/status`);
         const d = await res.json();
-        const isAtivo = (d.servidores_ativos && d.servidores_ativos.some(s => s.includes('8004')));
-        setReservaUIState(isAtivo, d.total_servidores);
+        const isAtivo = !!(d.servidores_ativos && d.servidores_ativos.some(s => s.includes('8004')));
+        const total = d.total_servidores || d.servidores_ativos?.length || 3;
+        setReservaUIState(isAtivo, total);
       } catch (e) {
-        console.warn('Não foi possível consultar escala inicial:', e);
+        console.warn('Não foi possível consultar escala:', e);
+      }
+    }
+
+    // ── Gestão de Resiliência & Simulação de Falhas (Chaos Engineering) ──
+
+    const selServerCrash = document.getElementById('sel-server-crash');
+    const btnCrashSelected = document.getElementById('btn-crash-selected');
+    const crashIcon = document.getElementById('crash-icon');
+    const crashLabel = document.getElementById('crash-label');
+    const btnSrvToggles = document.querySelectorAll('.btn-srv-toggle');
+
+    let servidoresStatus = { 1: true, 2: true, 3: true, 4: true };
+
+    function atualizarBotaoCrashPrincipal() {
+      const num = parseInt(selServerCrash.value);
+      const online = servidoresStatus[num] !== false;
+      if (online) {
+        btnCrashSelected.className = 'btn btn-crash btn-crash-danger';
+        crashIcon.textContent = '💥';
+        crashLabel.textContent = `Derrubar Servidor 0${num}`;
+        btnCrashSelected.title = `Derrubar Servidor 0${num} para testar o failover`;
+      } else {
+        btnCrashSelected.className = 'btn btn-crash btn-crash-restore';
+        crashIcon.textContent = '🔄';
+        crashLabel.textContent = `Religar Servidor 0${num}`;
+        btnCrashSelected.title = `Religar Servidor 0${num} e trazê-lo de volta`;
+      }
+    }
+
+    selServerCrash.addEventListener('change', atualizarBotaoCrashPrincipal);
+
+    async function toggleServer(num) {
+      num = parseInt(num);
+      const onlineAtual = servidoresStatus[num] !== false;
+      const acao = onlineAtual ? 'Derrubando' : 'Religando';
+      setStatus(`${acao} Servidor 0${num}...`, 'busy');
+      addLog(new Date().toLocaleTimeString(), `[CHAOS] ${acao} Servidor 0${num}...`, onlineAtual ? 'error' : 'info');
+
+      try {
+        const res = await fetch(`${API_BASE}/api/servidores/${num}/toggle`, { method: 'POST' });
+        const json = await res.json();
+        if (res.ok) {
+          servidoresStatus[num] = json.online;
+          syncServidoresStatus();
+          setStatus(json.mensagem, json.online ? 'ready' : 'busy');
+        } else {
+          setStatus(`Erro: ${json.detail || 'Falha ao alterar estado do servidor'}`, 'error');
+        }
+      } catch (err) {
+        setStatus(`Erro de comunicação: ${err.message}`, 'error');
+      }
+    }
+
+    btnCrashSelected.addEventListener('click', () => {
+      toggleServer(selServerCrash.value);
+    });
+
+    btnSrvToggles.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const num = btn.dataset.server;
+        toggleServer(num);
+      });
+    });
+
+    async function syncServidoresStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/api/servidores/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.servidores) return;
+
+        for (let i = 1; i <= 4; i++) {
+          const srv = data.servidores[i];
+          if (!srv) continue;
+          servidoresStatus[i] = srv.online;
+
+          const badge = document.getElementById(`badge-status-s${i}`);
+          const btnToggle = document.querySelector(`.btn-srv-toggle[data-server="${i}"]`);
+          const node = i === 1 ? nodeS1 : i === 2 ? nodeS2 : i === 3 ? nodeS3 : nodeS4;
+          const rrDot = i === 1 ? rr1 : i === 2 ? rr2 : i === 3 ? rr3 : rr4;
+
+          if (badge) {
+            if (i === 4 && !srv.online && !reservaAtiva) {
+              badge.textContent = 'STANDBY (OFF)';
+              badge.className = 'srv-status-badge offline';
+            } else if (srv.online) {
+              if (i === 4 && !reservaAtiva) {
+                badge.textContent = 'STANDBY';
+                badge.className = 'srv-status-badge standby';
+              } else {
+                badge.textContent = 'ONLINE';
+                badge.className = 'srv-status-badge online';
+              }
+            } else {
+              badge.textContent = 'OFFLINE';
+              badge.className = 'srv-status-badge offline';
+            }
+          }
+
+          if (btnToggle) {
+            if (srv.online) {
+              btnToggle.textContent = '💥 Derrubar';
+              btnToggle.className = 'btn-srv-toggle';
+              btnToggle.title = `Derrubar Servidor 0${i}`;
+            } else {
+              btnToggle.textContent = '🔄 Religar';
+              btnToggle.className = 'btn-srv-toggle is-down';
+              btnToggle.title = `Religar Servidor 0${i}`;
+            }
+          }
+
+          // Destaque visual no SVG
+          if (node) {
+            if (!srv.online) {
+              node.classList.add('is-server-offline');
+            } else {
+              node.classList.remove('is-server-offline');
+            }
+          }
+
+          // Destaque visual no Round Robin turn
+          if (rrDot) {
+            if (!srv.online) {
+              rrDot.classList.add('offline');
+              rrDot.title = `Servidor 0${i} OFFLINE (Falha simulada)`;
+            } else {
+              rrDot.classList.remove('offline');
+            }
+          }
+        }
+
+        atualizarBotaoCrashPrincipal();
+        atualizarIndicadorCarga();
+      } catch (err) {
+        console.warn('Erro ao sincronizar status dos servidores:', err);
+      }
+    }
+
+    // Atualiza o indicador visual de carga esperada considerando apenas servidores online
+    function atualizarIndicadorCarga() {
+      if (!lblBalanceamentoModo) return;
+      const poolEsperado = reservaAtiva ? [1, 2, 3, 4] : [1, 2, 3];
+      const operantes = poolEsperado.filter(n => servidoresStatus[n] !== false);
+      const totalEsperado = poolEsperado.length;
+      const totalOperantes = operantes.length;
+
+      if (totalOperantes === 0) {
+        lblBalanceamentoModo.innerHTML = `<span style="color: #ef4444; font-weight: 700;">⚠️ Falha Total (0/${totalEsperado} nós operantes)</span>`;
+      } else if (totalOperantes < totalEsperado) {
+        const caidos = totalEsperado - totalOperantes;
+        const pct = (100.0 / totalOperantes).toFixed(1);
+        lblBalanceamentoModo.innerHTML = `<span style="color: #fb923c; font-weight: 700;">⚡ Carga redistribuída: ${pct}% por nó (${totalOperantes} operantes | ${caidos} em falha)</span>`;
+      } else {
+        const pct = (100.0 / totalEsperado).toFixed(1);
+        lblBalanceamentoModo.innerHTML = `Carga: ${pct}% por nó (${totalEsperado} nós ativos)`;
+      }
+    }
+
+    // ── Painel de Teste de Carga (Benchmark Interativo) ──
+    const btnBenchmark = document.getElementById('btn-benchmark');
+    const modalLoadTest = document.getElementById('modal-load-test');
+    const tcModalClose = document.getElementById('tc-modal-close');
+    const tcConcluidoBanner = document.getElementById('tc-concluido-banner');
+    const tcChips = document.querySelectorAll('.tc-chip');
+    const tcCustomCount = document.getElementById('tc-custom-count');
+    const tcBtnStart = document.getElementById('tc-btn-start');
+    const tcBtnStop = document.getElementById('tc-btn-stop');
+
+    const tcProgressLabel = document.getElementById('tc-progress-label');
+    const tcProgressPct = document.getElementById('tc-progress-pct');
+    const tcProgressFill = document.getElementById('tc-progress-fill');
+
+    const tcKpiLatency = document.getElementById('tc-kpi-latency');
+    const tcKpiErrors = document.getElementById('tc-kpi-errors');
+    const tcKpiSent = document.getElementById('tc-kpi-sent');
+    const tcKpiRps = document.getElementById('tc-kpi-rps');
+
+    const tcBarS1 = document.getElementById('tc-bar-s1');
+    const tcBarS2 = document.getElementById('tc-bar-s2');
+    const tcBarS3 = document.getElementById('tc-bar-s3');
+    const tcBarS4 = document.getElementById('tc-bar-s4');
+
+    const tcPctS1 = document.getElementById('tc-pct-s1');
+    const tcPctS2 = document.getElementById('tc-pct-s2');
+    const tcPctS3 = document.getElementById('tc-pct-s3');
+    const tcPctS4 = document.getElementById('tc-pct-s4');
+
+    const tcLogTerminal = document.getElementById('tc-log-terminal');
+
+    let tcSelectedCount = 30;
+    let tcBenchmarkStartTime = null;
+
+    // Configuração de quantidade (Chips e Input personalizado)
+    tcChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        tcChips.forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        if (tcCustomCount) tcCustomCount.value = '';
+        tcSelectedCount = parseInt(chip.dataset.val);
+      });
+    });
+
+    if (tcCustomCount) {
+      tcCustomCount.addEventListener('input', () => {
+        const val = parseInt(tcCustomCount.value);
+        if (val && val > 0) {
+          tcChips.forEach(c => c.classList.remove('selected'));
+          tcSelectedCount = val;
+        }
+      });
+    }
+
+    // Abrir e fechar modal
+    if (btnBenchmark && modalLoadTest) {
+      btnBenchmark.addEventListener('click', () => {
+        modalLoadTest.classList.add('active');
+        syncTesteCargaStatus();
+      });
+
+      if (tcModalClose) {
+        tcModalClose.addEventListener('click', () => {
+          modalLoadTest.classList.remove('active');
+        });
+      }
+
+      modalLoadTest.addEventListener('click', (e) => {
+        if (e.target === modalLoadTest) {
+          modalLoadTest.classList.remove('active');
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalLoadTest.classList.contains('active')) {
+          modalLoadTest.classList.remove('active');
+        }
+      });
+    }
+
+    function appendTcLog(text, cor = '#94a3b8') {
+      if (!tcLogTerminal) return;
+      const line = document.createElement('div');
+      line.className = 'tc-log-line';
+      line.style.color = cor;
+      line.textContent = text;
+      tcLogTerminal.appendChild(line);
+      tcLogTerminal.scrollTop = tcLogTerminal.scrollHeight;
+    }
+
+    // Iniciar teste de carga
+    if (tcBtnStart) {
+      tcBtnStart.addEventListener('click', async () => {
+        let count = tcSelectedCount;
+        if (tcCustomCount && tcCustomCount.value) {
+          const c = parseInt(tcCustomCount.value);
+          if (c > 0) count = c;
+        }
+        if (!count || count < 1) count = 30;
+
+        tcBtnStart.disabled = true;
+        if (tcBtnStop) tcBtnStop.disabled = false;
+        if (tcConcluidoBanner) tcConcluidoBanner.classList.remove('visible');
+
+        if (tcLogTerminal) {
+          tcLogTerminal.innerHTML = '<div class="tc-log-line" style="color: var(--text-dim);">🚀 Disparando teste de carga...</div>';
+        }
+        if (tcProgressFill) tcProgressFill.style.width = '0%';
+        if (tcProgressLabel) tcProgressLabel.textContent = `0 / ${count}`;
+        if (tcProgressPct) tcProgressPct.textContent = '0%';
+        if (tcKpiLatency) tcKpiLatency.textContent = '—';
+        if (tcKpiErrors) tcKpiErrors.textContent = '0';
+        if (tcKpiSent) tcKpiSent.textContent = `0 / ${count}`;
+        if (tcKpiRps) tcKpiRps.textContent = '—';
+
+        [tcBarS1, tcBarS2, tcBarS3, tcBarS4].forEach(b => { if (b) b.style.width = '0%'; });
+        [tcPctS1, tcPctS2, tcPctS3, tcPctS4].forEach(p => { if (p) p.textContent = '0%'; });
+
+        tcBenchmarkStartTime = Date.now();
+
+        try {
+          const res = await fetch(`${API_BASE}/api/teste-carga/iniciar?total=${count}`, { method: 'POST' });
+          const json = await res.json();
+          if (json.status === 'ocupado') {
+            appendTcLog(`⚠️ ${json.detail}`, '#fbbf24');
+            tcBtnStart.disabled = false;
+            if (tcBtnStop) tcBtnStop.disabled = true;
+          }
+        } catch (err) {
+          appendTcLog(`❌ Erro ao iniciar benchmark: ${err.message}`, '#f87171');
+          tcBtnStart.disabled = false;
+          if (tcBtnStop) tcBtnStop.disabled = true;
+        }
+      });
+    }
+
+    // Parar teste de carga
+    if (tcBtnStop) {
+      tcBtnStop.addEventListener('click', async () => {
+        tcBtnStop.disabled = true;
+        try {
+          await fetch(`${API_BASE}/api/teste-carga/parar`, { method: 'POST' });
+          appendTcLog('⏹️ Teste de carga cancelado pelo usuário.', '#f59e0b');
+        } catch (err) {
+          appendTcLog(`❌ Erro ao parar teste: ${err.message}`, '#f87171');
+        }
+        if (tcBtnStart) tcBtnStart.disabled = false;
+      });
+    }
+
+    // Eventos SSE do teste de carga
+    function handleTesteCargaIniciado(d) {
+      if (tcBtnStart) tcBtnStart.disabled = true;
+      if (tcBtnStop) tcBtnStop.disabled = false;
+      if (tcConcluidoBanner) tcConcluidoBanner.classList.remove('visible');
+      tcBenchmarkStartTime = Date.now();
+      appendTcLog(`[${d.timestamp}] 🚀 Benchmark iniciado com ${d.total} requisições!`, '#60a5fa');
+      setStatus(`Teste de carga em andamento (${d.total} reqs)...`, 'busy');
+    }
+
+    function handleTesteCargaProgresso(d) {
+      const pct = Math.min(100, Math.round((d.numero / d.total) * 100));
+      if (tcProgressFill) tcProgressFill.style.width = `${pct}%`;
+      if (tcProgressLabel) tcProgressLabel.textContent = `${d.numero} / ${d.total}`;
+      if (tcProgressPct) tcProgressPct.textContent = `${pct}%`;
+
+      if (tcKpiLatency) tcKpiLatency.textContent = `${d.media_ms} ms`;
+      if (tcKpiErrors) tcKpiErrors.textContent = `${d.erros}`;
+      if (tcKpiSent) tcKpiSent.textContent = `${d.numero} / ${d.total}`;
+
+      if (tcBenchmarkStartTime) {
+        const seg = (Date.now() - tcBenchmarkStartTime) / 1000;
+        if (seg > 0.3) {
+          const rps = (d.numero / seg).toFixed(1);
+          if (tcKpiRps) tcKpiRps.textContent = `${rps}`;
+        }
+      }
+
+      if (d.distribuicao) {
+        const p1 = d.distribuicao['server-01'] || 0;
+        const p2 = d.distribuicao['server-02'] || 0;
+        const p3 = d.distribuicao['server-03'] || 0;
+        const p4 = d.distribuicao['server-04'] || 0;
+        if (tcBarS1) tcBarS1.style.width = `${p1}%`;
+        if (tcPctS1) tcPctS1.textContent = `${p1}% (${d.contadores['server-01'] || 0})`;
+        if (tcBarS2) tcBarS2.style.width = `${p2}%`;
+        if (tcPctS2) tcPctS2.textContent = `${p2}% (${d.contadores['server-02'] || 0})`;
+        if (tcBarS3) tcBarS3.style.width = `${p3}%`;
+        if (tcPctS3) tcPctS3.textContent = `${p3}% (${d.contadores['server-03'] || 0})`;
+        if (tcBarS4) tcBarS4.style.width = `${p4}%`;
+        if (tcPctS4) tcPctS4.textContent = `${p4}% (${d.contadores['server-04'] || 0})`;
+      }
+
+      // Cor no terminal por servidor
+      const sCor = d.erro ? '#f87171' : (
+        d.server_id === 'server-01' ? '#60a5fa' :
+        d.server_id === 'server-02' ? '#a78bfa' :
+        d.server_id === 'server-03' ? '#f472b6' :
+        d.server_id === 'server-04' ? '#34d399' : '#e2e8f0'
+      );
+      const statusIcon = d.erro ? '❌ ERRO' : `✅ ${d.http_code || 200}`;
+      appendTcLog(`[#${String(d.numero).padStart(3, '0')}] ${d.timestamp} ➔ ${d.server_id} | ${d.latencia_ms}ms | ${statusIcon}`, sCor);
+    }
+
+    function handleTesteCargaConcluido(d) {
+      if (tcBtnStart) tcBtnStart.disabled = false;
+      if (tcBtnStop) tcBtnStop.disabled = true;
+      if (tcProgressFill) tcProgressFill.style.width = '100%';
+      if (tcProgressLabel) tcProgressLabel.textContent = `${d.total_enviadas} / ${d.total_alvo}`;
+      if (tcProgressPct) tcProgressPct.textContent = '100%';
+      if (tcConcluidoBanner) tcConcluidoBanner.classList.add('visible');
+
+      if (tcKpiLatency) tcKpiLatency.textContent = `${d.media_ms} ms`;
+      if (tcKpiErrors) tcKpiErrors.textContent = `${d.erros}`;
+      if (tcKpiSent) tcKpiSent.textContent = `${d.total_enviadas}`;
+
+      appendTcLog(`[${d.timestamp}] 🏁 Teste concluído com sucesso! ${d.total_enviadas} requisições enviadas (${d.erros} falhas, média ${d.media_ms}ms).`, '#34d399');
+      setStatus('Teste de carga concluído com sucesso', 'ready');
+    }
+
+    async function syncTesteCargaStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/api/teste-carga/status`);
+        if (!res.ok) return;
+        const d = await res.json();
+        if (d.running) {
+          if (tcBtnStart) tcBtnStart.disabled = true;
+          if (tcBtnStop) tcBtnStop.disabled = false;
+          if (tcConcluidoBanner) tcConcluidoBanner.classList.remove('visible');
+          if (d.total_alvo > 0) {
+            const pct = Math.min(100, Math.round((d.total_enviadas / d.total_alvo) * 100));
+            if (tcProgressFill) tcProgressFill.style.width = `${pct}%`;
+            if (tcProgressLabel) tcProgressLabel.textContent = `${d.total_enviadas} / ${d.total_alvo}`;
+            if (tcProgressPct) tcProgressPct.textContent = `${pct}%`;
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao verificar status do teste de carga:', err);
       }
     }
 
     // Start SSE Connection on load
     window.addEventListener('DOMContentLoaded', () => {
       connectSSE();
-      checkEscalaInicial();
+      syncEscalaStatus();
+      syncServidoresStatus();
+      syncTesteCargaStatus();
+      setInterval(syncServidoresStatus, 3000);
     });
   </script>
 </body>

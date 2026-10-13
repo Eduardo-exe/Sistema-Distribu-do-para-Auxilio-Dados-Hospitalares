@@ -56,8 +56,9 @@ class RoundRobinBalancer:
     """
 
     def __init__(self, servidores: list[str], servidores_reserva: list[str] = None):
-        self.servidores = list(servidores)
-        self.servidores_reserva = list(servidores_reserva or [])
+        self.servidores = [s.rstrip("/") for s in (servidores or [])]
+        self.servidores_reserva = [s.rstrip("/") for s in (servidores_reserva or [])]
+        self.servidores_reserva_conhecidos = list(self.servidores_reserva)
         self.indice_atual = 0
         self.total_requisicoes = 0
 
@@ -106,13 +107,17 @@ class RoundRobinBalancer:
             alvo = url.rstrip("/")
             if alvo in self.servidores_reserva:
                 self.servidores_reserva.remove(alvo)
-                if alvo not in self.servidores:
-                    self.servidores.append(alvo)
-                return alvo
+            if alvo not in self.servidores:
+                self.servidores.append(alvo)
+            if alvo not in self.servidores_reserva_conhecidos:
+                self.servidores_reserva_conhecidos.append(alvo)
+            return alvo
         elif self.servidores_reserva:
             alvo = self.servidores_reserva.pop(0)
             if alvo not in self.servidores:
                 self.servidores.append(alvo)
+            if alvo not in self.servidores_reserva_conhecidos:
+                self.servidores_reserva_conhecidos.append(alvo)
             return alvo
         return None
 
@@ -129,9 +134,21 @@ class RoundRobinBalancer:
                 if self.indice_atual >= len(self.servidores) and self.servidores:
                     self.indice_atual = 0
                 return alvo
-        elif len(self.servidores) > 3:
-            # Por padrão retira o último nó se houver mais de 3
-            alvo = self.servidores.pop()
+            return None
+
+        # Se url não for informado, busca primeiro nos nós ativos algum que seja reserva conhecido
+        alvo = None
+        for s in reversed(self.servidores):
+            if s in self.servidores_reserva_conhecidos or ":8004" in s:
+                alvo = s
+                break
+
+        # Caso não encontre nos conhecidos, mas haja mais de 3 nós, retira o último
+        if not alvo and len(self.servidores) > 3:
+            alvo = self.servidores[-1]
+
+        if alvo and alvo in self.servidores:
+            self.servidores.remove(alvo)
             if alvo not in self.servidores_reserva:
                 self.servidores_reserva.append(alvo)
             if self.indice_atual >= len(self.servidores) and self.servidores:
@@ -170,7 +187,7 @@ def criar_balanceador(
     balancer = RoundRobinBalancer(_servidores, _reservas)
 
     # Cliente HTTP para encaminhar requisições
-    client = httpx.AsyncClient(timeout=10.0)
+    client = httpx.AsyncClient(timeout=httpx.Timeout(connect=2.0, read=5.0, write=5.0, pool=5.0))
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
@@ -204,18 +221,26 @@ def criar_balanceador(
 
         body = await request.json()
         tentativas = len(balancer.servidores)
+        falharam = []
 
         for tentativa in range(tentativas):
             servidor = balancer.proximo_servidor()
             print(f"[BALANCEADOR] POST /dados [{tentativa + 1}/{tentativas}] → {servidor}")
             try:
                 response = await client.post(f"{servidor}/dados", json=body)
+                resp_data = response.json()
+                if falharam and isinstance(resp_data, dict):
+                    resp_data["failover"] = True
+                    resp_data["servidores_falharam"] = falharam
+                headers = {"X-Failover": "true"} if falharam else {}
                 return JSONResponse(
                     status_code=response.status_code,
-                    content=response.json(),
+                    content=resp_data,
+                    headers=headers,
                 )
             except (httpx.ConnectError, httpx.TimeoutException):
                 print(f"[BALANCEADOR] AVISO: Falha de conexão em {servidor}. Executando failover...")
+                falharam.append(servidor)
                 continue
             except Exception as e:
                 print(f"[BALANCEADOR] ERRO inesperado em {servidor}: {e}")
@@ -236,6 +261,7 @@ def criar_balanceador(
 
         query_string = str(request.url.query)
         tentativas = len(balancer.servidores)
+        falharam = []
 
         for tentativa in range(tentativas):
             servidor = balancer.proximo_servidor()
@@ -246,12 +272,16 @@ def criar_balanceador(
             print(f"[BALANCEADOR] GET /dados [{tentativa + 1}/{tentativas}] → {servidor}")
             try:
                 response = await client.get(url)
+                resp_data = response.json()
+                headers = {"X-Failover": "true"} if falharam else {}
                 return JSONResponse(
                     status_code=response.status_code,
-                    content=response.json(),
+                    content=resp_data,
+                    headers=headers,
                 )
             except (httpx.ConnectError, httpx.TimeoutException):
                 print(f"[BALANCEADOR] AVISO: Falha de conexão em {servidor}. Executando failover...")
+                falharam.append(servidor)
                 continue
             except Exception as e:
                 return JSONResponse(status_code=500, content={"detail": str(e)})
@@ -270,18 +300,23 @@ def criar_balanceador(
             return JSONResponse(status_code=503, content={"detail": "Nenhum servidor backend configurado"})
 
         tentativas = len(balancer.servidores)
+        falharam = []
 
         for tentativa in range(tentativas):
             servidor = balancer.proximo_servidor()
             print(f"[BALANCEADOR] GET /dados/{paciente_id} [{tentativa + 1}/{tentativas}] → {servidor}")
             try:
                 response = await client.get(f"{servidor}/dados/{paciente_id}")
+                resp_data = response.json()
+                headers = {"X-Failover": "true"} if falharam else {}
                 return JSONResponse(
                     status_code=response.status_code,
-                    content=response.json(),
+                    content=resp_data,
+                    headers=headers,
                 )
             except (httpx.ConnectError, httpx.TimeoutException):
                 print(f"[BALANCEADOR] AVISO: Falha de conexão em {servidor}. Executando failover...")
+                falharam.append(servidor)
                 continue
             except Exception as e:
                 return JSONResponse(status_code=500, content={"detail": str(e)})
@@ -339,9 +374,16 @@ def criar_balanceador(
         }
 
     @app.post("/servidores/desativar-reserva")
-    async def desativar_reserva():
+    async def desativar_reserva(request: Request):
         """Desativa um servidor reserva da rota ativa (Scale-In)."""
-        alvo = balancer.desativar_reserva()
+        url_alvo = None
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                url_alvo = body.get("url")
+        except Exception:
+            pass
+        alvo = balancer.desativar_reserva(url_alvo)
         if not alvo:
             return JSONResponse(
                 status_code=400,

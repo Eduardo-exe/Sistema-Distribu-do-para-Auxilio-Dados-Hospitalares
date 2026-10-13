@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set +m
 # ==============================================================================
 # Script de Inicialização — Sistema Distribuído Hospitalar
 # ==============================================================================
@@ -21,10 +22,10 @@ else
     PYTHON="python"
 fi
 
-# 2. Verificar modo de execução
-MODO_MIDDLEWARE=false
-if [[ "$1" == "--middleware" ]]; then
-    MODO_MIDDLEWARE=true
+# 2. Verificar modo de execução (Middleware RabbitMQ ativo por padrão)
+MODO_MIDDLEWARE=true
+if [[ "$1" == "--no-middleware" ]] || [[ "$1" == "--sem-middleware" ]]; then
+    MODO_MIDDLEWARE=false
 fi
 
 # 3. Criar pastas necessárias
@@ -59,6 +60,8 @@ cleanup() {
             kill "$pid" 2>/dev/null || true
         fi
     done
+    fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 2>/dev/null || true
+    docker stop rabbitmq-sd 2>/dev/null || true
     wait 2>/dev/null || true
     echo "  ✓ Todos os serviços foram finalizados com sucesso."
     echo "============================================================"
@@ -107,9 +110,17 @@ if [ "$MODO_MIDDLEWARE" = true ]; then
     echo ""
     echo "── Middleware RabbitMQ (Marco 3: Replicação Fanout) ──────────"
 
-    # Verificar se RabbitMQ está acessível
+    # Verificar se RabbitMQ está acessível ou iniciar automaticamente no Docker
     RABBITMQ_HOST="${RABBITMQ_HOST:-localhost}"
     RABBITMQ_PORT="${RABBITMQ_PORT:-5672}"
+
+    if ! timeout 2 bash -c "echo > /dev/tcp/$RABBITMQ_HOST/$RABBITMQ_PORT" 2>/dev/null; then
+        if command -v docker &>/dev/null; then
+            echo "[MW] Subindo broker RabbitMQ automaticamente via Docker..."
+            docker run -d --rm --name rabbitmq-sd -p 5672:5672 -p 15672:15672 rabbitmq:3-management 2>/dev/null || docker start rabbitmq-sd 2>/dev/null || true
+            sleep 2
+        fi
+    fi
 
     echo "[MW] Verificando RabbitMQ em $RABBITMQ_HOST:$RABBITMQ_PORT..."
     MAX_TENTATIVAS=10
@@ -125,13 +136,7 @@ if [ "$MODO_MIDDLEWARE" = true ]; then
     done
 
     if [ $TENTATIVA -ge $MAX_TENTATIVAS ]; then
-        echo "[MW] ✗ ERRO: RabbitMQ não está acessível em $RABBITMQ_HOST:$RABBITMQ_PORT"
-        echo "[MW]   Inicie o RabbitMQ antes de usar o modo --middleware:"
-        echo "[MW]     docker run -d --rm --name rabbitmq-sd -p 5672:5672 -p 15672:15672 rabbitmq:3-management"
-        echo "[MW]   Ou:"
-        echo "[MW]     docker-compose up rabbitmq"
-        echo ""
-        echo "[MW] O sistema continua rodando no modo HTTP direto."
+        echo "[MW] ✗ AVISO: RabbitMQ não está acessível. Sistema continuará no modo direto."
     else
         echo "[MW] Iniciando Consumidores AMQP Fanout (Marco 3)..."
         RABBITMQ_HOST="$RABBITMQ_HOST" "$PYTHON" middleware/consumidor.py --multi > logs/consumidor.log 2>&1 &
@@ -174,4 +179,8 @@ echo "Pressione [Ctrl+C] a qualquer momento para desligar todos os nós."
 echo "============================================================"
 
 # Manter o script ativo aguardando os processos ou Ctrl+C
-wait "${PIDS[@]}"
+# Manter o script ativo até Ctrl+C ser pressionado (resistente a testes de queda de nós)
+while true; do
+    sleep 2 &
+    wait  2>/dev/null || true
+done
