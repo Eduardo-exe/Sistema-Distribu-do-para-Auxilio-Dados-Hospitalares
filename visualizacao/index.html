@@ -133,8 +133,14 @@
     .controls-wrapper {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
       flex-wrap: wrap;
+    }
+
+    .ctrl-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .btn-group {
@@ -563,6 +569,19 @@
     .rr-dot.standby {
       opacity: 0.4;
       border-style: dashed;
+    }
+
+    .mobile-scroll-hint {
+      display: none;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px dashed rgba(148, 163, 184, 0.25);
+      border-radius: var(--radius-sm);
+      padding: 0.35rem 0.6rem;
+      margin-bottom: 0.6rem;
+      text-align: center;
+      user-select: none;
     }
 
     /* SVG Canvas Area */
@@ -1443,7 +1462,22 @@
     /* ============================================================
        Responsividade para Dispositivos Móveis e Telas Menores
        ============================================================ */
-    @media (max-width: 1100px) {
+    @media (max-width: 1200px) {
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.85rem;
+        padding: 0.85rem 1.25rem;
+      }
+      .controls-wrapper {
+        justify-content: flex-start;
+        gap: 0.65rem;
+      }
+      .ctrl-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
       main {
         grid-template-columns: 1fr;
         padding: 1rem 1.25rem;
@@ -1453,57 +1487,194 @@
         width: 100%;
       }
       .canvas-container {
-        min-height: 520px;
+        min-height: 500px;
       }
       svg#arch-canvas {
-        min-height: 520px;
+        min-height: 500px;
       }
     }
 
     @media (max-width: 768px) {
       header {
+        position: relative; /* Libera espaço de tela no celular para visualização sem cabeçalho fixo gigante */
         flex-direction: column;
         align-items: stretch;
-        gap: 0.85rem;
-        padding: 0.85rem 1rem;
+        gap: 0.75rem;
+        padding: 0.75rem 0.85rem;
       }
 
       .brand {
-        justify-content: space-between;
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
         width: 100%;
       }
 
-      .controls-wrapper {
-        justify-content: center;
-        width: 100%;
-        gap: 0.5rem;
+      .brand-icon {
+        width: 38px;
+        height: 38px;
+        flex-shrink: 0;
       }
 
-      .btn-group {
+      .brand-title h1 {
+        font-size: 1.05rem;
         flex-wrap: wrap;
-        justify-content: center;
+        gap: 0.35rem;
+      }
+
+      .badge-milestone {
+        font-size: 0.62rem;
+        padding: 0.15rem 0.45rem;
+      }
+
+      .brand-title p {
+        font-size: 0.74rem;
+        line-height: 1.3;
+      }
+
+      /* Container de controles em coluna limpa */
+      .controls-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
         width: 100%;
       }
 
-      .btn {
-        padding: 0.45rem 0.75rem;
-        font-size: 0.78rem;
-        flex: 1 1 auto;
+      .ctrl-group {
+        width: 100%;
+      }
+
+      /* Linha 1: 4 botões de simulação em grade perfeita de 4 colunas */
+      .ctrl-sim {
+        width: 100%;
+      }
+
+      .ctrl-sim .btn-group {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        width: 100%;
+        padding: 3px;
+        gap: 3px;
+        box-sizing: border-box;
+      }
+
+      .ctrl-sim .btn {
+        padding: 0.48rem 0.2rem;
+        font-size: 0.74rem;
         justify-content: center;
+        white-space: nowrap;
+        min-width: 0;
+        box-sizing: border-box;
+        gap: 0.25rem;
       }
 
-      .select-custom {
-        font-size: 0.78rem;
+      /* Linha 2: Scale-Out e Teste de Carga lado a lado (50% / 50%) */
+      .ctrl-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .ctrl-actions .btn-reserve,
+      .ctrl-actions .btn-benchmark {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.48rem 0.5rem;
+        font-size: 0.76rem;
+        font-weight: 700;
+        white-space: nowrap;
+        box-sizing: border-box;
+        margin: 0;
+        min-height: 38px;
+        text-align: center;
+        gap: 0.35rem;
+      }
+
+      /* Linha 3: Resiliência em layout adaptável sem estourar a tela */
+      .ctrl-chaos {
+        width: 100%;
+      }
+
+      .ctrl-chaos .chaos-group {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
         padding: 0.4rem 0.6rem;
+        box-sizing: border-box;
       }
 
+      .ctrl-chaos .chaos-title {
+        width: 100%;
+        font-size: 0.72rem;
+        margin-bottom: -0.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      .ctrl-chaos .sel-chaos {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 0;
+        font-size: 0.75rem;
+        padding: 0.38rem 0.4rem;
+        box-sizing: border-box;
+      }
+
+      .ctrl-chaos .btn-crash {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 0;
+        justify-content: center;
+        padding: 0.38rem 0.45rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        box-sizing: border-box;
+      }
+
+      /* Linha 4: Configurações e Modo Foco */
+      .ctrl-settings {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .ctrl-settings .control-setting {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.74rem;
+        box-sizing: border-box;
+      }
+
+      .ctrl-settings .control-setting select {
+        padding: 0.2rem 0.35rem;
+        font-size: 0.74rem;
+      }
+
+      .ctrl-settings .toggle-presentation {
+        font-size: 0.74rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: 0 0.25rem;
+      }
+
+      /* Main container & visualizador */
       main {
         padding: 0.75rem 0.5rem;
         gap: 1rem;
       }
 
       .arch-card {
-        padding: 1rem 0.75rem;
+        padding: 0.85rem 0.65rem;
       }
 
       .arch-header {
@@ -1516,68 +1687,200 @@
         width: 100%;
         justify-content: space-between;
         font-size: 0.72rem;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
+      .mobile-scroll-hint {
+        display: block;
       }
 
       .canvas-container {
         min-height: 380px;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius-md);
       }
 
       svg#arch-canvas {
-        min-width: 700px;
-        min-height: 420px;
+        min-width: 650px;
+        min-height: 390px;
       }
 
+      /* Métricas em 3 colunas compactas lado a lado */
       .metrics-summary {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.45rem;
+      }
+
+      .metric-box {
+        padding: 0.45rem 0.25rem;
+      }
+
+      .metric-number {
+        font-size: 1.15rem;
+      }
+
+      .metric-caption {
+        font-size: 0.62rem;
+      }
+
+      /* Sinais vitais em 2 colunas */
+      .patient-grid {
         grid-template-columns: 1fr 1fr;
         gap: 0.5rem;
       }
 
-      .patient-grid {
-        grid-template-columns: 1fr;
+      .vital-item {
+        padding: 0.5rem 0.6rem;
       }
 
+      .vital-value {
+        font-size: 0.95rem;
+      }
+
+      /* Servidores na sidebar */
+      .dist-header {
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+      }
+
+      .s-action-group {
+        margin-left: auto;
+      }
+
+      .btn-srv-toggle {
+        padding: 0.22rem 0.5rem;
+        font-size: 0.68rem;
+        white-space: nowrap;
+      }
+
+      /* Modal de Teste de Carga */
       .modal-card {
-        padding: 1.25rem 1rem;
+        width: 95vw;
+        max-width: 95vw;
+        padding: 1.15rem 0.85rem;
         border-radius: 14px;
         max-height: 94vh;
       }
 
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
       .modal-header h2 {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .modal-minimize {
+        padding: 0.35rem 0.55rem;
+        font-size: 0.72rem;
+        white-space: nowrap;
+      }
+
+      .modal-close {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+
+      .tc-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+
+      .tc-btn-start,
+      .tc-btn-stop {
+        width: 100%;
+        padding: 0.65rem 0.5rem;
+        font-size: 0.82rem;
+        white-space: nowrap;
+        justify-content: center;
+      }
+
+      .tc-chips {
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
+      .tc-chip {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.75rem;
       }
 
       .tc-kpis {
         grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
+        gap: 0.45rem;
       }
 
       .modal-overlay.minimized {
         padding: 0.5rem;
+        align-items: flex-end;
+        justify-content: center;
       }
 
       .modal-overlay.minimized .modal-card {
-        width: 95vw;
-        max-width: 95vw;
+        width: calc(100vw - 1rem);
+        max-width: 440px;
+        margin: 0 auto;
+        padding: 0.75rem 0.95rem;
+      }
+
+      /* Footer */
+      footer {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+        padding: 0.85rem 1rem;
+      }
+
+      .footer-badges {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.4rem;
       }
     }
 
-    @media (max-width: 480px) {
+    @media (max-width: 440px) {
       .brand-title h1 {
-        font-size: 0.98rem;
+        font-size: 0.95rem;
       }
 
       .badge-milestone {
         display: none;
       }
 
-      .metrics-summary {
-        grid-template-columns: 1fr;
+      .brand-title p {
+        display: none;
       }
 
-      .tc-chips {
+      .ctrl-sim .btn-lbl {
+        font-size: 0.68rem;
+      }
+
+      .ctrl-settings {
         flex-wrap: wrap;
+      }
+
+      .ctrl-settings .control-setting {
+        flex: 1 1 45%;
+      }
+
+      .ctrl-settings .toggle-presentation {
+        width: 100%;
+        justify-content: flex-end;
       }
     }
 
@@ -1647,75 +1950,84 @@
     </div>
 
     <div class="controls-wrapper">
-      <div class="btn-group">
-        <button id="btn-start" class="btn btn-primary" title="Iniciar simulação automática">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          Iniciar
+      <!-- 1. Controles Principais de Simulação -->
+      <div class="ctrl-group ctrl-sim">
+        <div class="btn-group">
+          <button id="btn-start" class="btn btn-primary" title="Iniciar simulação automática">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span class="btn-lbl">Iniciar</span>
+          </button>
+          <button id="btn-step" class="btn btn-step" title="Processar apenas a próxima requisição">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            <span class="btn-lbl">Próximo</span>
+          </button>
+          <button id="btn-pause" class="btn btn-pause" title="Pausar simulação">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span class="btn-lbl">Pausar</span>
+          </button>
+          <button id="btn-reset" class="btn btn-reset" title="Reiniciar contadores e posição">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span class="btn-lbl">Reiniciar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Ações Estratégicas (Scale-Out & Benchmark) -->
+      <div class="ctrl-group ctrl-actions">
+        <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
+          <span id="reserva-icon">⚡</span>
+          <span id="reserva-label">Ativar Reserva (Scale-Out)</span>
         </button>
-        <button id="btn-step" class="btn btn-step" title="Processar apenas a próxima requisição">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-          Próximo
-        </button>
-        <button id="btn-pause" class="btn btn-pause" title="Pausar simulação">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          Pausar
-        </button>
-        <button id="btn-reset" class="btn btn-reset" title="Reiniciar contadores e posição">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-          Reiniciar
+
+        <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
+          ⚡ Teste de Carga
         </button>
       </div>
 
-      <!-- Scale-Out Elastic Pooling Button -->
-      <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
-        <span id="reserva-icon">⚡</span>
-        <span id="reserva-label">Ativar Reserva (Scale-Out)</span>
-      </button>
-
-      <!-- Resiliência & Chaos Testing Controls -->
-      <div class="chaos-group" title="Simulação de Resiliência: Escolha qual servidor você quer derrubar">
-        <span class="chaos-title"><span class="chaos-pulse"></span>Resiliência:</span>
-        <select id="sel-server-crash" class="sel-chaos" title="Selecione o servidor que deseja derrubar ou religar">
-          <option value="1">Servidor 01 (:8001)</option>
-          <option value="2" selected>Servidor 02 (:8002)</option>
-          <option value="3">Servidor 03 (:8003)</option>
-          <option value="4">Servidor 04 (:8004)</option>
-        </select>
-        <button id="btn-crash-selected" class="btn btn-crash btn-crash-danger" title="Derrubar ou religar o servidor selecionado">
-          <span id="crash-icon">💥</span>
-          <span id="crash-label">Derrubar Servidor</span>
-        </button>
+      <!-- 3. Resiliência & Chaos Testing -->
+      <div class="ctrl-group ctrl-chaos">
+        <div class="chaos-group" title="Simulação de Resiliência: Escolha qual servidor você quer derrubar">
+          <span class="chaos-title"><span class="chaos-pulse"></span>Resiliência:</span>
+          <select id="sel-server-crash" class="sel-chaos" title="Selecione o servidor que deseja derrubar ou religar">
+            <option value="1">Servidor 01 (:8001)</option>
+            <option value="2" selected>Servidor 02 (:8002)</option>
+            <option value="3">Servidor 03 (:8003)</option>
+            <option value="4">Servidor 04 (:8004)</option>
+          </select>
+          <button id="btn-crash-selected" class="btn btn-crash btn-crash-danger" title="Derrubar ou religar o servidor selecionado">
+            <span id="crash-icon">💥</span>
+            <span id="crash-label">Derrubar Servidor</span>
+          </button>
+        </div>
       </div>
 
-      <div class="control-setting">
-        <span>Qtd:</span>
-        <select id="sel-limit">
-          <option value="6">6 registros</option>
-          <option value="12" selected>12 registros</option>
-          <option value="24">24 registros</option>
-          <option value="60">60 registros</option>
-          <option value="0">Todos</option>
-        </select>
+      <!-- 4. Ajustes e Modo Foco -->
+      <div class="ctrl-group ctrl-settings">
+        <div class="control-setting">
+          <span>Qtd:</span>
+          <select id="sel-limit">
+            <option value="6">6 registros</option>
+            <option value="12" selected>12 registros</option>
+            <option value="24">24 registros</option>
+            <option value="60">60 registros</option>
+            <option value="0">Todos</option>
+          </select>
+        </div>
+
+        <div class="control-setting">
+          <span>Velocidade:</span>
+          <select id="sel-speed">
+            <option value="0.5">Lenta (0.5x)</option>
+            <option value="1.0" selected>Normal (1.0x)</option>
+            <option value="2.0">Rápida (2.0x)</option>
+          </select>
+        </div>
+
+        <label class="toggle-presentation">
+          <input type="checkbox" id="chk-presentation">
+          <span>Modo Foco</span>
+        </label>
       </div>
-
-      <div class="control-setting">
-        <span>Velocidade:</span>
-        <select id="sel-speed">
-          <option value="0.5">Lenta (0.5x)</option>
-          <option value="1.0" selected>Normal (1.0x)</option>
-          <option value="2.0">Rápida (2.0x)</option>
-        </select>
-      </div>
-
-      <!-- Teste de Carga (Benchmark) Button -->
-      <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
-        ⚡ Teste de Carga
-      </button>
-
-      <label class="toggle-presentation">
-        <input type="checkbox" id="chk-presentation">
-        <span>Modo Foco</span>
-      </label>
     </div>
   </header>
 
@@ -1741,6 +2053,9 @@
       </div>
 
       <!-- Interactive SVG Topology -->
+      <div class="mobile-scroll-hint">
+        <span>👈 Deslize para navegar pela arquitetura distribuída 👉</span>
+      </div>
       <div class="canvas-container">
         <svg id="arch-canvas" viewBox="0 0 1180 700" preserveAspectRatio="xMidYMid meet">
           <defs>
