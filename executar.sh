@@ -5,8 +5,9 @@ set +m
 # ==============================================================================
 #
 # Uso:
-#   ./executar.sh              → Modo original (sem middleware)
-#   ./executar.sh --middleware → Modo com RabbitMQ (requer RabbitMQ rodando)
+#   ./executar.sh              → Inicia todo o cluster com RabbitMQ (modo padrão)
+#   ./executar.sh --tunel      → Inicia cluster + cria link público HTTPS (Cloudflare)
+#   ./executar.sh --no-middleware → Inicia sem RabbitMQ (modo HTTP direto)
 #
 # ==============================================================================
 
@@ -22,11 +23,18 @@ else
     PYTHON="python"
 fi
 
-# 2. Verificar modo de execução (Middleware RabbitMQ ativo por padrão)
+# 2. Verificar modo de execução e argumentos
 MODO_MIDDLEWARE=true
-if [[ "$1" == "--no-middleware" ]] || [[ "$1" == "--sem-middleware" ]]; then
-    MODO_MIDDLEWARE=false
-fi
+MODO_TUNEL=false
+
+for arg in "$@"; do
+    if [[ "$arg" == "--no-middleware" ]] || [[ "$arg" == "--sem-middleware" ]]; then
+        MODO_MIDDLEWARE=false
+    fi
+    if [[ "$arg" == "--tunel" ]] || [[ "$arg" == "-t" ]]; then
+        MODO_TUNEL=true
+    fi
+done
 
 # 3. Criar pastas necessárias
 mkdir -p databases logs
@@ -62,6 +70,7 @@ cleanup() {
     done
     fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 2>/dev/null || true
     docker stop rabbitmq-sd 2>/dev/null || true
+    pkill -f "cloudflared" 2>/dev/null || true
     wait 2>/dev/null || true
     echo "  ✓ Todos os serviços foram finalizados com sucesso."
     echo "============================================================"
@@ -151,11 +160,50 @@ fi
 IP_LOCAL=$(ip -4 addr show scope global 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
 [ -z "$IP_LOCAL" ] && IP_LOCAL="127.0.0.1"
 
+# ── Túnel Público Cloudflare (se ativado via --tunel) ──────────
+URL_TUNEL=""
+if [ "$MODO_TUNEL" = true ]; then
+    echo ""
+    echo "── Túnel Público Cloudflare (Acesso Externo) ───────────────"
+    echo "Iniciando túnel para a porta $PORTA_MONITOR..."
+    BIN_CLOUDFLARED="$DIR/bin/cloudflared"
+    if [ ! -f "$BIN_CLOUDFLARED" ]; then
+        echo "Baixando cloudflared..."
+        mkdir -p "$DIR/bin"
+        curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o "$BIN_CLOUDFLARED"
+        chmod +x "$BIN_CLOUDFLARED"
+    fi
+    LOG_TUNEL="$DIR/logs/tunel.log"
+    "$BIN_CLOUDFLARED" tunnel --url "http://localhost:$PORTA_MONITOR" > "$LOG_TUNEL" 2>&1 &
+    PID_TUNEL=$!
+    PIDS+=("$PID_TUNEL")
+
+    echo "Aguardando geração do link público seguro..."
+    for i in {1..20}; do
+        if [ -f "$LOG_TUNEL" ]; then
+            URL_TUNEL=$(grep -oP 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' "$LOG_TUNEL" | head -n 1)
+            [ -n "$URL_TUNEL" ] && break
+        fi
+        sleep 1
+    done
+fi
+
 echo "------------------------------------------------------------"
 echo "  ✓ Todos os componentes estão prontos e ativos!"
 echo "------------------------------------------------------------"
 echo "  🌐 Acesso Local (Este PC) : http://localhost:$PORTA_MONITOR"
-echo "  📱 Acesso na Rede (Celular): http://$IP_LOCAL:$PORTA_MONITOR"
+echo "  📱 Acesso na Rede (Wi-Fi)  : http://$IP_LOCAL:$PORTA_MONITOR"
+
+if [ -n "$URL_TUNEL" ]; then
+    echo ""
+    echo "  🎉 LINK PÚBLICO MUNDIAL (HTTPS):"
+    echo "     👉 $URL_TUNEL"
+    echo "  (Envie este link para qualquer pessoa testar no celular ou PC de fora!)"
+else
+    echo "  🌍 Link Público (Internet) : execute ./tunel.sh em outro terminal"
+    echo "                               ou use: ./executar.sh --tunel"
+fi
+
 echo "  ⚖️  Load Balancer (API)    : http://$IP_LOCAL:8000"
 echo "  🏥 Servidor 01 (:8001)     : http://$IP_LOCAL:8001"
 echo "  🏥 Servidor 02 (:8002)     : http://$IP_LOCAL:8002"
@@ -180,8 +228,13 @@ if [ "$MODO_MIDDLEWARE" = true ]; then
 fi
 
 echo "------------------------------------------------------------"
-echo "  💡 No seu celular ou outro PC no mesmo Wi-Fi, abra:"
-echo "     👉 http://$IP_LOCAL:$PORTA_MONITOR"
+if [ -n "$URL_TUNEL" ]; then
+    echo "  💡 Link pronto! Copie e cole no navegador:"
+    echo "     👉 $URL_TUNEL"
+else
+    echo "  💡 No celular ou outro PC no mesmo Wi-Fi, abra:"
+    echo "     👉 http://$IP_LOCAL:$PORTA_MONITOR"
+fi
 echo ""
 echo "  Pressione [Ctrl+C] a qualquer momento para desligar todos os nós."
 echo "============================================================"

@@ -33,7 +33,6 @@ logs/*.log
 # Docker
 .docker/
 
-# Sistema operacional
-.DS_Store
-Thumbs.db
+# Binários locais (túnel Cloudflare)
+bin/
 

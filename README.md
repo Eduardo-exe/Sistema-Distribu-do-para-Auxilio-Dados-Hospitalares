@@ -420,6 +420,43 @@ http://localhost:5000
 
 ---
 
+## Acesso Externo e Remoto (Seu PC como Servidor)
+
+Para apresentar o projeto para a banca, colegas ou professor onde quer que eles estejam (inclusive no celular em redes 4G/5G, fora de casa ou da universidade), o projeto oferece duas formas de conexão externa sem necessidade de abrir portas no roteador ou configurar firewall:
+
+### Opção 1: Túnel Público Mundial via Cloudflare (Recomendado)
+
+Gera um link seguro oficial HTTPS (`https://*.trycloudflare.com`) válido e acessível de qualquer lugar do mundo:
+
+```bash
+# Iniciar todo o sistema já com o link público na inicialização:
+./executar.sh --tunel
+```
+
+Ou, se o sistema já estiver rodando, abra outro terminal e execute:
+
+```bash
+# Expõe a interface visual didática (porta 5000):
+./tunel.sh
+
+# Ou expõe a API do Load Balancer (porta 8000):
+./tunel.sh 8000
+```
+
+> **Como funciona:** O script utiliza o cliente leve oficial da Cloudflare (`cloudflared`). Um túnel reverso encriptado é criado entre sua máquina local e a rede global da Cloudflare. Nenhuma configuração de roteador (port forwarding) ou IP fixo é necessária.
+
+### Opção 2: Acesso na Rede Local / Wi-Fi
+
+Para dispositivos conectados na mesma rede Wi-Fi que o seu PC (como seu smartphone ou notebook):
+
+1. Ao rodar `./executar.sh`, o script detecta e exibe automaticamente o seu IP local.
+2. No celular ou outro dispositivo conectado no mesmo Wi-Fi, acesse:
+   ```
+   http://<SEU_IP_LOCAL>:5000
+   ```
+
+---
+
 ## Como Testar com Postman
 
 ### POST /dados — Enviar dados manualmente
