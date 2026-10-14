@@ -27,6 +27,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -211,6 +212,14 @@ def criar_balanceador(
         description="Distribui requisições com Round Robin, Failover e Elasticidade",
         version="2.0.0",
         lifespan=lifespan,
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     async def _notificar_monitor_background(servidor_url: str, status_code: int, latencia_ms: int, failover: bool, sid: str = None):

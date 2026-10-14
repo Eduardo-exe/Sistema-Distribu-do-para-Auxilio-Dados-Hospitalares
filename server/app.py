@@ -12,6 +12,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 # Adicionar o diretório raiz do projeto ao path para importações
@@ -57,6 +58,14 @@ def criar_app(server_id: str = None, db_path: str = None) -> FastAPI:
         description="API para receber dados de monitoramento de pacientes",
         version="1.0.0",
         lifespan=lifespan,
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     @app.post("/dados", response_model=DadosResponse)

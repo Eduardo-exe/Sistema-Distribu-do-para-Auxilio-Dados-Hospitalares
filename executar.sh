@@ -147,16 +147,21 @@ if [ "$MODO_MIDDLEWARE" = true ]; then
     fi
 fi
 
+# Detectar IP local para facilitar acesso via celular e outros dispositivos da rede
+IP_LOCAL=$(ip -4 addr show scope global 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
+[ -z "$IP_LOCAL" ] && IP_LOCAL="127.0.0.1"
+
 echo "------------------------------------------------------------"
 echo "  ✓ Todos os componentes estão prontos e ativos!"
 echo "------------------------------------------------------------"
-echo "  🌐 Interface Visual Web : http://localhost:5000"
-echo "  ⚖️  Load Balancer Status : http://localhost:8000/status"
-echo "  🏥 Servidor 01 (Ativo)  : http://localhost:8001"
-echo "  🏥 Servidor 02 (Ativo)  : http://localhost:8002"
-echo "  🏥 Servidor 03 (Ativo)  : http://localhost:8003"
-echo "  🛡️  Servidor 04 (Reserva): http://localhost:8004 (Warm Standby)"
-echo "  📁 Logs dos serviços    : $DIR/logs/"
+echo "  🌐 Acesso Local (Este PC) : http://localhost:$PORTA_MONITOR"
+echo "  📱 Acesso na Rede (Celular): http://$IP_LOCAL:$PORTA_MONITOR"
+echo "  ⚖️  Load Balancer (API)    : http://$IP_LOCAL:8000"
+echo "  🏥 Servidor 01 (:8001)     : http://$IP_LOCAL:8001"
+echo "  🏥 Servidor 02 (:8002)     : http://$IP_LOCAL:8002"
+echo "  🏥 Servidor 03 (:8003)     : http://$IP_LOCAL:8003"
+echo "  🛡️  Servidor 04 (:8004)     : http://$IP_LOCAL:8004 (Warm Standby)"
+echo "  📁 Logs dos serviços       : $DIR/logs/"
 echo ""
 echo "  ⚡ Comandos de Escalabilidade Dinâmica:"
 echo "    Ativar Reserva (Scale-Out)   : curl -X POST http://localhost:8000/servidores/ativar-reserva"
@@ -175,8 +180,10 @@ if [ "$MODO_MIDDLEWARE" = true ]; then
 fi
 
 echo "------------------------------------------------------------"
-echo "Abra http://localhost:5000 no navegador para interagir com o sistema."
-echo "Pressione [Ctrl+C] a qualquer momento para desligar todos os nós."
+echo "  💡 No seu celular ou outro PC no mesmo Wi-Fi, abra:"
+echo "     👉 http://$IP_LOCAL:$PORTA_MONITOR"
+echo ""
+echo "  Pressione [Ctrl+C] a qualquer momento para desligar todos os nós."
 echo "============================================================"
 
 # Manter o script ativo aguardando os processos ou Ctrl+C
