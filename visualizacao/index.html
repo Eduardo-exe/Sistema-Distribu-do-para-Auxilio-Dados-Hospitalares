@@ -2931,276 +2931,287 @@
     // ============================================================
     // Server-Sent Events (SSE) Listener
     // ============================================================
-    let evtSource = null;
+    // ============================================================
+    // Event Dispatcher (Unificado para SSE e Polling Fallback)
+    // ============================================================
+    function dispatchAppEvent(eventName, d) {
+      if (!d) return;
+      switch (eventName) {
+        case 'connected':
+          setStatus('Conectado — Pronto', 'ready');
+          addLog(new Date().toLocaleTimeString(), `Conectado ao monitor (${d.total_records} registros disponíveis)`, 'info');
+          updateMetrics(d.contadores);
+          break;
 
-    function connectSSE() {
-      if (evtSource) {
-        evtSource.close();
-      }
+        case 'csv_read':
+          clearActiveNodes();
+          nodeCsv.classList.add('active-node');
+          setStatus(`Lendo registro #${d.numero} do CSV...`, 'busy');
+          updatePatientCard(d.dados, d.numero);
+          addLog(d.timestamp, `[CSV] Registro #${d.numero} lido (Paciente ${d.dados.paciente_id})`, 'csv');
+          animatePacketAlongPath(pipeCsvClient, 350);
+          break;
 
-      evtSource = new EventSource(`${API_BASE}/api/eventos`);
+        case 'sending':
+          clearActiveNodes();
+          nodeClient.classList.add('active-node');
+          setStatus(`Produtor publicando registro #${d.numero} no RabbitMQ Fanout...`, 'busy');
+          addLog(d.timestamp, `[Produtor AMQP] Publicando registro #${d.numero} na exchange telemetria_hospitalar`, 'client');
+          animatePacketAlongPath(pipeClientMw, 350);
+          break;
 
-      evtSource.addEventListener('connected', (e) => {
-        const data = JSON.parse(e.data);
-        setStatus('Conectado — Pronto', 'ready');
-        addLog(new Date().toLocaleTimeString(), `Conectado ao monitor (${data.total_records} registros disponíveis)`, 'info');
-        updateMetrics(data.contadores);
-      });
+        case 'http_post':
+          clearActiveNodes();
+          nodeMw.classList.add('active-node');
+          setStatus(`Middleware Fanout: Replicado para todos os nós → HTTP POST :8000`, 'busy');
+          addLog(d.timestamp, `[Middleware RabbitMQ Fanout] Difusão broadcast das filas → POST http://localhost:8000/dados`, 'lb');
+          animatePacketAlongPath(pipeMwLb, 350);
+          break;
 
-      // 1. Leitura do CSV
-      evtSource.addEventListener('csv_read', (e) => {
-        const d = JSON.parse(e.data);
-        clearActiveNodes();
-        nodeCsv.classList.add('active-node');
-        setStatus(`Lendo registro #${d.numero} do CSV...`, 'busy');
-        updatePatientCard(d.dados, d.numero);
-        addLog(d.timestamp, `[CSV] Registro #${d.numero} lido (Paciente ${d.dados.paciente_id})`, 'csv');
-        
-        // Move packet from CSV to Client
-        animatePacketAlongPath(pipeCsvClient, 350);
-      });
+        case 'lb_routing':
+          clearActiveNodes();
+          nodeLb.classList.add('active-node');
+          updateRoundRobinTurn(d.server_num);
+          setStatus(`Load Balancer: Round Robin direcionou para ${d.server_id}`, 'busy');
+          addLog(d.timestamp, `[LB :8000] Roteado via Round Robin → ${d.server_id}`, 'lb');
+          let pipe = pipeLbS1;
+          if (d.server_num === 2) pipe = pipeLbS2;
+          if (d.server_num === 3) pipe = pipeLbS3;
+          if (d.server_num === 4) pipe = pipeLbS4;
+          animatePacketAlongPath(pipe, 400);
+          break;
 
-      // 2. CSV Sender preparando (publica no RabbitMQ)
-      evtSource.addEventListener('sending', (e) => {
-        const d = JSON.parse(e.data);
-        clearActiveNodes();
-        nodeClient.classList.add('active-node');
-        setStatus(`Produtor publicando registro #${d.numero} no RabbitMQ Fanout...`, 'busy');
-        addLog(d.timestamp, `[Produtor AMQP] Publicando registro #${d.numero} na exchange telemetria_hospitalar`, 'client');
-        // Animate: Client → Middleware
-        animatePacketAlongPath(pipeClientMw, 350);
-      });
+        case 'server_received':
+          clearActiveNodes();
+          const sNumRecv = d.server_id.split('-')[1];
+          if (sNumRecv === '01') nodeS1.classList.add('active-node');
+          if (sNumRecv === '02') nodeS2.classList.add('active-node');
+          if (sNumRecv === '03') nodeS3.classList.add('active-node');
+          if (sNumRecv === '04') nodeS4.classList.add('active-node');
+          setStatus(`${d.server_id} (: ${d.porta}) processando requisição #${d.numero}...`, 'busy');
+          addLog(d.timestamp, `[${d.server_id}] Requisição recebida e validada via Pydantic`, `s${parseInt(sNumRecv)}`);
+          break;
 
-      // 3. Middleware recebe e consumidor encaminha ao Load Balancer
-      evtSource.addEventListener('http_post', (e) => {
-        const d = JSON.parse(e.data);
-        clearActiveNodes();
-        nodeMw.classList.add('active-node');
-        setStatus(`Middleware Fanout: Replicado para todos os nós → HTTP POST :8000`, 'busy');
-        addLog(d.timestamp, `[Middleware RabbitMQ Fanout] Difusão broadcast das filas → POST http://localhost:8000/dados`, 'lb');
-        // Animate: Middleware → Load Balancer
-        animatePacketAlongPath(pipeMwLb, 350);
-      });
+        case 'db_saving':
+          const sNumDb = d.server_id.split('-')[1];
+          clearActiveNodes();
+          let pipeDb = pipeS1Db;
+          let dbNode = nodeDb1;
+          if (sNumDb === '02') { pipeDb = pipeS2Db; dbNode = nodeDb2; }
+          if (sNumDb === '03') { pipeDb = pipeS3Db; dbNode = nodeDb3; }
+          if (sNumDb === '04') { pipeDb = pipeS4Db; dbNode = nodeDb4; }
+          if (dbNode) dbNode.classList.add('active-node');
+          setStatus(`Gravando dados no banco ${d.db_name} (Sincronizado)...`, 'busy');
+          addLog(d.timestamp, `[SQLite] INSERT executado em ${d.db_name}`, `s${parseInt(sNumDb)}`);
+          animatePacketAlongPath(pipeDb, 300);
+          break;
 
-      // 4. Load Balancer Roteando Round Robin
-      evtSource.addEventListener('lb_routing', (e) => {
-        const d = JSON.parse(e.data);
-        clearActiveNodes();
-        nodeLb.classList.add('active-node');
-        updateRoundRobinTurn(d.server_num);
-        setStatus(`Load Balancer: Round Robin direcionou para ${d.server_id}`, 'busy');
-        addLog(d.timestamp, `[LB :8000] Roteado via Round Robin → ${d.server_id}`, 'lb');
+        case 'complete':
+          flyingPacket.classList.remove('visible');
+          clearActiveNodes();
+          setStatus(`Requisição #${d.numero} concluída com sucesso (HTTP 200 OK)`, 'ready');
+          updateMetrics(d.contadores);
+          addLog(d.timestamp, `[HTTP 200 OK] Registro #${d.numero} gravado por ${d.server_id}`, 'complete');
+          break;
 
-        // Path to selected server
-        let pipe = pipeLbS1;
-        if (d.server_num === 2) pipe = pipeLbS2;
-        if (d.server_num === 3) pipe = pipeLbS3;
-        if (d.server_num === 4) pipe = pipeLbS4;
-        animatePacketAlongPath(pipe, 400);
-      });
+        case 'escala_alterada':
+          const isAtivo = (d.acao === 'servidor_reserva_ativado');
+          setReservaUIState(isAtivo, d.total_servidores);
+          addLog(new Date().toLocaleTimeString(), `[ESCALA] ${d.mensagem}`, 'complete');
+          break;
 
-      // 5. Servidor recebeu
-      evtSource.addEventListener('server_received', (e) => {
-        const d = JSON.parse(e.data);
-        clearActiveNodes();
-        const serverNum = d.server_id.split('-')[1];
-        if (serverNum === '01') nodeS1.classList.add('active-node');
-        if (serverNum === '02') nodeS2.classList.add('active-node');
-        if (serverNum === '03') nodeS3.classList.add('active-node');
-        if (serverNum === '04') nodeS4.classList.add('active-node');
+        case 'servidor_status':
+          syncServidoresStatus();
+          const tipo = d.online ? 'complete' : 'error';
+          addLog(d.timestamp || new Date().toLocaleTimeString(), d.mensagem, tipo);
+          break;
 
-        setStatus(`${d.server_id} (: ${d.porta}) processando requisição #${d.numero}...`, 'busy');
-        addLog(d.timestamp, `[${d.server_id}] Requisição recebida e validada via Pydantic`, `s${parseInt(serverNum)}`);
-      });
+        case 'failover':
+          setStatus(`⚠️ FAILOVER AUTOMÁTICO: Redirecionado para ${d.server_id}!`, 'busy');
+          addLog(d.timestamp || new Date().toLocaleTimeString(), d.mensagem, 'error');
+          break;
 
-      // 6. Salvando no SQLite
-      evtSource.addEventListener('db_saving', (e) => {
-        const d = JSON.parse(e.data);
-        const serverNum = d.server_id.split('-')[1];
-        clearActiveNodes();
-
-        let pipe = pipeS1Db;
-        let dbNode = nodeDb1;
-        if (serverNum === '02') { pipe = pipeS2Db; dbNode = nodeDb2; }
-        if (serverNum === '03') { pipe = pipeS3Db; dbNode = nodeDb3; }
-        if (serverNum === '04') { pipe = pipeS4Db; dbNode = nodeDb4; }
-
-        if (dbNode) dbNode.classList.add('active-node');
-        setStatus(`Gravando dados no banco ${d.db_name} (Sincronizado)...`, 'busy');
-        addLog(d.timestamp, `[SQLite] INSERT executado em ${d.db_name}`, `s${parseInt(serverNum)}`);
-        animatePacketAlongPath(pipe, 300);
-      });
-
-      // 7. Concluído
-      evtSource.addEventListener('complete', (e) => {
-        const d = JSON.parse(e.data);
-        flyingPacket.classList.remove('visible');
-        clearActiveNodes();
-        setStatus(`Requisição #${d.numero} concluída com sucesso (HTTP 200 OK)`, 'ready');
-        updateMetrics(d.contadores);
-        addLog(d.timestamp, `[HTTP 200 OK] Registro #${d.numero} gravado por ${d.server_id}`, 'complete');
-      });
-
-      // Escala alterada (SSE broadcast)
-      evtSource.addEventListener('escala_alterada', (e) => {
-        const d = JSON.parse(e.data);
-        const isAtivo = (d.acao === 'servidor_reserva_ativado');
-        setReservaUIState(isAtivo, d.total_servidores);
-        addLog(new Date().toLocaleTimeString(), `[ESCALA] ${d.mensagem}`, 'complete');
-      });
-
-      // Status de servidor alterado (derrubado ou religado)
-      evtSource.addEventListener('servidor_status', (e) => {
-        const d = JSON.parse(e.data);
-        syncServidoresStatus();
-        const tipo = d.online ? 'complete' : 'error';
-        addLog(d.timestamp || new Date().toLocaleTimeString(), d.mensagem, tipo);
-      });
-
-      // Failover executado com sucesso
-      evtSource.addEventListener('failover', (e) => {
-        const d = JSON.parse(e.data);
-        setStatus(`⚠️ FAILOVER AUTOMÁTICO: Redirecionado para ${d.server_id}!`, 'busy');
-        addLog(d.timestamp || new Date().toLocaleTimeString(), d.mensagem, 'error');
-      });
-
-      // Fila retida (Middleware reteve mensagens quando nós caíram)
-      evtSource.addEventListener('fila_retida', (e) => {
-        const d = JSON.parse(e.data);
-        flyingPacket.classList.remove('visible');
-        clearActiveNodes();
-        if (nodeMw) nodeMw.classList.add('active-node');
-        const badgeMw = document.getElementById('badge-mw-queue');
-        if (badgeMw) {
-          badgeMw.textContent = `📦 FILA ATIVA: ${d.qtd_fila} retidas (Aguardando nós)`;
-          badgeMw.setAttribute('fill', '#f97316');
-        }
-        setStatus(`📦 [MIDDLEWARE] Registro #${d.numero} retido na fila (${d.qtd_fila} acumuladas)`, 'busy');
-        updateMetrics(d.contadores);
-        addLog(d.timestamp, d.mensagem, 'lb');
-      });
-
-      // Fila descarregada (Middleware esvaziou a fila assim que o servidor voltou)
-      evtSource.addEventListener('fila_descarregada', (e) => {
-        const d = JSON.parse(e.data);
-        clearActiveNodes();
-        if (nodeMw) nodeMw.classList.add('active-node');
-        const snum = parseInt(d.server_id.split('-')[1]);
-        const targetNode = snum === 1 ? nodeS1 : snum === 2 ? nodeS2 : snum === 3 ? nodeS3 : nodeS4;
-        const targetPipe = snum === 1 ? pipeLbS1 : snum === 2 ? pipeLbS2 : snum === 3 ? pipeLbS3 : pipeLbS4;
-        const targetDb = snum === 1 ? nodeDb1 : snum === 2 ? nodeDb2 : snum === 3 ? nodeDb3 : nodeDb4;
-        const targetPipeDb = snum === 1 ? pipeS1Db : snum === 2 ? pipeS2Db : snum === 3 ? pipeS3Db : pipeS4Db;
-
-        if (pipeMwLb) pipeMwLb.classList.add('active-flow');
-        if (targetPipe) targetPipe.classList.add('active-flow');
-        if (targetNode) targetNode.classList.add('active-node');
-        if (targetPipeDb) targetPipeDb.classList.add('active-flow');
-        if (targetDb) targetDb.classList.add('active-node');
-
-        const badgeMw = document.getElementById('badge-mw-queue');
-        if (badgeMw) {
-          if (d.qtd_restante > 0) {
-            badgeMw.textContent = `📦 FILA ATIVA: ${d.qtd_restante} retidas (Descarregando...)`;
+        case 'fila_retida':
+          flyingPacket.classList.remove('visible');
+          clearActiveNodes();
+          if (nodeMw) nodeMw.classList.add('active-node');
+          const badgeMw = document.getElementById('badge-mw-queue');
+          if (badgeMw) {
+            badgeMw.textContent = `📦 FILA ATIVA: ${d.qtd_fila} retidas (Aguardando nós)`;
             badgeMw.setAttribute('fill', '#f97316');
-          } else {
-            badgeMw.textContent = 'Filas: fila_servidor_1 .. fila_servidor_4 (Vazia)';
-            badgeMw.setAttribute('fill', '#fb923c');
           }
-        }
-        setStatus(`🚀 [MIDDLEWARE] Registro #${d.numero} drenado da fila e salvo em ${d.server_id}!`, 'ready');
-        updateMetrics(d.contadores);
-        addLog(d.timestamp, d.mensagem, 'complete');
-      });
+          setStatus(`📦 [MIDDLEWARE] Registro #${d.numero} retido na fila (${d.qtd_fila} acumuladas)`, 'busy');
+          updateMetrics(d.contadores);
+          addLog(d.timestamp, d.mensagem, 'lb');
+          break;
 
-      // Erro
-      evtSource.addEventListener('error', (e) => {
-        try {
-          const d = JSON.parse(e.data);
+        case 'fila_descarregada':
+          clearActiveNodes();
+          if (nodeMw) nodeMw.classList.add('active-node');
+          const snumDesc = parseInt(d.server_id.split('-')[1]);
+          const targetNode = snumDesc === 1 ? nodeS1 : snumDesc === 2 ? nodeS2 : snumDesc === 3 ? nodeS3 : nodeS4;
+          const targetPipe = snumDesc === 1 ? pipeLbS1 : snumDesc === 2 ? pipeLbS2 : snumDesc === 3 ? pipeLbS3 : pipeLbS4;
+          const targetDb = snumDesc === 1 ? nodeDb1 : snumDesc === 2 ? nodeDb2 : snumDesc === 3 ? nodeDb3 : nodeDb4;
+          const targetPipeDb = snumDesc === 1 ? pipeS1Db : snumDesc === 2 ? pipeS2Db : snumDesc === 3 ? pipeS3Db : pipeS4Db;
+
+          if (pipeMwLb) pipeMwLb.classList.add('active-flow');
+          if (targetPipe) targetPipe.classList.add('active-flow');
+          if (targetNode) targetNode.classList.add('active-node');
+          if (targetPipeDb) targetPipeDb.classList.add('active-flow');
+          if (targetDb) targetDb.classList.add('active-node');
+
+          const badgeMwDesc = document.getElementById('badge-mw-queue');
+          if (badgeMwDesc) {
+            if (d.qtd_restante > 0) {
+              badgeMwDesc.textContent = `📦 FILA ATIVA: ${d.qtd_restante} retidas (Descarregando...)`;
+              badgeMwDesc.setAttribute('fill', '#f97316');
+            } else {
+              badgeMwDesc.textContent = 'Filas: fila_servidor_1 .. fila_servidor_4 (Vazia)';
+              badgeMwDesc.setAttribute('fill', '#fb923c');
+            }
+          }
+          setStatus(`🚀 [MIDDLEWARE] Registro #${d.numero} drenado da fila e salvo em ${d.server_id}!`, 'ready');
+          updateMetrics(d.contadores);
+          addLog(d.timestamp, d.mensagem, 'complete');
+          break;
+
+        case 'error':
           flyingPacket.classList.remove('visible');
           clearActiveNodes();
           setStatus(`Erro no registro #${d.numero}: ${d.erro}`, 'error');
           updateMetrics(d.contadores);
           addLog(d.timestamp, `[ERRO] ${d.erro}`, 'error');
-        } catch {
-          // Keepalive ou erro SSE
-        }
-      });
+          break;
 
-      // Pausado
-      evtSource.addEventListener('paused', (e) => {
-        const d = JSON.parse(e.data);
-        setStatus('Simulação pausada', 'ready');
-        addLog(new Date().toLocaleTimeString(), d.mensagem, 'info');
-      });
+        case 'paused':
+          setStatus('Simulação pausada', 'ready');
+          addLog(new Date().toLocaleTimeString(), d.mensagem, 'info');
+          break;
 
-      // Reset
-      evtSource.addEventListener('reset', (e) => {
-        const d = JSON.parse(e.data);
-        clearActiveNodes();
-        flyingPacket.classList.remove('visible');
-        updateRoundRobinTurn(0);
-        updateMetrics(d.contadores);
-        setStatus('Simulação reiniciada', 'ready');
-        addLog(new Date().toLocaleTimeString(), d.mensagem, 'info');
-      });
+        case 'reset':
+          clearActiveNodes();
+          flyingPacket.classList.remove('visible');
+          updateRoundRobinTurn(0);
+          updateMetrics(d.contadores);
+          setStatus('Simulação reiniciada', 'ready');
+          addLog(new Date().toLocaleTimeString(), d.mensagem, 'info');
+          break;
 
-      // Finished
-      evtSource.addEventListener('finished', (e) => {
-        const d = JSON.parse(e.data);
-        setStatus(d.mensagem, 'ready');
-        addLog(new Date().toLocaleTimeString(), d.mensagem, 'complete');
-      });
+        case 'finished':
+          setStatus(d.mensagem, 'ready');
+          addLog(new Date().toLocaleTimeString(), d.mensagem, 'complete');
+          break;
 
-      // ── Teste de Carga (Benchmark) SSE Listeners ──
-      evtSource.addEventListener('teste_carga_iniciado', (e) => {
-        try {
-          const d = JSON.parse(e.data);
+        case 'teste_carga_iniciado':
           handleTesteCargaIniciado(d);
-        } catch (err) {
-          console.error('Erro ao processar teste_carga_iniciado:', err);
-        }
-      });
+          break;
 
-      evtSource.addEventListener('teste_carga_progresso', (e) => {
-        try {
-          const d = JSON.parse(e.data);
+        case 'teste_carga_progresso':
           handleTesteCargaProgresso(d);
-        } catch (err) {
-          console.error('Erro ao processar teste_carga_progresso:', err);
-        }
-      });
+          break;
 
-      evtSource.addEventListener('teste_carga_concluido', (e) => {
-        try {
-          const d = JSON.parse(e.data);
+        case 'teste_carga_concluido':
           handleTesteCargaConcluido(d);
-        } catch (err) {
-          console.error('Erro ao processar teste_carga_concluido:', err);
-        }
-      });
+          break;
 
-      // ── Evento Externo (Tráfego direto no Load Balancer :8000 ou teste_carga.sh) ──
-      evtSource.addEventListener('evento_externo', (e) => {
-        try {
-          const d = JSON.parse(e.data);
+        case 'evento_externo':
           if (d.contadores) updateMetrics(d.contadores);
-          const sNum = parseInt((d.server_id || 'server-01').split('-')[1]);
-          if (!isNaN(sNum)) {
-            updateRoundRobinTurn(sNum);
-            animarNoPainelPrincipal(sNum, d.status_code !== 200);
+          const sNumExt = parseInt((d.server_id || 'server-01').split('-')[1]);
+          if (!isNaN(sNumExt)) {
+            updateRoundRobinTurn(sNumExt);
+            animarNoPainelPrincipal(sNumExt, d.status_code !== 200);
           }
           const badgeFailover = d.failover ? ' ⚠️ [FAILOVER]' : '';
-          const tipoCor = d.status_code === 200 ? `s${sNum}` : 'error';
-          addLog(d.timestamp, `[Tráfego Externo${badgeFailover}] ➔ ${d.server_id} (:800${sNum}) | ${d.latencia_ms}ms | HTTP ${d.status_code}`, tipoCor);
+          const tipoCor = d.status_code === 200 ? `s${sNumExt}` : 'error';
+          addLog(d.timestamp, `[Tráfego Externo${badgeFailover}] ➔ ${d.server_id} (:800${sNumExt}) | ${d.latencia_ms}ms | HTTP ${d.status_code}`, tipoCor);
           setStatus(`Tráfego Externo: ${d.server_id} atendeu requisição (${d.latencia_ms}ms)`, 'busy');
-        } catch (err) {
-          console.error('Erro ao processar evento_externo:', err);
-        }
-      });
+          break;
+      }
+    }
+
+    // ============================================================
+    // Server-Sent Events (SSE) Listener + Smart Polling Fallback
+    // ============================================================
+    let evtSource = null;
+    let sseHealthy = false;
+    let sseLastSeen = 0;
+    let lastPollId = 0;
+    let pollInterval = null;
+
+    function connectSSE() {
+      if (evtSource) {
+        try { evtSource.close(); } catch (_) {}
+      }
+
+      evtSource = new EventSource(`${API_BASE}/api/eventos`);
+
+      const allEvents = [
+        'connected', 'csv_read', 'sending', 'http_post', 'lb_routing',
+        'server_received', 'db_saving', 'complete', 'escala_alterada',
+        'servidor_status', 'failover', 'fila_retida', 'fila_descarregada',
+        'error', 'paused', 'reset', 'finished', 'teste_carga_iniciado',
+        'teste_carga_progresso', 'teste_carga_concluido', 'evento_externo'
+      ];
+
+      for (const evName of allEvents) {
+        evtSource.addEventListener(evName, (e) => {
+          sseHealthy = true;
+          sseLastSeen = Date.now();
+          try {
+            const data = JSON.parse(e.data);
+            dispatchAppEvent(evName, data);
+          } catch (err) {
+            console.error(`Erro ao processar evento SSE ${evName}:`, err);
+          }
+        });
+      }
 
       evtSource.onerror = () => {
-        setStatus('Desconectado do servidor. Verifique http://localhost:5000', 'error');
+        sseHealthy = false;
       };
+    }
+
+    // Polling inteligente e resiliente (garante atualização em túneis públicos e redes móveis)
+    function startPollingFallback() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        const isSseActive = sseHealthy && (Date.now() - sseLastSeen < 4000);
+        try {
+          const res = await fetch(`${API_BASE}/api/eventos-poll?since=${lastPollId}`);
+          if (!res.ok) return;
+          const body = await res.json();
+
+          if (isSseActive) {
+            if (body.last_id) lastPollId = body.last_id;
+            return;
+          }
+
+          // Se SSE não estiver recebendo pacotes, despacha os eventos via polling
+          if (body.eventos && body.eventos.length > 0) {
+            for (const ev of body.eventos) {
+              if (ev.id > lastPollId) {
+                lastPollId = ev.id;
+                dispatchAppEvent(ev.event, ev.data);
+              }
+            }
+          } else if (body.last_id) {
+            lastPollId = Math.max(lastPollId, body.last_id);
+          }
+
+          if (body.status) {
+            if (body.status.contadores) updateMetrics(body.status.contadores);
+            if (body.status.running) {
+              btnStart.disabled = true;
+              btnPause.disabled = false;
+            } else {
+              btnStart.disabled = false;
+              btnPause.disabled = true;
+            }
+          }
+        } catch (_) {
+          // Falha transitória de rede
+        }
+      }, 350);
     }
 
     // ============================================================
@@ -3754,9 +3765,10 @@
       });
     }
 
-    // Start SSE Connection on load
+    // Start SSE Connection and Polling Fallback on load
     window.addEventListener('DOMContentLoaded', () => {
       connectSSE();
+      startPollingFallback();
       syncEscalaStatus();
       syncServidoresStatus();
       syncTesteCargaStatus();

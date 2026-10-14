@@ -41,7 +41,7 @@ LOG_TUNEL="$DIR/logs/tunel.log"
 mkdir -p "$DIR/logs"
 
 # Iniciar cloudflared salvando log
-"$BIN_CLOUDFLARED" tunnel --url "http://localhost:$PORTA" > "$LOG_TUNEL" 2>&1 &
+"$BIN_CLOUDFLARED" tunnel --url "http://127.0.0.1:$PORTA" > "$LOG_TUNEL" 2>&1 &
 PID_TUNEL=$!
 
 cleanup() {

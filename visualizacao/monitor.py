@@ -66,6 +66,8 @@ class MonitorState:
         self.simulation_task = None
         self.event_queues: list[asyncio.Queue] = []
         self.fila_retencao: list[dict] = []
+        self.recent_events: list[dict] = []
+        self.event_counter: int = 0
         self._load_csv()
 
     def _load_csv(self):
@@ -94,7 +96,17 @@ class MonitorState:
         self.fila_retencao = []
 
     async def broadcast(self, event_type: str, data: dict):
-        """Envia evento SSE para todos os clientes conectados."""
+        """Envia evento SSE para todos os clientes conectados e armazena para polling."""
+        self.event_counter += 1
+        event_obj = {
+            "id": self.event_counter,
+            "event": event_type,
+            "data": data,
+        }
+        self.recent_events.append(event_obj)
+        if len(self.recent_events) > 300:
+            self.recent_events.pop(0)
+
         message = f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
         dead_queues = []
         for q in self.event_queues:
@@ -571,23 +583,27 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
 
     @app.get("/api/eventos")
     async def sse_stream():
-        """Stream de eventos SSE para o browser."""
+        """Stream de eventos SSE para o browser com suporte a proxies e Cloudflare Tunnel."""
         queue = asyncio.Queue()
         state.event_queues.append(queue)
 
         async def generate():
             try:
-                # Enviar estado inicial
+                # 1. Padding de 4KB inicial para forçar proxies/CDN (como Cloudflare) a dar flush imediato
+                yield f": {(' ' * 4096)}\n\n"
+
+                # 2. Enviar estado inicial
                 yield (
                     f"event: connected\n"
                     f"data: {json.dumps({'total_records': len(state.records), 'contadores': state.contadores})}\n\n"
                 )
+
                 while True:
                     try:
-                        msg = await asyncio.wait_for(queue.get(), timeout=15.0)
+                        msg = await asyncio.wait_for(queue.get(), timeout=5.0)
                         yield msg
                     except asyncio.TimeoutError:
-                        # Keepalive para manter a conexão
+                        # Keepalive a cada 5s para manter a conexão ativa através de túneis e proxies
                         yield ": keepalive\n\n"
             except asyncio.CancelledError:
                 pass
@@ -599,11 +615,33 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
             generate(),
             media_type="text/event-stream",
             headers={
-                "Cache-Control": "no-cache",
+                "Content-Type": "text/event-stream; charset=utf-8",
+                "Cache-Control": "no-cache, no-transform",
                 "Connection": "keep-alive",
                 "X-Accel-Buffering": "no",
+                "Access-Control-Allow-Origin": "*",
             },
         )
+
+    # ── Fallback Polling de Eventos (Túneis / Redes restritas) ─
+
+    @app.get("/api/eventos-poll")
+    async def eventos_poll(since: int = 0):
+        """Retorna eventos emitidos após o ID 'since' (fallback transparente para Cloudflare Tunnel / proxies)."""
+        novos = [e for e in state.recent_events if e["id"] > since]
+        return {
+            "status": {
+                "running": state.running,
+                "processing": state.processing,
+                "current_index": state.current_index,
+                "total_records": len(state.records),
+                "limit": state.limit,
+                "speed": state.speed,
+                "contadores": state.contadores,
+            },
+            "eventos": novos,
+            "last_id": state.event_counter,
+        }
 
     # ── Controles ────────────────────────────────────────────
 

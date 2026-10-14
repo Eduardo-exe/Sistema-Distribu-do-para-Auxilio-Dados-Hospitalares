@@ -174,7 +174,7 @@ if [ "$MODO_TUNEL" = true ]; then
         chmod +x "$BIN_CLOUDFLARED"
     fi
     LOG_TUNEL="$DIR/logs/tunel.log"
-    "$BIN_CLOUDFLARED" tunnel --url "http://localhost:$PORTA_MONITOR" > "$LOG_TUNEL" 2>&1 &
+    "$BIN_CLOUDFLARED" tunnel --url "http://127.0.0.1:$PORTA_MONITOR" > "$LOG_TUNEL" 2>&1 &
     PID_TUNEL=$!
     PIDS+=("$PID_TUNEL")
 
