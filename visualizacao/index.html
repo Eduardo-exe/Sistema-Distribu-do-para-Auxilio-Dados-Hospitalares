@@ -1439,6 +1439,192 @@
     .tc-concluido-banner.visible {
       display: block;
     }
+
+    /* ============================================================
+       Responsividade para Dispositivos Móveis e Telas Menores
+       ============================================================ */
+    @media (max-width: 1100px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 1rem 1.25rem;
+        gap: 1.25rem;
+      }
+      .dashboard-sidebar {
+        width: 100%;
+      }
+      .canvas-container {
+        min-height: 520px;
+      }
+      svg#arch-canvas {
+        min-height: 520px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.85rem;
+        padding: 0.85rem 1rem;
+      }
+
+      .brand {
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .controls-wrapper {
+        justify-content: center;
+        width: 100%;
+        gap: 0.5rem;
+      }
+
+      .btn-group {
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .btn {
+        padding: 0.45rem 0.75rem;
+        font-size: 0.78rem;
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+
+      .select-custom {
+        font-size: 0.78rem;
+        padding: 0.4rem 0.6rem;
+      }
+
+      main {
+        padding: 0.75rem 0.5rem;
+        gap: 1rem;
+      }
+
+      .arch-card {
+        padding: 1rem 0.75rem;
+      }
+
+      .arch-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+      }
+
+      .round-robin-indicator {
+        width: 100%;
+        justify-content: space-between;
+        font-size: 0.72rem;
+      }
+
+      .canvas-container {
+        min-height: 380px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      svg#arch-canvas {
+        min-width: 700px;
+        min-height: 420px;
+      }
+
+      .metrics-summary {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+
+      .patient-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-card {
+        padding: 1.25rem 1rem;
+        border-radius: 14px;
+        max-height: 94vh;
+      }
+
+      .modal-header h2 {
+        font-size: 1.1rem;
+      }
+
+      .tc-kpis {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+
+      .modal-overlay.minimized {
+        padding: 0.5rem;
+      }
+
+      .modal-overlay.minimized .modal-card {
+        width: 95vw;
+        max-width: 95vw;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .brand-title h1 {
+        font-size: 0.98rem;
+      }
+
+      .badge-milestone {
+        display: none;
+      }
+
+      .metrics-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .tc-chips {
+        flex-wrap: wrap;
+      }
+    }
+
+    /* Modal Minimizado / Docked (Permite ver o painel rodando) */
+    .modal-overlay.minimized {
+      background: transparent;
+      backdrop-filter: none;
+      pointer-events: none;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 1.25rem;
+    }
+
+    .modal-overlay.minimized .modal-card {
+      pointer-events: auto;
+      width: 400px;
+      max-width: 92vw;
+      padding: 0.85rem 1.15rem;
+      border-radius: 14px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(249, 115, 22, 0.3);
+      border: 1px solid rgba(249, 115, 22, 0.45);
+      background: rgba(17, 24, 39, 0.96);
+      backdrop-filter: blur(12px);
+    }
+
+    .modal-overlay.minimized .tc-config,
+    .modal-overlay.minimized .tc-log-terminal,
+    .modal-overlay.minimized .tc-dist-container {
+      display: none;
+    }
+
+    .modal-minimize {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      padding: 0.35rem 0.65rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .modal-minimize:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -2038,7 +2224,10 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2>⚡ Teste de Carga — Benchmark</h2>
-        <button id="tc-modal-close" class="modal-close" title="Fechar">✕</button>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button id="tc-modal-min" class="modal-minimize" title="Minimizar para assistir no diagrama principal">🗕 Minimizar</button>
+          <button id="tc-modal-close" class="modal-close" title="Fechar">✕</button>
+        </div>
       </div>
 
       <!-- Concluído Banner -->
@@ -2675,6 +2864,25 @@
         }
       });
 
+      // ── Evento Externo (Tráfego direto no Load Balancer :8000 ou teste_carga.sh) ──
+      evtSource.addEventListener('evento_externo', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          if (d.contadores) updateMetrics(d.contadores);
+          const sNum = parseInt((d.server_id || 'server-01').split('-')[1]);
+          if (!isNaN(sNum)) {
+            updateRoundRobinTurn(sNum);
+            animarNoPainelPrincipal(sNum, d.status_code !== 200);
+          }
+          const badgeFailover = d.failover ? ' ⚠️ [FAILOVER]' : '';
+          const tipoCor = d.status_code === 200 ? `s${sNum}` : 'error';
+          addLog(d.timestamp, `[Tráfego Externo${badgeFailover}] ➔ ${d.server_id} (:800${sNum}) | ${d.latencia_ms}ms | HTTP ${d.status_code}`, tipoCor);
+          setStatus(`Tráfego Externo: ${d.server_id} atendeu requisição (${d.latencia_ms}ms)`, 'busy');
+        } catch (err) {
+          console.error('Erro ao processar evento_externo:', err);
+        }
+      });
+
       evtSource.onerror = () => {
         setStatus('Desconectado do servidor. Verifique http://localhost:5000', 'error');
       };
@@ -3142,6 +3350,14 @@
       );
       const statusIcon = d.erro ? '❌ ERRO' : `✅ ${d.http_code || 200}`;
       appendTcLog(`[#${String(d.numero).padStart(3, '0')}] ${d.timestamp} ➔ ${d.server_id} | ${d.latencia_ms}ms | ${statusIcon}`, sCor);
+
+      // Animar diagrama principal e atualizar contadores da sidebar
+      const sNum = parseInt((d.server_id || 'server-01').split('-')[1]);
+      if (!isNaN(sNum)) {
+        updateRoundRobinTurn(sNum);
+        animarNoPainelPrincipal(sNum, d.erro);
+      }
+      if (d.contadores) updateMetrics(d.contadores);
     }
 
     function handleTesteCargaConcluido(d) {
@@ -3179,6 +3395,48 @@
       } catch (err) {
         console.warn('Erro ao verificar status do teste de carga:', err);
       }
+    }
+
+    // Animar nós no diagrama principal quando o teste de carga ou tráfego externo envia dados
+    function animarNoPainelPrincipal(serverNum, isError) {
+      clearActiveNodes();
+
+      // Destacar Load Balancer
+      nodeLb.classList.add('active-node');
+
+      // Selecionar pipe e nó do servidor correto
+      let pipe, serverNode;
+      if (serverNum === 1)      { pipe = pipeLbS1; serverNode = nodeS1; }
+      else if (serverNum === 2) { pipe = pipeLbS2; serverNode = nodeS2; }
+      else if (serverNum === 3) { pipe = pipeLbS3; serverNode = nodeS3; }
+      else if (serverNum === 4) { pipe = pipeLbS4; serverNode = nodeS4; }
+
+      if (pipe) animatePacketAlongPath(pipe, 250, () => {
+        clearActiveNodes();
+        if (serverNode) serverNode.classList.add('active-node');
+        if (!isError) {
+          setTimeout(() => {
+            if (serverNode) serverNode.classList.remove('active-node');
+          }, 350);
+        }
+      });
+    }
+
+    // ── Botão Minimizar do Modal de Teste de Carga ──
+    const tcModalMin = document.getElementById('tc-modal-min');
+    if (tcModalMin && modalLoadTest) {
+      tcModalMin.addEventListener('click', () => {
+        const isMinimized = modalLoadTest.classList.contains('minimized');
+        if (isMinimized) {
+          // Restaurar
+          modalLoadTest.classList.remove('minimized');
+          tcModalMin.textContent = '🗕 Minimizar';
+        } else {
+          // Minimizar (ficar no canto da tela para ver o diagrama)
+          modalLoadTest.classList.add('minimized');
+          tcModalMin.textContent = '🗖 Restaurar';
+        }
+      });
     }
 
     // Start SSE Connection on load

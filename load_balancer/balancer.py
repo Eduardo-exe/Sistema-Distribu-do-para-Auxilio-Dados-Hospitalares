@@ -20,8 +20,10 @@ Uso:
 """
 
 import argparse
+import asyncio
 import sys
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -211,6 +213,26 @@ def criar_balanceador(
         lifespan=lifespan,
     )
 
+    async def _notificar_monitor_background(servidor_url: str, status_code: int, latencia_ms: int, failover: bool, sid: str = None):
+        """Notifica o monitor visual (porta 5000 ou $PORT) em background sem atrasar o cliente."""
+        try:
+            porta_servidor = servidor_url.rstrip("/").split(":")[-1]
+            mapa = {"8001": "server-01", "8002": "server-02", "8003": "server-03", "8004": "server-04"}
+            server_id = sid or mapa.get(porta_servidor, "server-01")
+            porta_monitor = os.environ.get("MONITOR_PORT", os.environ.get("PORT", "5000"))
+            async with httpx.AsyncClient(timeout=0.25) as m_client:
+                await m_client.post(
+                    f"http://127.0.0.1:{porta_monitor}/api/evento-externo",
+                    json={
+                        "server_id": server_id,
+                        "status_code": status_code,
+                        "latencia_ms": latencia_ms,
+                        "failover": failover,
+                    }
+                )
+        except Exception:
+            pass
+
     @app.post("/dados")
     async def encaminhar_post_dados(request: Request):
         """
@@ -219,6 +241,7 @@ def criar_balanceador(
         if not balancer.servidores:
             return JSONResponse(status_code=503, content={"detail": "Nenhum servidor backend configurado"})
 
+        t_inicio = time.time()
         body = await request.json()
         tentativas = len(balancer.servidores)
         falharam = []
@@ -229,6 +252,12 @@ def criar_balanceador(
             try:
                 response = await client.post(f"{servidor}/dados", json=body)
                 resp_data = response.json()
+                latencia_ms = round((time.time() - t_inicio) * 1000)
+                sid = resp_data.get("server_id") if isinstance(resp_data, dict) else None
+
+                # Notificar monitor em tempo real para animação do painel
+                asyncio.create_task(_notificar_monitor_background(servidor, response.status_code, latencia_ms, bool(falharam), sid))
+
                 if falharam and isinstance(resp_data, dict):
                     resp_data["failover"] = True
                     resp_data["servidores_falharam"] = falharam

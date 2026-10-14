@@ -27,7 +27,7 @@ import subprocess
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 import httpx
@@ -846,6 +846,37 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
             "contadores": teste_carga.contadores,
             "media_ms": round(teste_carga.total_latencia / teste_carga.total_enviadas) if teste_carga.total_enviadas > 0 else 0,
         }
+
+    @app.post("/api/evento-externo")
+    async def api_evento_externo(request: Request):
+        """Recebe eventos de requisições externas atendidas pelo Load Balancer e transmite via SSE para o painel."""
+        try:
+            payload = await request.json()
+            server_id = payload.get("server_id", "server-01")
+            status_code = payload.get("status_code", 200)
+            latencia_ms = payload.get("latencia_ms", 0)
+            failover = payload.get("failover", False)
+
+            state.contadores["total"] += 1
+            if status_code == 200:
+                state.contadores["sucesso"] += 1
+                if server_id in state.contadores:
+                    state.contadores[server_id] += 1
+            else:
+                state.contadores["erros"] += 1
+
+            data = {
+                "server_id": server_id,
+                "status_code": status_code,
+                "latencia_ms": latencia_ms,
+                "failover": failover,
+                "contadores": state.contadores,
+                "timestamp": payload.get("timestamp", datetime.now().strftime("%H:%M:%S")),
+            }
+            await state.broadcast("evento_externo", data)
+            return {"status": "ok"}
+        except Exception as e:
+            return JSONResponse(status_code=400, content={"error": str(e)})
 
     return app
 
