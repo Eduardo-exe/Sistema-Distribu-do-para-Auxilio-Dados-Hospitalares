@@ -730,6 +730,25 @@
     }
     .node-db.active-node .node-bg { stroke: var(--color-db); color: var(--color-db); }
 
+    /* Estágios de fluxo animado no modal do Middleware */
+    .mw-flow-stage.active {
+      border-color: #f97316 !important;
+      box-shadow: 0 0 20px rgba(249, 115, 22, 0.75) !important;
+      background: rgba(249, 115, 22, 0.22) !important;
+      transform: translateY(-2px);
+    }
+    .mw-flow-stage.success {
+      border-color: #34d399 !important;
+      box-shadow: 0 0 20px rgba(52, 211, 153, 0.75) !important;
+      background: rgba(52, 211, 153, 0.22) !important;
+      transform: translateY(-2px);
+    }
+    .cg-flow-active {
+      border-color: #a78bfa !important;
+      box-shadow: 0 0 16px rgba(167, 139, 250, 0.6) !important;
+      background: rgba(167, 139, 250, 0.15) !important;
+    }
+
     /* Animated Flying Packet */
     #flying-packet {
       opacity: 0;
@@ -3793,7 +3812,8 @@
             Message-Oriented Middleware (MOM) em Modo KRaft :9092 • Fanout Pub-Sub • Desacoplamento &amp; Transparência de Heterogeneidade
           </p>
         </div>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <button id="btn-animar-mw-fluxo" class="btn-inspect-vm" style="background: linear-gradient(135deg, rgba(249, 115, 22, 0.35), rgba(234, 88, 12, 0.45)); border: 1px solid rgba(249, 115, 22, 0.7); color: #fb923c; font-weight: 800; padding: 6px 14px; box-shadow: 0 0 14px rgba(249,115,22,0.35);" title="Dispara a animação visual do fluxo de uma mensagem passando pelo Apache Kafka">▶️ Simular Fluxo no Middleware</button>
           <button id="btn-refresh-mw" class="btn-inspect-vm" style="padding: 6px 12px; font-size: 0.75rem;" title="Atualizar estado das partições e offsets">🔄 Atualizar</button>
           <button id="mw-modal-close" class="modal-close" title="Fechar">✕</button>
         </div>
@@ -3820,6 +3840,60 @@
           <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">Tolerância &amp; DLT</div>
           <div id="mw-kpi-cb" style="font-size: 1.05rem; font-weight: 800; color: #a78bfa; margin-top: 3px;">Circuit Breaker OK</div>
           <div style="font-size: 0.7rem; color: #64748b;">Rate Limit: 100 req/s</div>
+        </div>
+      </div>
+
+      <!-- 🌊 PIPELINE VISUAL ANIMADO DO FLUXO INTERNO (Streaming de Mensagem) -->
+      <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(249, 115, 22, 0.35); border-radius: 14px; padding: 1.1rem; margin-bottom: 1.2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.35);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.9rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span style="font-size: 1.2rem;">🌊</span>
+            <span style="font-weight: 800; font-size: 0.95rem; color: #f1f5f9;">Pipeline Visual do Fluxo Interno • Apache Kafka (KRaft)</span>
+          </div>
+          <span id="mw-flow-status-tag" style="font-size: 0.75rem; color: #34d399; background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); padding: 3px 10px; border-radius: 20px; font-weight: 600;">● Pronto p/ Tráfego</span>
+        </div>
+
+        <!-- Stages Grid with Connectors -->
+        <div class="mw-pipeline-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; position: relative; margin-bottom: 0.9rem;">
+          <!-- Stage 1: Produtor -->
+          <div id="mw-st-1" class="mw-flow-stage" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.75rem 0.5rem; text-align: center; transition: all 0.3s;">
+            <div style="font-size: 1.3rem;">📥</div>
+            <div style="font-size: 0.75rem; font-weight: 800; color: #60a5fa; margin-top: 4px;">1. Ingestão</div>
+            <div style="font-size: 0.68rem; color: #94a3b8; line-height: 1.2; margin-top: 2px;">Produtor Client<br><span style="color:#06b6d4;">GZIP Payload</span></div>
+          </div>
+
+          <!-- Stage 2: Token Bucket -->
+          <div id="mw-st-2" class="mw-flow-stage" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.75rem 0.5rem; text-align: center; transition: all 0.3s;">
+            <div style="font-size: 1.3rem;">⏱️</div>
+            <div style="font-size: 0.75rem; font-weight: 800; color: #fbbf24; margin-top: 4px;">2. Rate Limit</div>
+            <div style="font-size: 0.68rem; color: #94a3b8; line-height: 1.2; margin-top: 2px;">Token Bucket<br><span style="color:#f59e0b;">100 req/s</span></div>
+          </div>
+
+          <!-- Stage 3: Hash Router Murmur2 -->
+          <div id="mw-st-3" class="mw-flow-stage" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.75rem 0.5rem; text-align: center; transition: all 0.3s;">
+            <div style="font-size: 1.3rem;">🔀</div>
+            <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; margin-top: 4px;">3. Hash Murmur2</div>
+            <div id="mw-st-3-calc" style="font-size: 0.68rem; color: #94a3b8; line-height: 1.2; margin-top: 2px; font-family: monospace;">Key: paciente_id<br><span style="color:#38bdf8;">Hash % 4 ➔ P?</span></div>
+          </div>
+
+          <!-- Stage 4: Commit Log Partição -->
+          <div id="mw-st-4" class="mw-flow-stage" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.75rem 0.5rem; text-align: center; transition: all 0.3s;">
+            <div style="font-size: 1.3rem;">🗄️</div>
+            <div style="font-size: 0.75rem; font-weight: 800; color: #fb923c; margin-top: 4px;">4. Commit Log</div>
+            <div id="mw-st-4-info" style="font-size: 0.68rem; color: #94a3b8; line-height: 1.2; margin-top: 2px;">Partição Fís.<br><span style="color:#34d399;">Quorum KRaft</span></div>
+          </div>
+
+          <!-- Stage 5: Fanout Consumer Groups -->
+          <div id="mw-st-5" class="mw-flow-stage" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.75rem 0.5rem; text-align: center; transition: all 0.3s;">
+            <div style="font-size: 1.3rem;">⚡</div>
+            <div style="font-size: 0.75rem; font-weight: 800; color: #a78bfa; margin-top: 4px;">5. Fanout Groups</div>
+            <div style="font-size: 0.68rem; color: #94a3b8; line-height: 1.2; margin-top: 2px;">4 CGs Simultâneos<br><span style="color:#c084fc;">4 SOs Heterogêneos</span></div>
+          </div>
+        </div>
+
+        <!-- Real-Time Packet Tracker Console -->
+        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; max-height: 130px; overflow-y: auto;" id="mw-flow-terminal">
+          <div style="color: #64748b;">// Console de rastreamento do Middleware aguardando fluxo de mensagem...</div>
         </div>
       </div>
 
@@ -4257,6 +4331,7 @@
           clearActiveNodes();
           nodeMw.classList.add('active-node');
           handleKafkaEvent(d);
+          executarAnimacaoFluxoMiddleware(d);
           setStatus(`Apache Kafka: Tópico ${d.topico} | Partição P${d.particao}`, 'busy');
           addLog(d.timestamp, `[Kafka Broker :9092] Tópico ${d.topico} ➔ Partição P${d.particao} (Key: Paciente ${d.paciente_id}) | GZIP At-Least-Once`, 'mw');
           animatePacketAlongPath(pipeMwLb, 350);
@@ -5685,6 +5760,121 @@
         }
         atualizarLiveMessageModal();
       } catch (e) { console.error('Erro middleware modal:', e); }
+    }
+
+    // ── Fluxo Interativo e Rastreamento de Pacote no Middleware ──
+    const btnAnimarMwFluxo = document.getElementById('btn-animar-mw-fluxo');
+    const mwFlowStatusTag = document.getElementById('mw-flow-status-tag');
+    const mwFlowTerminal = document.getElementById('mw-flow-terminal');
+
+    function logMwTerminal(msg, cor = '#cbd5e1') {
+      if (!mwFlowTerminal) return;
+      const hora = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.style.color = cor;
+      div.style.marginBottom = '3px';
+      div.innerHTML = `<span style="color:#64748b;">[${hora}]</span> ${msg}`;
+      mwFlowTerminal.appendChild(div);
+      mwFlowTerminal.scrollTop = mwFlowTerminal.scrollHeight;
+    }
+
+    async function executarAnimacaoFluxoMiddleware(d) {
+      if (!d) return;
+      const pid = parseInt(d.paciente_id || 0);
+      const part = (d.particao !== undefined && d.particao !== null) ? d.particao : (pid % 4);
+      const num = d.numero || (ultimoRegistroKafka ? (ultimoRegistroKafka._numero || 1) : 1);
+
+      if (mwFlowStatusTag) {
+        mwFlowStatusTag.textContent = `⚡ Roteando Paciente #${pid}...`;
+        mwFlowStatusTag.style.color = '#fb923c';
+        mwFlowStatusTag.style.background = 'rgba(249, 115, 22, 0.15)';
+        mwFlowStatusTag.style.borderColor = 'rgba(249, 115, 22, 0.4)';
+      }
+
+      // Reset dos estágios
+      for (let s = 1; s <= 5; s++) {
+        const el = document.getElementById(`mw-st-${s}`);
+        if (el) el.classList.remove('active', 'success');
+      }
+
+      // Stage 1: Ingress & Gzip
+      const st1 = document.getElementById('mw-st-1');
+      if (st1) st1.classList.add('active');
+      logMwTerminal(`📥 <strong>INGRESS:</strong> Registro #${num} (Paciente #${pid}) recebido via Produtor • Serialização GZIP`, '#60a5fa');
+      await new Promise(r => setTimeout(r, 260));
+
+      // Stage 2: Token Bucket
+      if (st1) { st1.classList.remove('active'); st1.classList.add('success'); }
+      const st2 = document.getElementById('mw-st-2');
+      if (st2) st2.classList.add('active');
+      logMwTerminal(`⏱️ <strong>RATE LIMITER:</strong> Token Bucket aprovado (100 req/s, burst 20) • Sem contenção`, '#fbbf24');
+      await new Promise(r => setTimeout(r, 260));
+
+      // Stage 3: Murmur2 Hash
+      if (st2) { st2.classList.remove('active'); st2.classList.add('success'); }
+      const st3 = document.getElementById('mw-st-3');
+      const st3Calc = document.getElementById('mw-st-3-calc');
+      if (st3) st3.classList.add('active');
+      if (st3Calc) st3Calc.innerHTML = `Key: ${pid}<br><span style="color:#38bdf8; font-weight:700;">Murmur2(${pid}) % 4 ➔ P${part}</span>`;
+      logMwTerminal(`🔀 <strong>MURMUR2 HASH:</strong> Murmur2(Key=${pid}) % 4 ➔ Roteado determinístico para <strong>Partição P${part}</strong>`, '#38bdf8');
+      await new Promise(r => setTimeout(r, 280));
+
+      // Stage 4: Commit Log Partição
+      if (st3) { st3.classList.remove('active'); st3.classList.add('success'); }
+      const st4 = document.getElementById('mw-st-4');
+      const st4Info = document.getElementById('mw-st-4-info');
+      if (st4) st4.classList.add('active');
+      const off = (partitionOffsets && partitionOffsets[part]) || 1;
+      if (st4Info) st4Info.innerHTML = `P${part} [Offset: #${off}]<br><span style="color:#34d399; font-weight:700;">ACK:all (-1) Quorum</span>`;
+      logMwTerminal(`🗄️ <strong>COMMIT LOG:</strong> Mensagem persistida na <strong>Partição P${part}</strong> [Offset #${off}] • Quorum Raft KRaft OK`, '#fb923c');
+
+      // Feedback visual na partição
+      const partCard = document.getElementById(`kafka-part-${part}`);
+      if (partCard) {
+        partCard.classList.add('active-partition');
+        setTimeout(() => partCard.classList.remove('active-partition'), 800);
+      }
+      await new Promise(r => setTimeout(r, 280));
+
+      // Stage 5: Fanout Groups
+      if (st4) { st4.classList.remove('active'); st4.classList.add('success'); }
+      const st5 = document.getElementById('mw-st-5');
+      if (st5) st5.classList.add('active');
+      logMwTerminal(`⚡ <strong>FANOUT MULTI-GROUP:</strong> Mensagem replicada em paralelo para 4 Consumer Groups:`, '#a78bfa');
+      logMwTerminal(`   ├── consumidor_servidor_1 ➔ Srv 01 (Ubuntu 22.04 LTS) [ACK 200]`, '#93c5fd');
+      logMwTerminal(`   ├── consumidor_servidor_2 ➔ Srv 02 (Debian 12 Bookworm) [ACK 200]`, '#f0abfc');
+      logMwTerminal(`   ├── consumidor_servidor_3 ➔ Srv 03 (Ubuntu 20.04 LTS) [ACK 200]`, '#fda4af');
+      logMwTerminal(`   └── consumidor_servidor_4 ➔ Srv 04 (Debian 12 Standby) [ACK 200]`, '#6ee7b7');
+      await new Promise(r => setTimeout(r, 320));
+
+      if (st5) { st5.classList.remove('active'); st5.classList.add('success'); }
+      if (mwFlowStatusTag) {
+        mwFlowStatusTag.textContent = `✅ Paciente #${pid} Comitado e Entregue`;
+        mwFlowStatusTag.style.color = '#34d399';
+        mwFlowStatusTag.style.background = 'rgba(52, 211, 153, 0.15)';
+        mwFlowStatusTag.style.borderColor = 'rgba(52, 211, 153, 0.4)';
+      }
+
+      ultimoRegistroKafka = d.dados || d;
+      atualizarLiveMessageModal();
+      carregarMiddlewareModal();
+    }
+
+    if (btnAnimarMwFluxo) {
+      btnAnimarMwFluxo.addEventListener('click', async () => {
+        btnAnimarMwFluxo.disabled = true;
+        btnAnimarMwFluxo.innerHTML = '<span>⏳</span><span>Simulando...</span>';
+        try {
+          const res = await fetch(`${API_BASE}/api/middleware/simular-fluxo`, { method: 'POST' });
+          const data = await res.json();
+          await executarAnimacaoFluxoMiddleware(data);
+        } catch (err) {
+          logMwTerminal(`❌ Erro ao simular fluxo: ${err.message}`, '#f87171');
+        } finally {
+          btnAnimarMwFluxo.disabled = false;
+          btnAnimarMwFluxo.innerHTML = '<span>▶️</span><span>Simular Fluxo no Middleware</span>';
+        }
+      });
     }
 
     if (nodeMw) nodeMw.addEventListener('click', (e) => { e.stopPropagation(); abrirMiddlewareModal(); });
