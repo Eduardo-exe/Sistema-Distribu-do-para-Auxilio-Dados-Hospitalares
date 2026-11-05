@@ -113,6 +113,7 @@ def criar_app(
     db_path: str = None,
     vm_name: str = None,
     vm_ip: str = None,
+    vm_os: str = None,
     hypervisor: str = "VirtualBox / Vagrant / Linux KVM",
     port: int = 8001,
 ) -> FastAPI:
@@ -124,6 +125,7 @@ def criar_app(
         db_path: Caminho para o banco de dados SQLite.
         vm_name: Nome da Máquina Virtual (ex: vm-servidor-01).
         vm_ip: IP virtual na rede interna (ex: 192.168.56.13).
+        vm_os: Sistema Operacional da VM (demonstração de heterogeneidade).
         hypervisor: Tecnologia de virtualização.
         port: Porta TCP de escuta.
 
@@ -133,19 +135,24 @@ def criar_app(
     _server_id = server_id or SERVER_ID
     _db_path = db_path or DB_PATH
 
-    # Inferir mapeamento de VM padrão caso não informado explicitamente
+    # Mapeamento padrão de OS heterogêneo por nó para evidenciar transparência de sistema
     sid_lower = str(_server_id).lower()
     if "4" in sid_lower:
         _def_vm, _def_ip, _def_mac = "vm-servidor-04", "192.168.56.16", "08:00:27:3A:4B:16"
+        _def_os = "Debian GNU/Linux 12 (Bookworm)"
     elif "2" in sid_lower:
         _def_vm, _def_ip, _def_mac = "vm-servidor-02", "192.168.56.14", "08:00:27:3A:4B:14"
+        _def_os = "Debian GNU/Linux 12 (Bookworm)"
     elif "3" in sid_lower:
         _def_vm, _def_ip, _def_mac = "vm-servidor-03", "192.168.56.15", "08:00:27:3A:4B:15"
+        _def_os = "Ubuntu 20.04.6 LTS (Focal Fossa)"
     else:
         _def_vm, _def_ip, _def_mac = "vm-servidor-01", "192.168.56.13", "08:00:27:3A:4B:13"
+        _def_os = "Ubuntu 22.04.4 LTS (Jammy Jellyfish)"
 
     _vm_name = vm_name or _def_vm
     _vm_ip = vm_ip or _def_ip
+    _vm_os = vm_os or _def_os
     _hypervisor = hypervisor
     _mac = _def_mac
     _port = port
@@ -242,7 +249,7 @@ def criar_app(
             "vm_name": _vm_name,
             "vm_ip": _vm_ip,
             "hypervisor": _hypervisor,
-            "os": "Ubuntu 22.04.4 LTS (Jammy Jellyfish)",
+            "os": _vm_os,
             "mac_address": _mac,
             "db_path": _db_path,
             "load": round(metrics.load, 3),
@@ -265,8 +272,8 @@ def criar_app(
             "server_id": _server_id,
             "port": _port,
             "status": "ONLINE",
-            "os": "Ubuntu 22.04.4 LTS (Jammy Jellyfish)",
-            "kernel": "Linux 5.15.0-generic",
+            "os": _vm_os,
+            "kernel": "Linux 5.15.0-generic" if "Ubuntu" in _vm_os else "Linux 6.1.0-debian",
             "hypervisor": _hypervisor,
             "mac_address": _mac,
             "vcpu": "1 vCPU @ 2.4GHz",
@@ -324,6 +331,10 @@ if __name__ == "__main__":
         help="Endereço IP virtual da VM (ex: 192.168.56.13)"
     )
     parser.add_argument(
+        "--vm-os", type=str, default=None,
+        help="Sistema Operacional da VM para evidenciar heterogeneidade"
+    )
+    parser.add_argument(
         "--hypervisor", type=str, default="VirtualBox / Vagrant / Linux KVM",
         help="Tecnologia de virtualização (padrão: VirtualBox / Vagrant / Linux KVM)"
     )
@@ -339,6 +350,7 @@ if __name__ == "__main__":
         db_path=args.db_path,
         vm_name=args.vm_name,
         vm_ip=args.vm_ip,
+        vm_os=args.vm_os,
         hypervisor=args.hypervisor,
         port=args.port,
     )

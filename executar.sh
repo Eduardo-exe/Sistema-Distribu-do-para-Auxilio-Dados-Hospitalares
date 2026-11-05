@@ -87,21 +87,21 @@ cleanup() {
 
 trap cleanup INT TERM
 
-# ── Iniciar Servidores Backend (VMs Reais) ─────────────────────
-echo "[1/6] Iniciando Servidor 01 (VM: vm-servidor-01 @ 192.168.56.13:8001)..."
-"$PYTHON" server/app.py --port 8001 --server-id server-01 --db-path databases/server1.db --vm-name vm-servidor-01 --vm-ip 192.168.56.13 > logs/server1.log 2>&1 &
+# ── Iniciar Servidores Backend (VMs Reais Heterogêneas) ─────────────
+echo "[1/6] Iniciando Servidor 01 (VM: vm-servidor-01 @ 192.168.56.13:8001 | Ubuntu 22.04 LTS)..."
+"$PYTHON" server/app.py --port 8001 --server-id server-01 --db-path databases/server1.db --vm-name vm-servidor-01 --vm-ip 192.168.56.13 --vm-os "Ubuntu 22.04 LTS (Jammy)" > logs/server1.log 2>&1 &
 PIDS+=($!)
 
-echo "[2/6] Iniciando Servidor 02 (VM: vm-servidor-02 @ 192.168.56.14:8002)..."
-"$PYTHON" server/app.py --port 8002 --server-id server-02 --db-path databases/server2.db --vm-name vm-servidor-02 --vm-ip 192.168.56.14 > logs/server2.log 2>&1 &
+echo "[2/6] Iniciando Servidor 02 (VM: vm-servidor-02 @ 192.168.56.14:8002 | Debian 12 Bookworm)..."
+"$PYTHON" server/app.py --port 8002 --server-id server-02 --db-path databases/server2.db --vm-name vm-servidor-02 --vm-ip 192.168.56.14 --vm-os "Debian 12 (Bookworm)" > logs/server2.log 2>&1 &
 PIDS+=($!)
 
-echo "[3/6] Iniciando Servidor 03 (VM: vm-servidor-03 @ 192.168.56.15:8003)..."
-"$PYTHON" server/app.py --port 8003 --server-id server-03 --db-path databases/server3.db --vm-name vm-servidor-03 --vm-ip 192.168.56.15 > logs/server3.log 2>&1 &
+echo "[3/6] Iniciando Servidor 03 (VM: vm-servidor-03 @ 192.168.56.15:8003 | Ubuntu 20.04 LTS)..."
+"$PYTHON" server/app.py --port 8003 --server-id server-03 --db-path databases/server3.db --vm-name vm-servidor-03 --vm-ip 192.168.56.15 --vm-os "Ubuntu 20.04 LTS (Focal)" > logs/server3.log 2>&1 &
 PIDS+=($!)
 
-echo "[4/6] Iniciando Servidor 04 Reserva (VM: vm-servidor-04 @ 192.168.56.16:8004) [Warm Standby]..."
-"$PYTHON" server/app.py --port 8004 --server-id server-04 --db-path databases/server4.db --vm-name vm-servidor-04 --vm-ip 192.168.56.16 > logs/server4.log 2>&1 &
+echo "[4/6] Iniciando Servidor 04 Reserva (VM: vm-servidor-04 @ 192.168.56.16:8004 | Debian 12 Bookworm) [Warm Standby]..."
+"$PYTHON" server/app.py --port 8004 --server-id server-04 --db-path databases/server4.db --vm-name vm-servidor-04 --vm-ip 192.168.56.16 --vm-os "Debian 12 (Bookworm)" > logs/server4.log 2>&1 &
 PIDS+=($!)
 
 sleep 1

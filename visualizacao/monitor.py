@@ -264,10 +264,10 @@ class TesteCargaManager:
 # ============================================================
 
 SERVER_INFO = {
-    "01": {"porta": 8001, "db": "server1.db", "vm": "vm-servidor-01", "ip": "192.168.56.13"},
-    "02": {"porta": 8002, "db": "server2.db", "vm": "vm-servidor-02", "ip": "192.168.56.14"},
-    "03": {"porta": 8003, "db": "server3.db", "vm": "vm-servidor-03", "ip": "192.168.56.15"},
-    "04": {"porta": 8004, "db": "server4.db", "vm": "vm-servidor-04", "ip": "192.168.56.16"},
+    "01": {"porta": 8001, "db": "server1.db", "vm": "vm-servidor-01", "ip": "192.168.56.13", "os": "Ubuntu 22.04 LTS (Jammy)"},
+    "02": {"porta": 8002, "db": "server2.db", "vm": "vm-servidor-02", "ip": "192.168.56.14", "os": "Debian 12 (Bookworm)"},
+    "03": {"porta": 8003, "db": "server3.db", "vm": "vm-servidor-03", "ip": "192.168.56.15", "os": "Ubuntu 20.04 LTS (Focal)"},
+    "04": {"porta": 8004, "db": "server4.db", "vm": "vm-servidor-04", "ip": "192.168.56.16", "os": "Debian 12 (Bookworm)"},
 }
 
 SERVIDORES_CONFIG = {
@@ -290,7 +290,7 @@ SERVIDORES_CONFIG = {
         "nome": "Servidor 02",
         "vm_name": "vm-servidor-02",
         "vm_ip": "192.168.56.14",
-        "os": "Ubuntu 22.04 LTS (Jammy)",
+        "os": "Debian 12 (Bookworm)",
         "vcpu": "1 vCPU",
         "ram": "512 MB",
         "mac": "08:00:27:3A:4B:14",
@@ -302,7 +302,7 @@ SERVIDORES_CONFIG = {
         "nome": "Servidor 03",
         "vm_name": "vm-servidor-03",
         "vm_ip": "192.168.56.15",
-        "os": "Ubuntu 22.04 LTS (Jammy)",
+        "os": "Ubuntu 20.04 LTS (Focal)",
         "vcpu": "1 vCPU",
         "ram": "512 MB",
         "mac": "08:00:27:3A:4B:15",
@@ -314,7 +314,7 @@ SERVIDORES_CONFIG = {
         "nome": "Servidor 04 (Reserva)",
         "vm_name": "vm-servidor-04",
         "vm_ip": "192.168.56.16",
-        "os": "Ubuntu 22.04 LTS (Jammy)",
+        "os": "Debian 12 (Bookworm)",
         "vcpu": "1 vCPU",
         "ram": "512 MB",
         "mac": "08:00:27:3A:4B:16",
@@ -343,7 +343,7 @@ VM_CLUSTER_MAP = [
         "funcao": "MOM Event Streaming (Modo KRaft - sem ZooKeeper)",
         "servico": "apache/kafka:latest (Porta 9092)",
         "porta": 9092,
-        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "os": "Debian GNU/Linux 12 (Bookworm)",
         "hardware": "2 vCPUs @ 2.4GHz | 1024 MB RAM",
         "mac": "08:00:27:3A:4B:11",
         "interface": "enp0s8",
@@ -377,13 +377,13 @@ VM_CLUSTER_MAP = [
     },
     {
         "id": "vm-servidor-02",
-        "nome": "Servidor 02 (Nó Ativo)",
+        "nome": "Servidor 02 (Nó Ativo - Heterogêneo)",
         "vm_name": "vm-servidor-02",
         "ip": "192.168.56.14",
         "funcao": "Processamento REST FastAPI + Shard de Banco SQLite",
         "servico": "server.app (Porta 8002)",
         "porta": 8002,
-        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "os": "Debian GNU/Linux 12 (Bookworm)",
         "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
         "mac": "08:00:27:3A:4B:14",
         "interface": "enp0s8",
@@ -391,13 +391,13 @@ VM_CLUSTER_MAP = [
     },
     {
         "id": "vm-servidor-03",
-        "nome": "Servidor 03 (Nó Ativo)",
+        "nome": "Servidor 03 (Nó Ativo - Heterogêneo)",
         "vm_name": "vm-servidor-03",
         "ip": "192.168.56.15",
         "funcao": "Processamento REST FastAPI + Shard de Banco SQLite",
         "servico": "server.app (Porta 8003)",
         "porta": 8003,
-        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "os": "Ubuntu 20.04.6 LTS (Focal)",
         "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
         "mac": "08:00:27:3A:4B:15",
         "interface": "enp0s8",
@@ -405,13 +405,13 @@ VM_CLUSTER_MAP = [
     },
     {
         "id": "vm-servidor-04",
-        "nome": "Servidor 04 (Reserva Warm Standby)",
+        "nome": "Servidor 04 (Reserva Warm Standby - Heterogêneo)",
         "vm_name": "vm-servidor-04",
         "ip": "192.168.56.16",
         "funcao": "Nó Reserva para Elasticidade (Scale-Out) e Failover Crítico",
         "servico": "server.app (Porta 8004)",
         "porta": 8004,
-        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "os": "Debian GNU/Linux 12 (Bookworm)",
         "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
         "mac": "08:00:27:3A:4B:16",
         "interface": "enp0s8",
@@ -486,6 +486,7 @@ def religar_servidor_processo(servidor_num: int) -> bool:
                 "--db-path", cfg["db"],
                 "--vm-name", cfg.get("vm_name", f"vm-servidor-0{servidor_num}"),
                 "--vm-ip", cfg.get("vm_ip", f"192.168.56.{12+servidor_num}"),
+                "--vm-os", cfg.get("os", "Ubuntu 22.04 LTS (Jammy)"),
             ],
             cwd=projeto_dir,
             stdout=log_file,
@@ -649,6 +650,9 @@ async def process_single(state: MonitorState) -> bool:
     numero = state.current_index + 1
     delay = 0.65 / state.speed
 
+    if not state.running and not state.processing:
+        return False
+
     # --- Etapa 1: Leitura do CSV ---
     await state.broadcast("csv_read", {
         "numero": numero,
@@ -656,6 +660,8 @@ async def process_single(state: MonitorState) -> bool:
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
     await asyncio.sleep(delay)
+    if not state.running and not state.processing:
+        return False
 
     # --- Etapa 2: CSV Sender preparando ---
     await state.broadcast("sending", {
@@ -663,6 +669,8 @@ async def process_single(state: MonitorState) -> bool:
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
     await asyncio.sleep(delay * 0.6)
+    if not state.running and not state.processing:
+        return False
 
     # --- Etapa 2.5: Middleware Apache Kafka (MOM) ---
     pid = int(record.get("paciente_id") or 0)
@@ -679,6 +687,8 @@ async def process_single(state: MonitorState) -> bool:
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
     await asyncio.sleep(delay * 0.4)
+    if not state.running and not state.processing:
+        return False
 
     # --- Etapa 3: HTTP POST ao Load Balancer ---
     await state.broadcast("http_post", {
@@ -686,6 +696,8 @@ async def process_single(state: MonitorState) -> bool:
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
     await asyncio.sleep(delay * 0.5)
+    if not state.running and not state.processing:
+        return False
 
     # --- Etapa 4: Enviar requisição REAL ao Load Balancer ---
     try:
@@ -803,14 +815,19 @@ async def process_single(state: MonitorState) -> bool:
 async def run_simulation(state: MonitorState):
     """Loop de simulação automática."""
     state.running = True
-    while state.running:
-        has_more = await process_single(state)
-        if not has_more:
-            state.running = False
-            break
-        # Pausa entre requisições
-        await asyncio.sleep(0.4 / state.speed)
-    state.running = False
+    try:
+        while state.running:
+            has_more = await process_single(state)
+            if not has_more or not state.running:
+                state.running = False
+                break
+            # Pausa entre requisições
+            await asyncio.sleep(0.4 / state.speed)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        state.running = False
+        state.processing = False
 
 
 # ============================================================
@@ -1082,6 +1099,7 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
     async def pausar():
         """Pausa a simulação automática."""
         state.running = False
+        state.processing = False
         if state.simulation_task and not state.simulation_task.done():
             state.simulation_task.cancel()
             state.simulation_task = None
@@ -1613,17 +1631,22 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
             )
             cfg = get_kafka_config()
 
-            # Status real de cada consumer group: depende de o servidor
-            # backend de destino estar respondendo, não de um valor fixo.
+            # Status real de cada consumer group com metadados de VM e Sistema Operacional (Heterogeneidade)
             consumer_groups = []
             for info in KAFKA_CONSUMER_GROUPS:
                 url = info["servidor_url"].rstrip("/")
                 porta = int(url.rsplit(":", 1)[-1]) if ":" in url else 8000
                 online = await verificar_servidor_online(porta)
+                srv_num = porta - 8000 if 8001 <= porta <= 8004 else 1
+                srv_cfg = SERVIDORES_CONFIG.get(srv_num, {})
                 consumer_groups.append({
                     "group_id": info["group_id"],
                     "target": info["server_id"],
                     "port": porta,
+                    "vm_name": srv_cfg.get("vm_name", f"vm-servidor-0{srv_num}"),
+                    "vm_ip": srv_cfg.get("vm_ip", f"192.168.56.{12+srv_num}"),
+                    "os": srv_cfg.get("os", "Ubuntu 22.04 LTS (Jammy)"),
+                    "hardware": f"{srv_cfg.get('vcpu', '1 vCPU')} | {srv_cfg.get('ram', '512 MB')}",
                     "status": "online" if online else "offline",
                 })
 
@@ -1646,6 +1669,8 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                 "topic": KAFKA_TOPIC,
                 "dlt_topic": KAFKA_DLT_TOPIC,
                 "broker_conectado": broker_conectado,
+                "modo": "KRaft (Kafka Raft Metadata Mode - Sem ZooKeeper)",
+                "transparencia_heterogeneidade": True,
                 "config": cfg.to_dict(),
                 "metrics": {
                     "total_publicadas": KafkaMonitorMetrics.total_publicadas,
@@ -1653,13 +1678,29 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                     "offsets": KafkaMonitorMetrics.offsets,
                     "ultima_msg": KafkaMonitorMetrics.ultima_msg,
                     "circuit_breaker": "CLOSED",
-                    "rate_limiter": "100 req/s",
+                    "rate_limiter": "100 req/s (Burst: 20)",
                     "compression": "gzip",
+                    "ack": "all (-1, Quorum KRaft)",
                     "consumer_groups": consumer_groups,
                 },
             }
         except Exception as e:
             return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.post("/api/middleware/reprocessar-dlt")
+    async def api_reprocessar_dlt(limite: int = 10):
+        """Reprocessa mensagens retidas na Dead Letter Topic (DLT) do Apache Kafka."""
+        try:
+            from middleware.consumidor import reprocessar_dlt
+            qtd = await asyncio.to_thread(reprocessar_dlt, limite=limite)
+            return {
+                "status": "ok",
+                "reprocessadas": qtd,
+                "limite": limite,
+                "mensagem": f"Reprocessamento concluído: {qtd} mensagens reenviadas para o tópico principal.",
+            }
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"status": "erro", "detail": str(e)})
 
     @app.post("/api/esb/process")
     async def api_esb_process(request: Request):
