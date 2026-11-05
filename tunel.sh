@@ -14,16 +14,15 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PORTA="${1:-5000}"
 BIN_CLOUDFLARED="$DIR/bin/cloudflared"
 
-# 1. Garantir que o binário do cloudflared existe
-if [ ! -f "$BIN_CLOUDFLARED" ]; then
+# 1. Garantir que o binário do cloudflared existe e é executável
+if [ ! -f "$BIN_CLOUDFLARED" ] || [ ! -s "$BIN_CLOUDFLARED" ]; then
     echo "============================================================"
     echo "  Baixando cliente Cloudflare Tunnel (cloudflared)..."
     echo "============================================================"
     mkdir -p "$DIR/bin"
     curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o "$BIN_CLOUDFLARED"
-    chmod +x "$BIN_CLOUDFLARED"
-    echo "  ✓ Download concluído!"
 fi
+chmod +x "$BIN_CLOUDFLARED" 2>/dev/null || true
 
 # 2. Verificar se o serviço local está respondendo
 if ! timeout 1 bash -c "echo > /dev/tcp/localhost/$PORTA" 2>/dev/null; then
@@ -63,7 +62,7 @@ MAX_TENTATIVAS=20
 
 while [ $TENTATIVAS -lt $MAX_TENTATIVAS ]; do
     if [ -f "$LOG_TUNEL" ]; then
-        URL_TUNEL=$(grep -oP 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' "$LOG_TUNEL" | head -n 1)
+        URL_TUNEL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' "$LOG_TUNEL" | head -n 1)
         if [ -n "$URL_TUNEL" ]; then
             break
         fi

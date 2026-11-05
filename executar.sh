@@ -29,14 +29,14 @@ fi
 
 # 2. Verificar modo de execução e argumentos
 MODO_MIDDLEWARE="kafka"
-MODO_TUNEL=false
+MODO_TUNEL=true
 
 for arg in "$@"; do
     if [[ "$arg" == "--no-middleware" ]] || [[ "$arg" == "--sem-middleware" ]]; then
         MODO_MIDDLEWARE="nenhum"
     fi
-    if [[ "$arg" == "--tunel" ]] || [[ "$arg" == "-t" ]]; then
-        MODO_TUNEL=true
+    if [[ "$arg" == "--no-tunel" ]] || [[ "$arg" == "--sem-tunel" ]]; then
+        MODO_TUNEL=false
     fi
 done
 
@@ -62,6 +62,8 @@ echo "------------------------------------------------------------"
 # Liberar portas caso instâncias antigas ainda estejam ativas
 echo "Verificando e liberando portas do sistema..."
 fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 2>/dev/null || true
+pkill -f "cloudflared" 2>/dev/null || true
+rm -f "$DIR/logs/tunel.log"
 sleep 1
 
 PIDS=()
@@ -184,28 +186,30 @@ fi
 IP_LOCAL=$(ip -4 addr show scope global 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
 [ -z "$IP_LOCAL" ] && IP_LOCAL="127.0.0.1"
 
-# ── Túnel Público Cloudflare (se ativado via --tunel) ──────────
+# ── Túnel Público Cloudflare (Iniciado Automaticamente com o Sistema) ──
 URL_TUNEL=""
 if [ "$MODO_TUNEL" = true ]; then
     echo ""
-    echo "── Túnel Público Cloudflare (Acesso Externo) ───────────────"
+    echo "── Túnel Público Cloudflare (Acesso Externo Seguro) ─────────"
     echo "Iniciando túnel para a porta $PORTA_MONITOR..."
     BIN_CLOUDFLARED="$DIR/bin/cloudflared"
-    if [ ! -f "$BIN_CLOUDFLARED" ]; then
-        echo "Baixando cloudflared..."
+    if [ ! -f "$BIN_CLOUDFLARED" ] || [ ! -s "$BIN_CLOUDFLARED" ]; then
+        echo "Baixando cliente Cloudflare Tunnel (cloudflared)..."
         mkdir -p "$DIR/bin"
         curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o "$BIN_CLOUDFLARED"
-        chmod +x "$BIN_CLOUDFLARED"
     fi
+    chmod +x "$BIN_CLOUDFLARED" 2>/dev/null || true
+
     LOG_TUNEL="$DIR/logs/tunel.log"
+    rm -f "$LOG_TUNEL"
     "$BIN_CLOUDFLARED" tunnel --url "http://127.0.0.1:$PORTA_MONITOR" > "$LOG_TUNEL" 2>&1 &
     PID_TUNEL=$!
     PIDS+=("$PID_TUNEL")
 
-    echo "Aguardando geração do link público seguro..."
+    echo "Aguardando geração do link público seguro (HTTPS)..."
     for i in {1..20}; do
         if [ -f "$LOG_TUNEL" ]; then
-            URL_TUNEL=$(grep -oP 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' "$LOG_TUNEL" | head -n 1)
+            URL_TUNEL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' "$LOG_TUNEL" | head -n 1)
             [ -n "$URL_TUNEL" ] && break
         fi
         sleep 1
@@ -220,11 +224,15 @@ echo "  📱 Acesso na Rede (Wi-Fi)  : http://$IP_LOCAL:$PORTA_MONITOR"
 
 if [ -n "$URL_TUNEL" ]; then
     echo ""
-    echo "  🎉 LINK PÚBLICO MUNDIAL (HTTPS):"
+    echo "  ============================================================"
+    echo "  🎉 LINK PÚBLICO GERADO COM SUCESSO (HTTPS MUNDIAL):"
+    echo ""
     echo "     👉 $URL_TUNEL"
+    echo ""
+    echo "  (Funciona de qualquer celular, 4G/5G, fora de casa e sem senhas)"
+    echo "  ============================================================"
 else
-    echo "  🌍 Link Público (Internet) : execute ./tunel.sh em outro terminal"
-    echo "                               ou use: ./executar.sh --tunel"
+    echo "  🌍 Link Público (Internet) : gere a qualquer momento com ./tunel.sh"
 fi
 
 echo "  ⚖️  Load Balancer (API)    : http://$IP_LOCAL:8000"

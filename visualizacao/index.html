@@ -2838,6 +2838,12 @@
             <span class="pulse-dot"></span>
             🖥️ Cluster 8 VMs (192.168.56.0/24)
           </button>
+          <div id="badge-tunel-publico" style="display: none; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.4); padding: 4px 10px; border-radius: 20px; font-size: 0.76rem; vertical-align: middle; margin-left: 6px;">
+            <span class="pulse-dot" style="background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+            <span style="color: #94a3b8; font-weight: 500;">Link Público:</span>
+            <a id="link-tunel-publico" href="#" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">...</a>
+            <button id="btn-copiar-tunel" title="Copiar Link Público" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 4px; padding: 1px 6px; cursor: pointer; font-size: 0.68rem; font-weight: 600; margin-left: 2px;">📋 Copiar</button>
+          </div>
         </h1>
         <p>Visualização Didática em Tempo Real — Hospital Data Stream & Elastic Standby</p>
       </div>
@@ -5671,6 +5677,46 @@
       }
     }
 
+    // Sincronização do Link Público (Cloudflare Tunnel)
+    const badgeTunelPublico = document.getElementById('badge-tunel-publico');
+    const linkTunelPublico = document.getElementById('link-tunel-publico');
+    const btnCopiarTunel = document.getElementById('btn-copiar-tunel');
+
+    async function syncTunelStatus() {
+      if (!badgeTunelPublico || !linkTunelPublico) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/tunel/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && (data.ativo || data.online) && data.url) {
+          badgeTunelPublico.style.display = 'inline-flex';
+          linkTunelPublico.href = data.url;
+          linkTunelPublico.textContent = data.url.replace(/^https?:\/\//, '');
+          linkTunelPublico.title = `Acessar ${data.url}`;
+        } else {
+          badgeTunelPublico.style.display = 'none';
+        }
+      } catch (e) {
+        // Silencioso em caso de falha de conexão temporária
+      }
+    }
+
+    if (btnCopiarTunel) {
+      btnCopiarTunel.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (linkTunelPublico && linkTunelPublico.href) {
+          navigator.clipboard.writeText(linkTunelPublico.href).then(() => {
+            const originalText = btnCopiarTunel.textContent;
+            btnCopiarTunel.textContent = '✅ Copiado!';
+            setTimeout(() => { btnCopiarTunel.textContent = originalText; }, 2000);
+          }).catch(() => {
+            prompt('Copie o link público:', linkTunelPublico.href);
+          });
+        }
+      });
+    }
+
     // Start SSE Connection and Polling Fallback on load
     window.addEventListener('DOMContentLoaded', () => {
       connectSSE();
@@ -5680,10 +5726,12 @@
       syncTesteCargaStatus();
       syncEnterpriseMetrics();
       syncKafkaStatus();
+      syncTunelStatus();
       setInterval(syncEscalaStatus, 3000);
       setInterval(syncServidoresStatus, 3000);
       setInterval(syncEnterpriseMetrics, 5000);
       setInterval(syncKafkaStatus, 3500);
+      setInterval(syncTunelStatus, 4000);
     });
 
     // ══════════════════════════════════════════════

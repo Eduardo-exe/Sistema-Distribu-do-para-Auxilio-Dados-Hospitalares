@@ -1765,6 +1765,28 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
         except Exception as e:
             return JSONResponse(status_code=500, content={"error": str(e)})
 
+    @app.get("/api/tunel/status")
+    async def api_tunel_status():
+        """Consulta se o túnel público Cloudflare está ativo e retorna a URL HTTPS."""
+        projeto_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_tunel = os.path.join(projeto_dir, "logs", "tunel.log")
+        url_tunel = None
+        if os.path.exists(log_tunel):
+            try:
+                with open(log_tunel, "r", encoding="utf-8", errors="ignore") as f:
+                    conteudo = f.read()
+                    matches = re.findall(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", conteudo)
+                    if matches:
+                        url_tunel = matches[-1]
+            except Exception:
+                pass
+        return {
+            "ativo": url_tunel is not None,
+            "online": url_tunel is not None,
+            "url": url_tunel,
+            "provedor": "Cloudflare Tunnel (trycloudflare.com)",
+        }
+
     return app
 
 
