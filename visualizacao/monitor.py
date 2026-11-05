@@ -21,6 +21,7 @@ import asyncio
 import csv
 import json
 import os
+import re
 import sys
 import time
 import subprocess
@@ -1771,11 +1772,20 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
         projeto_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         log_tunel = os.path.join(projeto_dir, "logs", "tunel.log")
         url_tunel = None
-        if os.path.exists(log_tunel):
+
+        # Verificar se o processo cloudflared está em execução
+        tunel_rodando = False
+        try:
+            res = subprocess.run(["pgrep", "-f", "cloudflared tunnel"], capture_output=True, text=True)
+            tunel_rodando = bool(res.stdout.strip())
+        except Exception:
+            tunel_rodando = True
+
+        if tunel_rodando and os.path.exists(log_tunel):
             try:
                 with open(log_tunel, "r", encoding="utf-8", errors="ignore") as f:
                     conteudo = f.read()
-                    matches = re.findall(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", conteudo)
+                    matches = re.findall(r"https://[a-zA-Z0-9.-]+\.trycloudflare\.com", conteudo)
                     if matches:
                         url_tunel = matches[-1]
             except Exception:
