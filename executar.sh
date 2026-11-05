@@ -5,14 +5,18 @@ set +m
 # ==============================================================================
 #
 # Uso:
-#   ./executar.sh              → Inicia todo o cluster com RabbitMQ (modo padrão)
+#   ./executar.sh              → Inicia todo o cluster com Apache Kafka (modo padrão)
 #   ./executar.sh --tunel      → Inicia cluster + cria link público HTTPS (Cloudflare)
-#   ./executar.sh --no-middleware → Inicia sem RabbitMQ (modo HTTP direto)
+#   ./executar.sh --no-middleware → Inicia sem Kafka (modo HTTP direto)
 #
 # ==============================================================================
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
+
+# Logs imediatos: sem isso o stdout dos processos redirecionados para logs/
+# fica em buffer e os arquivos de log parecem vazios durante a execução.
+export PYTHONUNBUFFERED=1
 
 # 1. Identificar interpretador Python do venv
 if [ -d "$DIR/venv" ]; then
@@ -24,12 +28,12 @@ else
 fi
 
 # 2. Verificar modo de execução e argumentos
-MODO_MIDDLEWARE=true
+MODO_MIDDLEWARE="kafka"
 MODO_TUNEL=false
 
 for arg in "$@"; do
     if [[ "$arg" == "--no-middleware" ]] || [[ "$arg" == "--sem-middleware" ]]; then
-        MODO_MIDDLEWARE=false
+        MODO_MIDDLEWARE="nenhum"
     fi
     if [[ "$arg" == "--tunel" ]] || [[ "$arg" == "-t" ]]; then
         MODO_TUNEL=true
@@ -44,8 +48,12 @@ echo "  SISTEMA DISTRIBUÍDO PARA AUXÍLIO DE DADOS HOSPITALARES"
 echo "============================================================"
 echo "Python: $PYTHON"
 echo "Diretório: $DIR"
-if [ "$MODO_MIDDLEWARE" = true ]; then
-    echo "Modo: MIDDLEWARE RabbitMQ (MOM)"
+if [ "$MODO_MIDDLEWARE" = "kafka" ]; then
+    echo "Modo: MIDDLEWARE APACHE KAFKA (MOM Enterprise)"
+    echo "  ☕ Apache Kafka Broker : KRaft Mode (:9092)"
+    echo "  📦 Tópico de Telemetria : telemetria_hospitalar (4 partições)"
+    echo "  🔄 Replicação Fanout   : Consumer Groups dedicados (server1..server4)"
+    echo "  🛡️  Tolerância a Falhas : Circuit Breaker + Dead Letter Topic (DLT)"
 else
     echo "Modo: HTTP direto (sem middleware)"
 fi
@@ -69,7 +77,7 @@ cleanup() {
         fi
     done
     fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 2>/dev/null || true
-    docker stop rabbitmq-sd 2>/dev/null || true
+    docker stop kafka-sd 2>/dev/null || true
     pkill -f "cloudflared" 2>/dev/null || true
     wait 2>/dev/null || true
     echo "  ✓ Todos os serviços foram finalizados com sucesso."
@@ -79,21 +87,21 @@ cleanup() {
 
 trap cleanup INT TERM
 
-# ── Iniciar Servidores Backend ─────────────────────────────────
-echo "[1/6] Iniciando Servidor 01 (:8001)..."
-"$PYTHON" server/app.py --port 8001 --server-id server-01 --db-path databases/server1.db > logs/server1.log 2>&1 &
+# ── Iniciar Servidores Backend (VMs Reais) ─────────────────────
+echo "[1/6] Iniciando Servidor 01 (VM: vm-servidor-01 @ 192.168.56.13:8001)..."
+"$PYTHON" server/app.py --port 8001 --server-id server-01 --db-path databases/server1.db --vm-name vm-servidor-01 --vm-ip 192.168.56.13 > logs/server1.log 2>&1 &
 PIDS+=($!)
 
-echo "[2/6] Iniciando Servidor 02 (:8002)..."
-"$PYTHON" server/app.py --port 8002 --server-id server-02 --db-path databases/server2.db > logs/server2.log 2>&1 &
+echo "[2/6] Iniciando Servidor 02 (VM: vm-servidor-02 @ 192.168.56.14:8002)..."
+"$PYTHON" server/app.py --port 8002 --server-id server-02 --db-path databases/server2.db --vm-name vm-servidor-02 --vm-ip 192.168.56.14 > logs/server2.log 2>&1 &
 PIDS+=($!)
 
-echo "[3/6] Iniciando Servidor 03 (:8003)..."
-"$PYTHON" server/app.py --port 8003 --server-id server-03 --db-path databases/server3.db > logs/server3.log 2>&1 &
+echo "[3/6] Iniciando Servidor 03 (VM: vm-servidor-03 @ 192.168.56.15:8003)..."
+"$PYTHON" server/app.py --port 8003 --server-id server-03 --db-path databases/server3.db --vm-name vm-servidor-03 --vm-ip 192.168.56.15 > logs/server3.log 2>&1 &
 PIDS+=($!)
 
-echo "[4/6] Iniciando Servidor 04 Reserva (:8004) [Warm Standby]..."
-"$PYTHON" server/app.py --port 8004 --server-id server-04 --db-path databases/server4.db > logs/server4.log 2>&1 &
+echo "[4/6] Iniciando Servidor 04 Reserva (VM: vm-servidor-04 @ 192.168.56.16:8004) [Warm Standby]..."
+"$PYTHON" server/app.py --port 8004 --server-id server-04 --db-path databases/server4.db --vm-name vm-servidor-04 --vm-ip 192.168.56.16 > logs/server4.log 2>&1 &
 PIDS+=($!)
 
 sleep 1
@@ -102,7 +110,8 @@ sleep 1
 echo "[5/6] Iniciando Load Balancer Round Robin (:8000)..."
 "$PYTHON" load_balancer/balancer.py --port 8000 \
     --servidores http://localhost:8001,http://localhost:8002,http://localhost:8003 \
-    --servidores-reserva http://localhost:8004 > logs/balancer.log 2>&1 &
+    --servidores-reserva http://localhost:8004 \
+    --auto-scale > logs/balancer.log 2>&1 &
 PIDS+=($!)
 
 sleep 1
@@ -115,44 +124,59 @@ PIDS+=($!)
 
 sleep 1.5
 
-# ── Se modo middleware, iniciar consumidores Fanout ───────────
-if [ "$MODO_MIDDLEWARE" = true ]; then
+# ── Middleware Apache Kafka (Modo Padrão) ─────────────────────
+if [ "$MODO_MIDDLEWARE" = "kafka" ]; then
     echo ""
-    echo "── Middleware RabbitMQ (Marco 3: Replicação Fanout) ──────────"
+    echo "── Broker Apache Kafka (MOM Enterprise) ─────────────────────"
 
-    # Verificar se RabbitMQ está acessível ou iniciar automaticamente no Docker
-    RABBITMQ_HOST="${RABBITMQ_HOST:-localhost}"
-    RABBITMQ_PORT="${RABBITMQ_PORT:-5672}"
+    KAFKA_BOOTSTRAP_SERVERS="${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}"
+    KAFKA_HOST=$(echo "$KAFKA_BOOTSTRAP_SERVERS" | cut -d: -f1)
+    KAFKA_PORT=$(echo "$KAFKA_BOOTSTRAP_SERVERS" | cut -d: -f2)
+    KAFKA_PORT="${KAFKA_PORT:-9092}"
 
-    if ! timeout 2 bash -c "echo > /dev/tcp/$RABBITMQ_HOST/$RABBITMQ_PORT" 2>/dev/null; then
+    if ! timeout 2 bash -c "echo > /dev/tcp/$KAFKA_HOST/$KAFKA_PORT" 2>/dev/null; then
         if command -v docker &>/dev/null; then
-            echo "[MW] Subindo broker RabbitMQ automaticamente via Docker..."
-            docker run -d --rm --name rabbitmq-sd -p 5672:5672 -p 15672:15672 rabbitmq:3-management 2>/dev/null || docker start rabbitmq-sd 2>/dev/null || true
-            sleep 2
+            echo "[MW] Subindo broker Apache Kafka via Docker (KRaft mode)..."
+            docker run -d --rm --name kafka-sd \
+                -p 9092:9092 \
+                -e KAFKA_NODE_ID=1 \
+                -e KAFKA_PROCESS_ROLES=broker,controller \
+                -e KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093 \
+                -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
+                -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+                -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
+                -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+                -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+                -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
+                -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
+                -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
+                -e KAFKA_NUM_PARTITIONS=4 \
+                apache/kafka:latest 2>/dev/null || docker start kafka-sd 2>/dev/null || true
+            sleep 3
         fi
     fi
 
-    echo "[MW] Verificando RabbitMQ em $RABBITMQ_HOST:$RABBITMQ_PORT..."
-    MAX_TENTATIVAS=10
+    echo "[MW] Verificando Kafka em $KAFKA_BOOTSTRAP_SERVERS..."
+    MAX_TENTATIVAS=15
     TENTATIVA=0
     while [ $TENTATIVA -lt $MAX_TENTATIVAS ]; do
-        if timeout 2 bash -c "echo > /dev/tcp/$RABBITMQ_HOST/$RABBITMQ_PORT" 2>/dev/null; then
-            echo "[MW] ✓ RabbitMQ acessível!"
+        if timeout 2 bash -c "echo > /dev/tcp/$KAFKA_HOST/$KAFKA_PORT" 2>/dev/null; then
+            echo "[MW] ✓ Apache Kafka acessível!"
             break
         fi
         TENTATIVA=$((TENTATIVA + 1))
-        echo "[MW] Tentativa $TENTATIVA/$MAX_TENTATIVAS — aguardando RabbitMQ..."
+        echo "[MW] Tentativa $TENTATIVA/$MAX_TENTATIVAS — aguardando Kafka..."
         sleep 2
     done
 
     if [ $TENTATIVA -ge $MAX_TENTATIVAS ]; then
-        echo "[MW] ✗ AVISO: RabbitMQ não está acessível. Sistema continuará no modo direto."
+        echo "[MW] ✗ AVISO: Kafka não está acessível. Verifique se o broker está rodando."
     else
-        echo "[MW] Iniciando Consumidores AMQP Fanout (Marco 3)..."
-        RABBITMQ_HOST="$RABBITMQ_HOST" "$PYTHON" middleware/consumidor.py --multi > logs/consumidor.log 2>&1 &
+        echo "[MW] Iniciando Consumidores Kafka Multi-Group..."
+        KAFKA_BOOTSTRAP_SERVERS="$KAFKA_BOOTSTRAP_SERVERS" "$PYTHON" -m middleware.consumidor --multi > logs/kafka_consumidor.log 2>&1 &
         PIDS+=($!)
         sleep 1
-        echo "[MW] ✓ Consumidores Fanout ativos (sincronizando server1.db a server4.db)!"
+        echo "[MW] ✓ Consumidores Kafka ativos (replicação ativa fanout em server1..server4)!"
     fi
 fi
 
@@ -198,33 +222,42 @@ if [ -n "$URL_TUNEL" ]; then
     echo ""
     echo "  🎉 LINK PÚBLICO MUNDIAL (HTTPS):"
     echo "     👉 $URL_TUNEL"
-    echo "  (Envie este link para qualquer pessoa testar no celular ou PC de fora!)"
 else
     echo "  🌍 Link Público (Internet) : execute ./tunel.sh em outro terminal"
     echo "                               ou use: ./executar.sh --tunel"
 fi
 
 echo "  ⚖️  Load Balancer (API)    : http://$IP_LOCAL:8000"
-echo "  🏥 Servidor 01 (:8001)     : http://$IP_LOCAL:8001"
-echo "  🏥 Servidor 02 (:8002)     : http://$IP_LOCAL:8002"
-echo "  🏥 Servidor 03 (:8003)     : http://$IP_LOCAL:8003"
-echo "  🛡️  Servidor 04 (:8004)     : http://$IP_LOCAL:8004 (Warm Standby)"
+echo "  🏥 Servidor 01 (:8001)     : http://$IP_LOCAL:8001 (VM: vm-servidor-01 | 192.168.56.13)"
+echo "  🏥 Servidor 02 (:8002)     : http://$IP_LOCAL:8002 (VM: vm-servidor-02 | 192.168.56.14)"
+echo "  🏥 Servidor 03 (:8003)     : http://$IP_LOCAL:8003 (VM: vm-servidor-03 | 192.168.56.15)"
+echo "  🛡️  Servidor 04 (:8004)     : http://$IP_LOCAL:8004 (VM: vm-servidor-04 | 192.168.56.16 - Warm Standby)"
 echo "  📁 Logs dos serviços       : $DIR/logs/"
+echo ""
+echo "  🖥️  Topologia de Máquinas Virtuais (Sub-rede 192.168.56.0/24):"
+echo "    • vm-cliente      192.168.56.10  (Produtor de Telemetria)"
+echo "    • vm-middleware   192.168.56.11  (Apache Kafka KRaft :9092)"
+echo "    • vm-balanceador  192.168.56.12  (Load Balancer Enterprise :8000)"
+echo "    • vm-servidor-01  192.168.56.13  (Servidor 01 :8001 + server1.db)"
+echo "    • vm-servidor-02  192.168.56.14  (Servidor 02 :8002 + server2.db)"
+echo "    • vm-servidor-03  192.168.56.15  (Servidor 03 :8003 + server3.db)"
+echo "    • vm-servidor-04  192.168.56.16  (Servidor 04 :8004 + server4.db - Reserva)"
+echo "    • vm-monitor      192.168.56.17  (Monitor & Dashboard :5000)"
 echo ""
 echo "  ⚡ Comandos de Escalabilidade Dinâmica:"
 echo "    Ativar Reserva (Scale-Out)   : curl -X POST http://localhost:8000/servidores/ativar-reserva"
 echo "    Desativar Reserva (Scale-In) : curl -X POST http://localhost:8000/servidores/desativar-reserva"
 
-if [ "$MODO_MIDDLEWARE" = true ]; then
+if [ "$MODO_MIDDLEWARE" = "kafka" ]; then
     echo ""
-    echo "  🐰 RabbitMQ Management  : http://${RABBITMQ_HOST:-localhost}:15672"
-    echo "  📨 Replicação Fanout    : ativa em 4 filas (logs/consumidor.log)"
+    echo "  ☕ Apache Kafka Middleware : $KAFKA_BOOTSTRAP_SERVERS"
+    echo "  📦 Tópico de Telemetria    : telemetria_hospitalar (4 partições)"
+    echo "  🔄 Replicação Fanout       : Consumer Groups (server1..server4)"
+    echo "  🛡️  Tolerância a Falhas     : Circuit Breaker + Dead Letter Topic (DLT)"
     echo ""
-    echo "  Para enviar dados VIA MIDDLEWARE FANOUT:"
-    echo "    python client/csv_sender.py --via-rabbitmq --intervalo 0.3 --limite 20"
-    echo ""
-    echo "  Ou usando o produtor diretamente:"
-    echo "    python middleware/produtor.py --intervalo 0.3 --limite 20"
+    echo "  ⚡ Comandos de Envio via Middleware:"
+    echo "    Via Kafka MOM (Recomendado) : python client/csv_sender.py --via-kafka --intervalo 0.3 --limite 10"
+    echo "    Produtor direto Kafka       : python -m middleware.produtor --intervalo 0.3 --limite 10"
 fi
 
 echo "------------------------------------------------------------"
@@ -239,9 +272,8 @@ echo ""
 echo "  Pressione [Ctrl+C] a qualquer momento para desligar todos os nós."
 echo "============================================================"
 
-# Manter o script ativo aguardando os processos ou Ctrl+C
-# Manter o script ativo até Ctrl+C ser pressionado (resistente a testes de queda de nós)
+# Manter o script ativo até Ctrl+C ser pressionado
 while true; do
     sleep 2 &
-    wait  2>/dev/null || true
+    wait 2>/dev/null || true
 done

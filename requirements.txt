@@ -3,4 +3,4 @@ uvicorn
 requests
 httpx
 pytest
-pika
+kafka-python-ng

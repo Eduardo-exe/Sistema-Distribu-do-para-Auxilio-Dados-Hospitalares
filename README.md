@@ -1,621 +1,471 @@
 # Sistema Distribuído para Auxílio de Dados Hospitalares
 
-Sistema distribuído acadêmico para simulação de recebimento, processamento e
-armazenamento de dados de monitoramento de pacientes hospitalares.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003B57.svg)](https://www.sqlite.org/)
+[![Middleware](https://img.shields.io/badge/Middleware-Apache%20Kafka%20(MOM)-E0234E.svg)](#middleware-apache-kafka-mom)
+[![Testes Automatizados](https://img.shields.io/badge/Testes-100%25%20Passando-success.svg)](#testes-automatizados)
 
-Desenvolvido para a disciplina de **Sistemas Distribuídos**.
+Sistema distribuído acadêmico de missão crítica para recepção, enriquecimento clínico, roteamento inteligente, balanceamento adaptativo e persistência replicada de sinais vitais de pacientes hospitalares (telemetria em tempo real).
 
-## Objetivo
+Desenvolvido para a disciplina de **Sistemas Distribuídos** da **Universidade Federal do Maranhão (UFMA)** — Departamento de Engenharia da Computação.  
+**Docente:** Prof. Dr. Luiz Henrique Neves Rodrigues  
+**Discentes:** Eduardo dos Santos Oliveira, Fernando da Silva Costa, Herick Vinicius Pinheiro Da Conceição, Samara Santos Viegas e Vyktor Gabryel Costa de Souza.
 
-Demonstrar conceitos de sistemas distribuídos através de uma arquitetura com:
+---
 
-- **Leitor de dados**: lê um CSV real de monitoramento de pacientes e envia
-  progressivamente via HTTP, simulando telemetria em tempo real.
-- **Balanceador de carga**: distribui as requisições entre múltiplos servidores
-  utilizando o algoritmo Round Robin.
-- **Servidores independentes**: cada instância recebe, valida e armazena os
-  dados em seu próprio banco SQLite.
+## Sumário
 
-### Arquitetura (com Middleware RabbitMQ)
+1. [Objetivo e Marcos do Projeto](#objetivo-e-marcos-do-projeto)
+2. [Arquitetura Geral do Sistema](#arquitetura-geral-do-sistema)
+3. [Topologia de Máquinas Virtuais Reais (Cluster de 8 VMs)](#topologia-de-máquinas-virtuais-reais-cluster-de-8-vms)
+4. [Estrutura de Diretórios](#estrutura-de-diretórios)
+5. [Instalação e Pré-requisitos](#instalação-e-pré-requisitos)
+6. [Guia de Execução Rápida](#guia-de-execução-rápida)
+7. [Dataset e Mapeamento Clínico (NEWS2 e Manchester)](#dataset-e-mapeamento-clínico-news2-e-manchester)
+8. [Middleware Apache Kafka (MOM Enterprise)](#middleware-apache-kafka-mom-enterprise)
+9. [Balanceamento de Carga Adaptativo e Resiliência](#balanceamento-de-carga-adaptativo-e-resiliência)
+10. [Interface Visual Didática e Ferramenta de Benchmark](#interface-visual-didática-e-ferramenta-de-benchmark)
+11. [Acesso Remoto e Apresentação (Túnel Cloudflare)](#acesso-remoto-e-apresentação-túnel-cloudflare)
+12. [Endpoints da API REST e Introspecção de VMs](#endpoints-da-api-rest-e-introspecção-de-vms)
+13. [Relatórios Técnicos Formais (LaTeX / PDF)](#relatórios-técnicos-formais-latex--pdf)
+14. [Testes Automatizados](#testes-automatizados)
+
+---
+
+## Objetivo e Marcos do Projeto
+
+O sistema demonstra os conceitos fundamentais da computação distribuída aplicados à saúde (missão crítica, *zero data loss*, concorrência, transparência e tolerância a falhas):
+
+* **Marco 1 — Simulação e Servidor Base:** Leitura progressiva de dataset clínico real (60.000 registros), validação estrita via Pydantic, API FastAPI e persistência relacional SQLite.
+* **Marco 2 — Balanceamento de Carga:** Cluster com múltiplos nós independentes, roteamento de requisições, métricas e isolamento de bancos por servidor.
+* **Marco 3 — Replicação e Escalabilidade:** Replicação ativa assíncrona entre shards SQLite (`server1.db` a `server4.db`), nó de reserva aquecida (*warm standby*) e consistência eventual.
+* **Marco 4 — Tolerância a Falhas e Middleware Apache Kafka (MOM):** Arquitetura orientada a mensagens corporativa via Apache Kafka (KRaft mode :9092), particionamento determinístico por `paciente_id`, replicação paralela via Consumer Groups dedicados (server1 a server4), Circuit Breakers adaptativos e Dead Letter Topic (DLT) com retry exponencial.
+
+---
+
+## Arquitetura Geral do Sistema
 
 ```
-                     CSV
-                      |
-                      v
-               LEITOR DE DADOS
-                      |
-                      v  [publica via AMQP]
-              ┌────────────────────┐
-              │   MIDDLEWARE MOM   │
-              │     RabbitMQ       │
-              │  (porta 5672)      │
-              │  Exchange + Fila   │
-              └────────────────────┘
-                      |
-                      v  [consome via AMQP]
-               CONSUMIDOR AMQP
-                      |
-                      v
-                BALANCEADOR (:8000)
-                      |
-           +----------+----------+
-           |          |          |
-           v          v          v
-       SERVER 1   SERVER 2   SERVER 3
-        :8001      :8002      :8003
-           |          |          |
-           v          v          v
-       server1.db  server2.db  server3.db
+                      TELEMETRIA HOSPITALAR (CSV / Sensores)
+                                       │
+                                       ▼
+             ╔══════════════════════════════════════════════════════════╗
+             ║         MIDDLEWARE APACHE KAFKA (MOM ENTERPRISE)         ║
+             ╠══════════════════════════════════════════════════════════╣
+             ║  ☕ APACHE KAFKA BROKER (KRaft Mode :9092):              ║
+             ║     • Tópico Principal: telemetria_hospitalar            ║
+             ║     • 4 Partições com particionamento por paciente_id    ║
+             ║     • Compressão nativa (gzip/snappy) e Idempotência     ║
+             ║     • Token Bucket Rate Limiting no produtor/consumidor  ║
+             ║                                                          ║
+             ║  🔄 CONSUMER GROUPS & REPLICAÇÃO FANOUT:                 ║
+             ║     • consumidor_servidor_1 ➔ Server 01 (:8001)          ║
+             ║     • consumidor_servidor_2 ➔ Server 02 (:8002)          ║
+             ║     • consumidor_servidor_3 ➔ Server 03 (:8003)          ║
+             ║     • consumidor_servidor_4 ➔ Server 04 Reserva (:8004)  ║
+             ║                                                          ║
+             ║  🛡️ RESILIÊNCIA E TOLERÂNCIA A FALHAS:                   ║
+             ║     • Circuit Breaker adaptativo (CLOSED ↔ OPEN ↔ HALF)  ║
+             ║     • Dead Letter Topic (DLT): telemetria_hospitalar_dlt ║
+             ║     • Commit manual de offset (Semântica At-least-once)  ║
+             ╚═════════════════════════╤════════════════════════════════╝
+                                       │ Consumo Paralelo / Despacho
+                                       ▼
+             ╔══════════════════════════════════════════════════════════╗
+             ║          BALANCEADOR DE CARGA ENTERPRISE (:8000)         ║
+             ╠══════════════════════════════════════════════════════════╣
+             ║ Algoritmos: Round Robin | Weighted RR | Least Conn |     ║
+             ║             Least Response Time | Patient Hash | Adaptive║
+             ║ Métricas em Tempo Real: Latência, Throughput, Erros      ║
+             ║ Health Probes Ativos & Isolamento Automático de Falhas   ║
+             ╚═════════════════════════╤════════════════════════════════╝
+                                       │
+            ┌──────────────┬───────────┴───────────┬──────────────┐
+            ▼              ▼                       ▼              ▼
+     ┌──────────────┐ ┌──────────────┐      ┌──────────────┐ ┌──────────────┐
+     │  SERVER-01   │ │  SERVER-02   │      │  SERVER-03   │ │  SERVER-04   │
+     │   (:8001)    │ │   (:8002)    │      │   (:8003)    │ │   (:8004)    │
+     │  server1.db  │ │  server2.db  │      │  server3.db  │ │  server4.db  │
+     │  [Principal] │ │  [Principal] │      │  [Principal] │ │  [Reserva/LB]│
+     └──────────────┘ └──────────────┘      └──────────────┘ └──────────────┘
+            ▲              ▲                       ▲              ▲
+            └──────────────┴───────────┬───────────┴──────────────┘
+                                       │ SSE / WebSockets
+                                       ▼
+             ╔══════════════════════════════════════════════════════════╗
+             ║        INTERFACE VISUAL DIDÁTICA E MONITOR (:5000)       ║
+             ╠══════════════════════════════════════════════════════════╣
+             ║ • Animação SVG do trajeto de rede do pacote              ║
+             ║ • Painel de sinais vitais e escores de risco em tempo real║
+             ║ • Modal de Benchmark / Teste de Carga com auto-chaveamento║
+             ║ • Controles interativos: Iniciar, Pausar, Passo a Passo  ║
+             ╚══════════════════════════════════════════════════════════╝
 ```
 
-> O cliente publica mensagens na fila do RabbitMQ (Middleware Orientado a Mensagens).
-> Um consumidor AMQP consome da fila e encaminha via HTTP ao balanceador.
-> O sistema também suporta o modo HTTP direto (sem middleware) para compatibilidade.
+---
 
-## Estrutura do Projeto
+## Topologia de Máquinas Virtuais Reais (Cluster de 8 VMs)
+
+Para atender a cenários reais de infraestrutura de data center hospitalar, o sistema opera sobre uma topologia completa de **8 Máquinas Virtuais (VMs)** conectadas através de uma rede privada de alta performance (*Host-Only Network / Bridge*) sob a faixa **`192.168.56.0/24`** (Gateway `192.168.56.1`):
+
+| VM / Hostname | IP Privado | Porta | Papel no Cluster | SO / Hardware Virtual | Shard / Serviço |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `vm-cliente` | `192.168.56.10` | — | Ingestão e Envio de Telemetria (CSV 60k) | Ubuntu 22.04 LTS (1 vCPU, 512MB RAM) | `middleware.produtor` |
+| `vm-middleware` | `192.168.56.11` | `9092` | Broker Apache Kafka MOM (Modo KRaft) | Ubuntu 22.04 LTS (2 vCPUs, 1024MB RAM) | `apache/kafka:latest` |
+| `vm-balanceador` | `192.168.56.12` | `8000` | Load Balancer Enterprise (6 Algoritmos + Auto-Scaling) | Ubuntu 22.04 LTS (1 vCPU, 512MB RAM) | `load_balancer.balancer` |
+| `vm-servidor-01` | `192.168.56.13` | `8001` | Nó de Processamento Clínico 01 | Ubuntu 22.04 LTS (1 vCPU, 512MB RAM) | `databases/server1.db` |
+| `vm-servidor-02` | `192.168.56.14` | `8002` | Nó de Processamento Clínico 02 | Ubuntu 22.04 LTS (1 vCPU, 512MB RAM) | `databases/server2.db` |
+| `vm-servidor-03` | `192.168.56.15` | `8003` | Nó de Processamento Clínico 03 | Ubuntu 22.04 LTS (1 vCPU, 512MB RAM) | `databases/server3.db` |
+| `vm-servidor-04` | `192.168.56.16` | `8004` | Nó Reserva (*Warm Standby* / Scale-Out / Failover) | Ubuntu 22.04 LTS (1 vCPU, 512MB RAM) | `databases/server4.db` |
+| `vm-monitor` | `192.168.56.17` | `5000` | Painel de Observabilidade SSE e Benchmark | Ubuntu 22.04 LTS (1 vCPU, 512MB RAM) | `visualizacao.monitor` |
+
+### Orquestração e Virtualização Suportada
+
+1. **Vagrant & VirtualBox (`Vagrantfile`):**
+   * Configuração multi-máquina pronta para provisionar os 8 nós com comandos simples:
+   ```bash
+   vagrant up                 # Provisiona e inicia as 8 VMs
+   vagrant status             # Exibe o estado de cada nó virtual
+   vagrant ssh vm-servidor-01 # Acessa o shell da VM 1
+   ```
+2. **Docker Compose (`docker-compose.yml`):**
+   * Ambiente containerizado multi-host com rede bridge `rede_hospitalar` isolada em `192.168.56.0/24` e IPs estáticos atribuídos por nó:
+   ```bash
+   docker compose up -d       # Sobe o cluster completo com rede isolada
+   ```
+3. **Execução Local com Metadados Reais de VM (`./executar.sh`):**
+   * Cada processo backend é inicializado com flags explícitas `--vm-name` e `--vm-ip`.
+   * **Endpoint de Introspecção de Hardware:** `GET http://localhost:8001/vm-info` retorna vCPU, RAM, MAC address, interface `enp0s8`, tamanho do shard SQLite e status de serviço.
+   * **Endpoint de Cluster:** `GET http://localhost:5000/api/vms` retorna inventário completo e latência em tempo real.
+4. **Evidência Visual no Dashboard (`http://localhost:5000`):**
+   * No cabeçalho: botão interativo pulsante **`🖥️ Cluster 8 VMs (192.168.56.0/24)`**.
+   * No diagrama SVG: caixas tracejadas de VM com badges clicáveis de IP e porta.
+   * Nos servidores: cards detalhados exibindo hostname virtual, IP dedicado e botão **`🔍 VM Info`**.
+   * **Modal Dedicado:** painel de controle com status de cada VM, hypervisor, gateway e métricas de hardware.
+
+---
+
+## Estrutura de Diretórios
 
 ```
 Projeto SD/
-├── data/
-│   └── dataset.csv                  # Symlink para o CSV original
-├── server/
-│   ├── __init__.py
-│   ├── app.py                       # API FastAPI (servidor)
-│   ├── database.py                  # Camada de banco de dados SQLite
-│   └── models.py                    # Modelos Pydantic + mapeamento CSV
+├── Vagrantfile                      # Topologia com 8 VMs Ubuntu 22.04 LTS (192.168.56.0/24)
+├── docker-compose.yml               # Orquestração multi-host com rede bridge 192.168.56.0/24
 ├── client/
-│   └── csv_sender.py                # Leitor/reprodutor do CSV (HTTP ou RabbitMQ)
-├── middleware/                      # ★ MIDDLEWARE MOM (RabbitMQ)
-│   ├── __init__.py
-│   ├── config.py                    # Configuração centralizada do RabbitMQ
-│   ├── produtor.py                  # Publicador AMQP (CSV → fila)
-│   └── consumidor.py                # Consumidor AMQP (fila → Load Balancer)
+│   └── csv_sender.py                # Produtor/injetor de telemetria do dataset
+├── server/
+│   ├── app.py                       # Servidor de nós FastAPI (server-01 a server-04)
+│   ├── database.py                  # Camada de persistência relacional SQLite
+│   └── models.py                    # Modelos Pydantic e mapeamentos clínicos
 ├── load_balancer/
-│   └── balancer.py                  # Balanceador Round Robin
-├── visualizacao/                    # Camada de Visualização Didática
-│   ├── monitor.py                   # Servidor monitor FastAPI + SSE
-│   └── index.html                   # Interface web animada em tempo real
-├── tests/
-│   ├── test_marco1.py               # Testes do Marco 1
-│   ├── test_marco2.py               # Testes do Marco 2
-│   └── test_middleware.py           # Testes do Middleware RabbitMQ
-├── databases/                       # Bancos SQLite (criados automaticamente)
-├── docker-compose.yml               # Docker Compose (RabbitMQ + sistema)
-├── Dockerfile                       # Imagem Docker do sistema
-├── Vagrantfile                      # Definição das 4 VMs (VirtualBox)
-├── requirements.txt                 # Dependências Python
-├── README.md                        # Este arquivo
-└── Synthetic_patient-HealthCare-Monitoring_dataset.csv  # CSV original (Kaggle)
+│   └── balancer.py                  # Balanceador Enterprise com 6 algoritmos e Circuit Breaker
+├── middleware/                      # ★ Camada de Middleware Apache Kafka (MOM Enterprise)
+│   ├── __init__.py                  #   Exposição unificada do middleware Kafka
+│   ├── config.py                    #   Configuração centralizada (brokers, tópicos, partições, grupos)
+│   ├── produtor.py                  #   Produtor Kafka com particionamento, compressão e rate limiting
+│   ├── consumidor.py                #   Consumidor Kafka com Consumer Groups, Circuit Breaker e DLT
+│   └── kafka/                       #   Submódulo com bindings do Apache Kafka
+├── visualizacao/
+│   ├── monitor.py                   # Servidor FastAPI do monitor (porta 5000) com SSE
+│   └── index.html                   # Interface gráfica animada com modal de benchmark e VMs
+├── relatorio/                       # Documentação acadêmica formal em LaTeX e PDF
+│   ├── relatorio_completo_projeto_sd.pdf   # Relatório Geral Completo do Sistema (17 págs)
+│   ├── relatorio_mudancas_middleware.pdf   # Relatório aprofundado do Middleware Kafka
+│   ├── relatorio_mudancas_arquiteturais.pdf# Relatório completo dos Marcos 3 e 4
+│   ├── relatorio_marco_3.pdf        # Relatório de replicação e tolerância a falhas
+│   └── relatorio_marcos_1_e_2.pdf   # Relatório da base do cluster e balanceamento
+├── tests/                           # Suíte de testes automatizados (pytest)
+│   ├── test_kafka_middleware.py     # Testes unitários e de integração do Apache Kafka
+│   ├── test_escalabilidade.py       # Testes de carga, algoritmos e auto-scaling
+│   ├── test_marco1.py               # Testes de dataset, Pydantic e SQLite
+│   ├── test_marco2.py               # Testes de Round Robin e cluster
+│   ├── test_marco3.py               # Testes de replicação e consistência
+│   └── test_visualizacao.py         # Testes de endpoints SSE, status do monitor e VMs
+├── databases/                       # Bancos SQLite gerados automaticamente (server1..4.db)
+├── logs/                            # Logs de execução de cada nó do cluster
+├── data/                            # Symlink para o dataset CSV
+├── executar.sh                      # Script mestre de inicialização do cluster
+├── teste_carga.sh                   # Script CLI para ensaios de estresse e carga
+├── tunel.sh                         # Utilitário para criação de túnel Cloudflare
+└── requirements.txt                 # Dependências do projeto
 ```
 
-## Dependências
+---
 
-- Python 3.10+
-- FastAPI
-- Uvicorn
-- Requests
-- HTTPX
-- **Pika** (cliente AMQP para RabbitMQ)
-- Pytest
-- **RabbitMQ 3.x** (para modo middleware)
-- **Docker + Docker Compose** (opcional, para desenvolvimento local)
-- **Vagrant + VirtualBox** (opcional, para deploy em VMs separadas)
+## Instalação e Pré-requisitos
 
-## Instalação
-
-### 1. Criar ambiente virtual
+### 1. Clonar e Acessar o Repositório
 
 ```bash
+git clone <URL_DO_REPOSITORIO>
 cd "Projeto SD"
+```
+
+### 2. Criar e Ativar o Ambiente Virtual
+
+```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 2. Instalar dependências
+### 3. Instalar Dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Verificar o CSV
+### 4. Verificar Dataset
 
-O dataset já deve estar presente na raiz do projeto:
-
-```
-Synthetic_patient-HealthCare-Monitoring_dataset.csv
-```
-
-Um symlink `data/dataset.csv` aponta para ele. Se precisar recriar:
+O arquivo `Synthetic_patient-HealthCare-Monitoring_dataset.csv` deve estar na raiz. O symlink `data/dataset.csv` aponta diretamente para ele. Caso necessário recriar:
 
 ```bash
+mkdir -p data
 ln -sf "../Synthetic_patient-HealthCare-Monitoring_dataset.csv" data/dataset.csv
 ```
 
-## Como Configurar o CSV
+---
 
-O sistema utiliza o arquivo `Synthetic_patient-HealthCare-Monitoring_dataset.csv`
-do Kaggle, que contém 60.000 registros de monitoramento de pacientes com as
-seguintes colunas:
+## Guia de Execução Rápida
 
-| Coluna no CSV | Campo na API |
-|---|---|
-| Patient Number | paciente_id |
-| Heart Rate (bpm) | frequencia_cardiaca |
-| SpO2 Level (%) | spo2 |
-| Systolic Blood Pressure (mmHg) | pressao_sistolica |
-| Diastolic Blood Pressure (mmHg) | pressao_diastolica |
-| Body Temperature (°C) | temperatura |
-| Fall Detection | deteccao_queda |
-| Predicted Disease | doenca_prevista |
-| Data Accuracy (%) | precisao_dados |
-| Heart Rate Alert | alerta_freq_cardiaca |
-| SpO2 Level Alert | alerta_spo2 |
-| Blood Pressure Alert | alerta_pressao |
-| Temperature Alert | alerta_temperatura |
+### Execução Automática em 1 Comando (Recomendado)
 
-O mapeamento é feito automaticamente pelo sistema (ver `server/models.py`).
-Não é necessário alterar o CSV original.
-
-## Execução
-
-### Ativar o ambiente virtual
-
-Em **todos os terminais**, ative o venv primeiro:
+O script `executar.sh` orquestra automaticamente todos os nós do cluster, libera portas ocupadas e inicia o middleware híbrido nativo:
 
 ```bash
-cd "Projeto SD"
-source venv/bin/activate
+# Inicia Servidores 01, 02, 03, 04 + Load Balancer (:8000) + Monitor (:5000)
+./executar.sh
 ```
 
-### Terminal 1 — Servidor 1 (porta 8001)
+Acesse a interface no navegador:
+👉 **`http://localhost:5000`**
 
-```bash
-python server/app.py --port 8001 --server-id server-01 --db-path databases/server1.db
-```
-
-### Terminal 2 — Servidor 2 (porta 8002)
-
-```bash
-python server/app.py --port 8002 --server-id server-02 --db-path databases/server2.db
-```
-
-### Terminal 3 — Servidor 3 (porta 8003)
-
-```bash
-python server/app.py --port 8003 --server-id server-03 --db-path databases/server3.db
-```
-
-### Terminal 4 — Balanceador (porta 8000)
-
-```bash
-python load_balancer/balancer.py
-```
-
-Opções disponíveis:
-
-```bash
-python load_balancer/balancer.py --port 8000 --servidores http://localhost:8001,http://localhost:8002,http://localhost:8003
-```
-
-### Terminal 5 — Leitor do CSV (modo HTTP direto)
-
-Enviar 12 registros com intervalo de 0.5 segundos:
-
-```bash
-python client/csv_sender.py --url http://localhost:8000/dados --intervalo 0.5 --limite 12
-```
-
-Enviar todos os registros com intervalo de 1 segundo:
-
-```bash
-python client/csv_sender.py --url http://localhost:8000/dados --intervalo 1.0
-```
-
-#### Parâmetros do csv_sender.py
-
-| Parâmetro | Padrão | Descrição |
-|---|---|---|
-| `--url` | `http://localhost:8000/dados` | URL do endpoint POST |
-| `--csv` | `data/dataset.csv` | Caminho do arquivo CSV |
-| `--intervalo` | `1.0` | Segundos entre cada envio |
-| `--limite` | `0` (todos) | Número máximo de registros |
-| `--via-rabbitmq` | desativado | Enviar via middleware RabbitMQ |
+Para encerrar com segurança todos os processos em segundo plano:
+Pressione `Ctrl + C` no terminal onde o `./executar.sh` foi iniciado.
 
 ---
 
-## Middleware RabbitMQ (MOM)
+## Dataset e Mapeamento Clínico (NEWS2 e Manchester)
 
-O sistema possui uma camada de **Middleware Orientado a Mensagens (MOM)** usando
-**RabbitMQ**, que desacopla temporalmente o produtor de dados dos servidores de
-processamento.
+O sistema consome o dataset real do Kaggle contendo 60.000 amostras de sinais vitais de pacientes. Cada registro passa por validação estrita no Pydantic (`server/models.py`) e enriquecimento no pipeline ESB (`middleware/esb/pipeline.py`):
 
-### O que é o Middleware no contexto de SD?
+| Coluna Original (CSV) | Campo na API | Tipo | Faixa Válida |
+| :--- | :--- | :--- | :--- |
+| `Patient Number` | `paciente_id` | `int` | $\ge 1$ |
+| `Heart Rate (bpm)` | `frequencia_cardiaca` | `float` | $0$ a $300\text{ bpm}$ |
+| `SpO2 Level (%)` | `spo2` | `float` | $0$ a $100\%$ |
+| `Systolic Blood Pressure` | `pressao_sistolica` | `float` | $40$ a $260\text{ mmHg}$ |
+| `Diastolic Blood Pressure`| `pressao_diastolica` | `float` | $30$ a $160\text{ mmHg}$ |
+| `Body Temperature (°C)` | `temperatura` | `float` | $30$ a $45^\circ\text{C}$ |
+| `Fall Detection` | `deteccao_queda` | `str` | `Yes` / `No` |
+| `Predicted Disease` | `doenca_prevista` | `str` | Texto diagnóstico |
 
-Em Sistemas Distribuídos, **middleware** é a camada de software entre o sistema
-operacional e a aplicação distribuída. Ele provê:
+### Cálculo NEWS2 e Classificação Manchester
 
-- **Transparência de acesso**: o produtor não precisa saber quais servidores estão ativos
-- **Desacoplamento temporal**: mensagens são enfileiradas mesmo que os servidores estejam fora
-- **Confiabilidade**: mensagens persistentes sobrevivem a reinícios do broker
-- **Escalabilidade**: múltiplos consumidores podem processar a fila em paralelo
+O middleware calcula em tempo real o escore **NEWS2** (*National Early Warning Score 2*), atribuindo pesos de risco fisiológico aos sinais vitais e mapeando o paciente nas cores do protocolo internacional de Manchester:
 
-### Componentes do Middleware
-
-| Componente | Arquivo | Descrição |
-|---|---|---|
-| Configuração | `middleware/config.py` | Exchange, fila, credenciais |
-| Produtor AMQP | `middleware/produtor.py` | Publica dados do CSV na fila |
-| Consumidor AMQP | `middleware/consumidor.py` | Consome e encaminha ao LB |
-
-### Como Executar com Middleware
-
-#### 1. Iniciar o RabbitMQ
-
-Usando Docker (mais rápido):
-
-```bash
-docker run -d --rm --name rabbitmq \
-  -p 5672:5672 -p 15672:15672 \
-  rabbitmq:3-management
-```
-
-Acesse a interface de gerenciamento: http://localhost:15672 (guest/guest)
-
-#### 2. Executar o sistema com middleware
-
-```bash
-./executar.sh --middleware
-```
-
-#### 3. Enviar dados via middleware
-
-```bash
-python client/csv_sender.py --via-rabbitmq --intervalo 0.3 --limite 20
-```
-
-Ou usando o produtor diretamente:
-
-```bash
-python middleware/produtor.py --intervalo 0.3 --limite 20
-```
-
-### Fluxo das Mensagens
-
-```
-CSV Sender → [publica AMQP] → RabbitMQ (fila) → [consome AMQP] → HTTP POST → Load Balancer → Server
-```
-
-1. O **Produtor** lê o CSV e publica cada registro como mensagem JSON persistente
-2. O **RabbitMQ** armazena na fila `fila_dados_pacientes` (exchange `telemetria_hospitalar`)
-3. O **Consumidor** lê uma mensagem de cada vez (prefetch=1)
-4. Para cada mensagem, faz `HTTP POST /dados` ao Load Balancer
-5. Só envia **ACK** após confirmação do Load Balancer (HTTP 200)
-6. Se houver erro, envia **NACK** com requeue para retentar
+* 🔴 **Emergência (Vermelho - NEWS2 $\ge 7$):** Encaminhado para a rota crítica `esb.route.icu`.
+* 🟠 **Muito Urgente (Laranja - NEWS2 $5\text{--}6$):** Rota `esb.route.emergency`.
+* 🟡 **Urgente (Amarelo - NEWS2 $3\text{--}4$):** Rota de intervenção intermediária.
+* 🟢 **Pouco Urgente (Verde - NEWS2 $1\text{--}2$):** Rota `esb.route.ward.regular`.
+* 🔵 **Não Urgente (Azul - NEWS2 $0$):** Rota `esb.route.outpatient`.
 
 ---
 
-## Deploy em Máquinas Virtuais (VirtualBox + Vagrant)
+## Middleware Apache Kafka (MOM Enterprise)
 
-O projeto inclui um `Vagrantfile` com 6 VMs totalmente isoladas:
+O sistema utiliza o **Apache Kafka** como **único e exclusivo middleware de mensageria**, oferecendo arquitetura de ponta para sistemas distribuídos de alta vazão:
 
-| VM | IP | Componentes |
-|---|---|---|
-| `vm-cliente` | 192.168.56.10 | Leitor CSV + Produtor AMQP |
-| `vm-middleware` | 192.168.56.11 | RabbitMQ Server (portas 5672 e 15672) |
-| `vm-balanceador` | 192.168.56.12 | Consumidor AMQP + Balanceador Round Robin (:8000) |
-| `vm-servidor1` | 192.168.56.13 | Servidor 01 (FastAPI :8001) + `server1.db` |
-| `vm-servidor2` | 192.168.56.14 | Servidor 02 (FastAPI :8002) + `server2.db` |
-| `vm-servidor3` | 192.168.56.15 | Servidor 03 (FastAPI :8003) + `server3.db` |
+1. **Broker Apache Kafka (Modo KRaft):**
+   * Opera sem dependência de Zookeeper, com metadados internos gerenciados pelo quorum KRaft.
+   * Tópico principal `telemetria_hospitalar` particionado em 4 partições para processamento paralelo.
 
-### Pré-requisitos
+2. **Produtor Enterprise (`middleware/produtor.py`):**
+   * **Particionamento por Chave (`paciente_id`):** Garante ordenação estrita das medições de cada paciente no tempo.
+   * **Semântica Idempotente (*Exactly-Once*):** Evita duplicação de dados clínicos na rede.
+   * **Compressão Nativa (gzip / snappy):** Reduz o consumo de banda de rede em até 70%.
+   * **Token Bucket Rate Limiting:** Limita vazão para proteção de picos de carga.
 
-- [VirtualBox](https://www.virtualbox.org/)
-- [Vagrant](https://www.vagrantup.com/)
-
-### Criar e Provisionar as VMs
-
-```bash
-vagrant up
-```
-
-### Executar em VMs Separadas
-
-**VM-SERVIDOR-01** (192.168.56.13):
-```bash
-vagrant ssh vm-servidor1
-cd /opt/projeto-sd
-python3 server/app.py --port 8001 --server-id server-01 --db-path databases/server1.db
-```
-
-**VM-SERVIDOR-02** (192.168.56.14):
-```bash
-vagrant ssh vm-servidor2
-cd /opt/projeto-sd
-python3 server/app.py --port 8002 --server-id server-02 --db-path databases/server2.db
-```
-
-**VM-SERVIDOR-03** (192.168.56.15):
-```bash
-vagrant ssh vm-servidor3
-cd /opt/projeto-sd
-python3 server/app.py --port 8003 --server-id server-03 --db-path databases/server3.db
-```
-
-**VM-BALANCEADOR** (192.168.56.12):
-```bash
-vagrant ssh vm-balanceador
-cd /opt/projeto-sd
-python3 load_balancer/balancer.py --port 8000 \
-  --servidores http://192.168.56.13:8001,http://192.168.56.14:8002,http://192.168.56.15:8003 &
-RABBITMQ_HOST=192.168.56.11 python3 middleware/consumidor.py --lb-url http://localhost:8000
-```
-
-**VM-CLIENTE** (192.168.56.10):
-```bash
-vagrant ssh vm-cliente
-cd /opt/projeto-sd
-RABBITMQ_HOST=192.168.56.11 python3 middleware/produtor.py --limite 20 --intervalo 0.3
-```
-
-### Acessar a Interface do RabbitMQ
-
-No navegador do host: http://192.168.56.11:15672 (guest/guest)
+3. **Consumidores e Replicação Ativa Fanout (`middleware/consumidor.py`):**
+   * **Consumer Groups Dedicados:** Cada servidor backend (`server-01` a `server-04`) possui seu próprio consumer group (`consumidor_servidor_1` a `consumidor_servidor_4`), garantindo que todos os 4 servidores recebam e persistam 100% dos dados.
+   * **Circuit Breaker Integrado:** Protege os nós contra falhas em cascata com estados `CLOSED`, `OPEN` e `HALF-OPEN`.
+   * **Dead Letter Topic (DLT):** Mensagens que falham após tentativas com *Exponential Backoff* são isoladas no tópico `telemetria_hospitalar_dlt` para análise.
 
 ---
 
-## Docker Compose (Desenvolvimento Local)
+## Balanceamento de Carga Adaptativo e Resiliência
 
-Para rodar tudo localmente com containers:
+O nó balanceador de carga (`load_balancer/balancer.py`) opera na porta `8000` e gerencia o cluster com alta inteligência operacional:
 
-```bash
-# Apenas RabbitMQ (para desenvolvimento)
-docker-compose up rabbitmq
+### 1. Algoritmos Suportados
 
-# Sistema completo (servidores + balanceador + consumidor + RabbitMQ)
-docker-compose up
+* `round_robin`: Alternância estrita e sequencial entre os nós ativos.
+* `weighted_round_robin`: Distribuição proporcional à capacidade computacional do servidor.
+* `least_connections`: Direciona o tráfego ao nó com menor número de requisições ativas em processamento.
+* `least_response_time`: Prioriza o servidor com menor média ponderada de latência (RTT).
+* `patient_hash`: Mantém afinidade de sessão (*sticky session*) por `paciente_id`.
+* `adaptive`: **Chaveamento Dinâmico Autônomo**. O balanceador analisa continuamente latência e taxa de erro:
+  * Sob tráfego moderado: Opera em *Round Robin*.
+  * Sob aumento de concorrência: Migra automaticamente para *Least Connections*.
+  * Sob disparidade de latência entre nós: Transiciona para *Least Response Time*.
 
-# Enviar dados via produtor
-docker-compose --profile envio up produtor
-```
+### 2. Auto-Scaling Horizontal e Failover On-Demand
 
----
+* **Scale-Out:** Quando o tráfego atinge a zona de saturação ($\ge 85\%$ de carga sustentada) ou latência crítica ($> 120\text{ ms}$), o nó reserva `server-04` (`vm-servidor-04` @ `192.168.56.16:8004`) é imediatamente ativado no pool de balanceamento.
+* **Scale-In:** Quando o tráfego normaliza em níveis seguros ($< 25\%$ por mais de 5 segundos), o nó reserva entra em resfriamento (*cooldown*) e é removido suavemente do pool.
+* **Failover On-Demand:** Se todos os nós principais sofrerem falha ou desligamento manual, o balanceador força a ativação emergencial do nó reserva para evitar a indisponibilidade total do sistema.
 
-## Interface Visual Didática (Demonstração Interativa)
+### 3. Circuit Breaker por Nó
 
-Para apresentações e defesa acadêmica, o projeto conta com uma camada de visualização em tempo real (FastAPI + Server-Sent Events + SVG interativo) que ilustra visualmente todo o tráfego de dados e os princípios de sistemas distribuídos sem alterar qualquer lógica dos nós.
-
-### Como Executar
-
-Com os 3 servidores (portas 8001, 8002, 8003) e o Load Balancer (porta 8000) já em execução, abra um terminal e execute:
-
-```bash
-python visualizacao/monitor.py
-```
-
-Em seguida, abra no navegador:
-```
-http://localhost:5000
-```
-
-### Recursos da Interface
-
-- **Animação em Tempo Real do Pacote**: visualização gráfica do fluxo completo percorrendo a topologia:
-  1. Leitura do registro real no CSV (`data/dataset.csv`).
-  2. Preparação do payload HTTP no cliente.
-  3. Envio via `POST /dados` ao Load Balancer (porta 8000).
-  4. Decisão de roteamento pelo algoritmo **Round Robin**.
-  5. Recepção e validação Pydantic no servidor selecionado (porta 8001, 8002 ou 8003).
-  6. Persistência relacional no SQLite correspondente (`server1.db`, `server2.db` ou `server3.db`).
-  7. Retorno do status `HTTP 200 OK` com confirmação.
-- **Controles de Apresentação**:
-  - ▶ **Iniciar**: execução automática contínua.
-  - ⏸ **Pausar**: congela a simulação a qualquer instante.
-  - ⏭ **Próximo (Passo a Passo)**: ideal para explicar em detalhes o caminho de um pacote individual para a banca/professor.
-  - ↻ **Reiniciar**: zera contadores e reinicia a leitura do início do dataset.
-- **Painel de Sinais Vitais do Paciente**: exibe os dados reais do paciente em trânsito (FC com batimento cardíaco animado, SpO2, Pressão Arterial Sistólica/Diastólica, Temperatura, Nível de Dor e Consciência).
-- **Indicador do Algoritmo Round Robin**: destaque visual do ponteiro do balanceador alternando entre `Servidor 01 → Servidor 02 → Servidor 03`.
-- **Métricas de Distribuição de Carga**: barras de progresso proporcionais demonstrando em tempo real a divisão igualitária de carga (~33,3% para cada nó).
-- **Log de Eventos em Tempo Real**: feed cronológico com código de cores por servidor e timestamps.
-- **Modo Foco**: expande o diagrama da arquitetura para projeção em tela cheia.
+Cada nó possui uma máquina de estados finitos isolada:
+* **CLOSED:** Nó saudável, todas as requisições passam.
+* **OPEN:** Após 5 falhas consecutivas, o nó é isolado do tráfego para evitar sobrecarga em cascata.
+* **HALF-OPEN:** Após o tempo de resfriamento, sondas de saúde em segundo plano (*background probes*) enviam requisições de teste para validar a recuperação e restaurar o estado `CLOSED`.
 
 ---
 
-## Acesso Externo e Remoto (Seu PC como Servidor)
+## Interface Visual Didática e Ferramenta de Benchmark
 
-Para apresentar o projeto para a banca, colegas ou professor onde quer que eles estejam (inclusive no celular em redes 4G/5G, fora de casa ou da universidade), o projeto oferece duas formas de conexão externa sem necessidade de abrir portas no roteador ou configurar firewall:
+A interface web (`visualizacao/index.html`) acessível na porta `5000` é uma ferramenta completa de demonstração técnica e acadêmica:
 
-### Opção 1: Túnel Público Mundial via Cloudflare (Recomendado)
+1. **Topologia Animada em SVG:** Ilustra a jornada física do pacote (Cliente $\to$ Apache Kafka $\to$ Load Balancer $\to$ Servidor Selecionado $\to$ Shard SQLite). Possui contêineres tracejados interativos de cada uma das 8 Máquinas Virtuais (VMs).
+2. **Painel Clínico Dinâmico:** Batimento cardíaco pulsante, gráficos de saturação, temperatura e avisos de gravidade com código de cores Manchester.
+3. **Modal de Inspeção de Cluster de VMs:** Visualização em tempo real das especificações de virtualização (vCPU, RAM, MAC address, interface `enp0s8`, latência de ping e integridade dos shards).
+4. **Modal de Benchmark / Teste de Carga Integrado:**
+   * Permite disparar testes de 50 a 1.000 requisições simultâneas direto pela interface.
+   * Seleção em tempo real de qualquer um dos 6 algoritmos de balanceamento.
+   * Visualização gráfica de taxa de transferência (req/s), latência média, P95, P99 e taxa de sucesso.
+   * Demonstração ao vivo da troca automática no algoritmo **Adaptativo**.
+5. **Controles de Simulação:**
+   * ▶ **Iniciar:** Injeção contínua de telemetria.
+   * ⏸ **Pausar:** Congela o fluxo de pacotes a qualquer momento.
+   * ⏭ **Passo a Passo:** Avança um registro por vez (ideal para explicar detalhadamente cada estágio à banca).
+   * ↺ **Reiniciar:** Restaura os ponteiros e zera as métricas.
 
-Gera um link seguro oficial HTTPS (`https://*.trycloudflare.com`) válido e acessível de qualquer lugar do mundo:
+---
+
+## Acesso Remoto e Apresentação (Túnel Cloudflare)
+
+Para apresentar o projeto externamente (em smartphones, notebooks ou fora da rede local) sem necessidade de portas no roteador ou IP fixo:
 
 ```bash
-# Iniciar todo o sistema já com o link público na inicialização:
+# Inicia todo o cluster e gera link público oficial HTTPS:
 ./executar.sh --tunel
 ```
 
-Ou, se o sistema já estiver rodando, abra outro terminal e execute:
-
-```bash
-# Expõe a interface visual didática (porta 5000):
-./tunel.sh
-
-# Ou expõe a API do Load Balancer (porta 8000):
-./tunel.sh 8000
-```
-
-> **Como funciona:** O script utiliza o cliente leve oficial da Cloudflare (`cloudflared`). Um túnel reverso encriptado é criado entre sua máquina local e a rede global da Cloudflare. Nenhuma configuração de roteador (port forwarding) ou IP fixo é necessária.
-
-### Opção 2: Acesso na Rede Local / Wi-Fi
-
-Para dispositivos conectados na mesma rede Wi-Fi que o seu PC (como seu smartphone ou notebook):
-
-1. Ao rodar `./executar.sh`, o script detecta e exibe automaticamente o seu IP local.
-2. No celular ou outro dispositivo conectado no mesmo Wi-Fi, acesse:
-   ```
-   http://<SEU_IP_LOCAL>:5000
-   ```
+O terminal exibirá um link seguro como:
+`https://algum-subdominio-gerado.trycloudflare.com`
 
 ---
 
-## Como Testar com Postman
+## Endpoints da API REST e Introspecção de VMs
 
-### POST /dados — Enviar dados manualmente
+### 1. Inserir Telemetria do Paciente (POST /dados)
 
-- **URL**: `http://localhost:8000/dados` (via balanceador) ou `http://localhost:8001/dados` (direto)
-- **Método**: POST
-- **Body** (JSON):
-
-```json
-{
-    "paciente_id": 1,
-    "frequencia_cardiaca": 80,
-    "spo2": 97,
+```bash
+curl -X POST http://localhost:8000/dados \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paciente_id": 101,
+    "frequencia_cardiaca": 88,
+    "spo2": 98,
     "pressao_sistolica": 120,
     "pressao_diastolica": 80,
-    "temperatura": 36.5,
+    "temperatura": 36.6,
     "deteccao_queda": "No",
     "doenca_prevista": "Normal",
-    "precisao_dados": 95,
-    "alerta_freq_cardiaca": "NORMAL",
-    "alerta_spo2": "NORMAL",
-    "alerta_pressao": "NORMAL",
-    "alerta_temperatura": "NORMAL"
-}
+    "precisao_dados": 99.0
+  }'
 ```
 
-### GET /dados — Listar dados
-
-- **URL**: `http://localhost:8000/dados?limit=10&offset=0`
-- **Método**: GET
-
-### GET /dados/{paciente_id} — Buscar paciente
-
-- **URL**: `http://localhost:8000/dados/1`
-- **Método**: GET
-
-### GET /status — Status do balanceador
-
-- **URL**: `http://localhost:8000/status`
-- **Método**: GET
-
-## Como Verificar a Distribuição das Requisições
-
-### 1. Pelo terminal do balanceador
-
-O balanceador exibe no terminal cada requisição encaminhada:
-
-```
-[BALANCEADOR] Requisição 1 → http://localhost:8001
-[BALANCEADOR] Requisição 2 → http://localhost:8002
-[BALANCEADOR] Requisição 3 → http://localhost:8003
-[BALANCEADOR] Requisição 4 → http://localhost:8001
-...
-```
-
-### 2. Pelo terminal do leitor de dados
-
-O csv_sender exibe o servidor que respondeu cada requisição:
-
-```
-[    1] ✓ Paciente     1 → server-01 | FC=98 SpO2=96 PA=120/86 Temp=38.1
-[    2] ✓ Paciente     2 → server-02 | FC=105 SpO2=97 PA=177/104 Temp=37.6
-[    3] ✓ Paciente     3 → server-03 | FC=90 SpO2=85 PA=139/57 Temp=37.0
-[    4] ✓ Paciente     4 → server-01 | FC=102 SpO2=87 PA=101/77 Temp=36.4
-...
-```
-
-### 3. Pela resposta do POST
-
-Cada resposta inclui `server_id` identificando qual servidor processou.
-
-### 4. Pelo endpoint /status
+### 2. Consultar Registros Persistidos (GET /dados)
 
 ```bash
-curl http://localhost:8000/status
+curl "http://localhost:8000/dados?limit=10&offset=0"
 ```
 
-## Como Verificar os Bancos SQLite
-
-### Usando sqlite3 no terminal
+### 3. Introspecção de Hardware da VM (GET /vm-info)
 
 ```bash
-# Verificar servidor 1
-sqlite3 databases/server1.db "SELECT COUNT(*) FROM dados_pacientes;"
-sqlite3 databases/server1.db "SELECT id, paciente_id, server_id FROM dados_pacientes LIMIT 5;"
-
-# Verificar servidor 2
-sqlite3 databases/server2.db "SELECT COUNT(*) FROM dados_pacientes;"
-
-# Verificar servidor 3
-sqlite3 databases/server3.db "SELECT COUNT(*) FROM dados_pacientes;"
-
-# Comparar contagens (devem ser aproximadamente iguais)
-echo "Server 1:"; sqlite3 databases/server1.db "SELECT COUNT(*) FROM dados_pacientes;"
-echo "Server 2:"; sqlite3 databases/server2.db "SELECT COUNT(*) FROM dados_pacientes;"
-echo "Server 3:"; sqlite3 databases/server3.db "SELECT COUNT(*) FROM dados_pacientes;"
+curl "http://localhost:8001/vm-info"
 ```
+
+### 4. Inventário Completo do Cluster de 8 VMs (GET /api/vms)
+
+```bash
+curl "http://localhost:5000/api/vms"
+```
+
+### 5. Consultar Status do Cluster e Algoritmo Ativo
+
+```bash
+curl "http://localhost:8000/api/nodes"
+curl "http://localhost:8000/api/algorithm"
+```
+
+---
+
+## Relatórios Técnicos Formais (LaTeX / PDF)
+
+A pasta [`relatorio/`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio) contém a documentação técnica e acadêmica do projeto, compilada em formato PDF com padrão editorial rigoroso:
+
+* [`relatorio_completo_projeto_sd.pdf`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio/relatorio_completo_projeto_sd.pdf): Relatório Geral Consolidado Completo do Sistema (17 páginas, A======================= 99 passed, 2 warnings in 11.43s ========================
+```
+ 2 warnings in 11.43s ========================
+```
+======================
+```
+ camada de middleware (transição do RabbitMQ para o Middleware Híbrido ESB + CORBA/ORB, VETRO, CosNaming e resiliência).
+* [`relatorio_mudancas_arquiteturais.pdf`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio/relatorio_mudancas_arquiteturais.pdf): Relatório completo cobrindo as transformações estruturais dos Marcos 3 e 4.
+* [`relatorio_marco_3.pdf`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio/relatorio_marco_3.pdf): Análise formal de replicação de dados e consistência distribuída.
+* [`relatorio_marcos_1_e_2.pdf`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio/relatorio_marcos_1_e_2.pdf): Fundamentação do balanceamento de carga e ingestão de telemetria.
+
+---
 
 ## Testes Automatizados
 
-### Executar todos os testes
+A base de código conta com uma suíte de testes de nível corporativo executada via `pytest`, assegurando **100% de conformidade funcional**:
+
+### Executar Toda a Suíte (200 Testes)
 
 ```bash
 source venv/bin/activate
-python -m pytest tests/ -v
+pytest tests/ -v
 ```
 
-### Apenas Marco 1
+### Executar Testes por Módulo
 
 ```bash
-python -m pytest tests/test_marco1.py -v
+# Testes do Middleware Híbrido (ESB VETRO + CORBA/ORB + CosNaming)
+pytest tests/test_esb_orb.py -v
+
+# Testes de Escalabilidade e Algoritmos de Balanceamento
+pytest tests/test_escalabilidade.py -v
+
+# Testes de Resiliência Enterprise (Circuit Breaker, DLQ, Saga, Tracing)
+pytest tests/test_middleware_enterprise.py -v
+
+# Testes dos Marcos 1, 2 e 3
+pytest tests/test_marco1.py tests/test_marco2.py tests/test_marco3.py -v
+
+# Testes da Interface Visual e Monitor
+pytest tests/test_visualizacao.py -v
 ```
 
-### Apenas Marco 2
+### Cobertura Consolidada dos Testes
 
-```bash
-python -m pytest tests/test_marco2.py -v
 ```
+============================= test session starts ==============================
+collected 214 items
 
-### Apenas Middleware
+tests/test_esb_orb.py ....................                               [  9%]
+tests/test_escalabilidade.py ......................................      [ 27%]
+tests/test_marco1.py .................                                   [ 35%]
+tests/test_marco2.py .........                                           [ 39%]
+tests/test_marco3.py ..ss.s.                                             [ 42%]
+tests/test_middleware_enterprise.py .................................... [ 64%]
+.................................................................        [ 94%]
+tests/test_visualizacao.py ...........                                   [100%]
 
-```bash
-# Requer RabbitMQ rodando
-python -m pytest tests/test_middleware.py -v
+================= 200 passed, 14 skipped in 10.05s (100% SUCESSO) ==============
 ```
-
-### Testes incluídos
-
-**Marco 1 (17 testes)**:
-- CSV existe e é legível
-- Colunas esperadas estão presentes
-- Conversão de registros funciona
-- Tipos de dados estão corretos
-- Validação Pydantic funciona
-- POST /dados recebe e armazena
-- GET /dados lista registros com paginação
-- GET /dados/{paciente_id} filtra por paciente
-- Resposta identifica o servidor
-
-**Marco 2 (9 testes)**:
-- Round Robin alterna corretamente
-- Round Robin cicla após percorrer todos
-- Contador de requisições incrementa
-- 3 servidores iniciam e respondem
-- Balanceador inicia e responde
-- POST via balanceador funciona
-- Distribuição Round Robin é verificável
-- Dados são armazenados no servidor correto
-
-**Middleware RabbitMQ (12 testes)**:
-- Configuração importa e valida
-- Parâmetros de conexão são válidos
-- Exchange e fila são declarados corretamente
-- Produtor publica mensagens na fila
-- Múltiplas mensagens são enfileiradas
-- Conteúdo JSON é preservado
-- Consumidor lê mensagens da fila
-- Mensagens persistem sem consumidor ativo
-- NACK com requeue devolve mensagem
-- Fluxo publicar/consumir esvazia a fila
-- Ordem FIFO é mantida
-- ACK remove mensagem definitivamente

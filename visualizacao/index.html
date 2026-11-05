@@ -60,36 +60,38 @@
         radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
       color: var(--text-main);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
     }
 
     /* Header */
     header {
-      padding: 1rem 2rem;
+      padding: 0.35rem 1.25rem;
       border-bottom: 1px solid var(--border-color);
-      background: rgba(10, 14, 23, 0.85);
+      background: rgba(10, 14, 23, 0.92);
       backdrop-filter: blur(16px);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      position: sticky;
-      top: 0;
+      gap: 0.75rem;
+      flex-shrink: 0;
       z-index: 100;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 0.65rem;
+      flex-shrink: 0;
     }
 
     .brand-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: var(--radius-md);
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
       background: linear-gradient(135deg, #3b82f6, #8b5cf6);
       display: flex;
       align-items: center;
@@ -98,17 +100,18 @@
     }
 
     .brand-title h1 {
-      font-size: 1.15rem;
+      font-size: 0.98rem;
       font-weight: 700;
       letter-spacing: -0.02em;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
+      line-height: 1.2;
     }
 
     .badge-milestone {
-      font-size: 0.68rem;
-      padding: 0.2rem 0.55rem;
+      font-size: 0.62rem;
+      padding: 0.15rem 0.45rem;
       border-radius: var(--radius-full);
       background: rgba(59, 130, 246, 0.15);
       color: #60a5fa;
@@ -125,22 +128,24 @@
     }
 
     .brand-title p {
-      font-size: 0.8rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
+      line-height: 1.1;
     }
 
     /* Controls Bar */
     .controls-wrapper {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.5rem;
       flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .ctrl-group {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
     }
 
     .btn-group {
@@ -148,20 +153,20 @@
       background: rgba(31, 41, 55, 0.6);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 3px;
-      gap: 3px;
+      padding: 2px;
+      gap: 2px;
     }
 
     .btn {
-      padding: 0.5rem 0.95rem;
+      padding: 0.38rem 0.75rem;
       border-radius: var(--radius-sm);
       border: none;
-      font-size: 0.82rem;
+      font-size: 0.76rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.35rem;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       font-family: inherit;
       color: var(--text-main);
@@ -450,13 +455,17 @@
     /* Main Container */
     main {
       flex: 1;
-      padding: 1.5rem 2rem;
+      min-height: 0;
+      height: calc(100vh - 48px - 24px);
+      padding: 0.45rem 0.75rem;
       display: grid;
-      grid-template-columns: 1fr 390px;
-      gap: 1.5rem;
-      max-width: 1880px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(620px, 1fr);
+      gap: 0.65rem;
+      max-width: 100%;
       width: 100%;
-      margin: 0 auto;
+      margin: 0;
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
     body.presentation-mode main {
@@ -472,40 +481,44 @@
       background: var(--bg-card);
       backdrop-filter: blur(14px);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      padding: 0.65rem 0.85rem;
       display: flex;
       flex-direction: column;
       position: relative;
       overflow: hidden;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      height: 100%;
+      min-height: 0;
+      box-sizing: border-box;
     }
 
     .arch-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1rem;
+      margin-bottom: 0.35rem;
+      flex-shrink: 0;
     }
 
     .arch-title {
-      font-size: 1rem;
+      font-size: 0.88rem;
       font-weight: 700;
       color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.45rem;
     }
 
     .round-robin-indicator {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
+      gap: 0.5rem;
       background: rgba(31, 41, 55, 0.7);
-      padding: 0.4rem 0.8rem;
+      padding: 0.25rem 0.65rem;
       border-radius: var(--radius-full);
       border: 1px solid var(--border-color);
-      font-size: 0.78rem;
+      font-size: 0.72rem;
     }
 
     .rr-label {
@@ -588,16 +601,21 @@
     .canvas-container {
       flex: 1;
       position: relative;
-      min-height: 700px;
+      min-height: 0;
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
 
     svg#arch-canvas {
       width: 100%;
       height: 100%;
-      min-height: 700px;
+      max-height: 100%;
+      min-height: 0;
+      object-fit: contain;
       overflow: visible;
     }
 
@@ -722,17 +740,17 @@
     /* Floating Status Pill */
     .status-pill {
       position: absolute;
-      bottom: 1.2rem;
-      left: 1.5rem;
-      background: rgba(17, 24, 39, 0.85);
+      bottom: 0.5rem;
+      left: 0.75rem;
+      background: rgba(17, 24, 39, 0.88);
       backdrop-filter: blur(10px);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-full);
-      padding: 0.45rem 1rem;
+      padding: 0.25rem 0.65rem;
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-      font-size: 0.82rem;
+      gap: 0.45rem;
+      font-size: 0.72rem;
       font-family: 'JetBrains Mono', monospace;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     }
@@ -763,67 +781,89 @@
 
     /* Sidebar Dashboard */
     .dashboard-sidebar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      height: 100%;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+
+    .sidebar-col {
       display: flex;
       flex-direction: column;
-      gap: 1.2rem;
+      gap: 0.55rem;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    .sidebar-col::-webkit-scrollbar {
+      width: 4px;
+    }
+    .sidebar-col::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
     }
 
     .panel {
       background: var(--bg-card);
       backdrop-filter: blur(14px);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 1.25rem;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      border-radius: var(--radius-md);
+      padding: 0.55rem 0.7rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      box-sizing: border-box;
     }
 
     .panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.9rem;
-      padding-bottom: 0.6rem;
+      margin-bottom: 0.4rem;
+      padding-bottom: 0.3rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .panel-title {
-      font-size: 0.88rem;
+      font-size: 0.74rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--text-muted);
       display: flex;
       align-items: center;
-      gap: 0.45rem;
+      gap: 0.35rem;
     }
 
     /* Telemetry / Patient Card */
     .patient-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.35rem;
     }
 
     .vital-item {
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: var(--radius-sm);
-      padding: 0.6rem 0.75rem;
+      padding: 0.3rem 0.45rem;
       display: flex;
       flex-direction: column;
-      gap: 0.2rem;
+      gap: 0.1rem;
     }
 
     .vital-label {
-      font-size: 0.7rem;
+      font-size: 0.6rem;
       color: var(--text-dim);
       display: flex;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0.25rem;
     }
 
     .vital-value {
-      font-size: 1.05rem;
+      font-size: 0.88rem;
       font-weight: 700;
       color: var(--text-main);
       font-family: 'JetBrains Mono', monospace;
@@ -833,7 +873,7 @@
       color: #f87171;
       display: flex;
       align-items: center;
-      gap: 0.3rem;
+      gap: 0.25rem;
     }
 
     .heart-icon {
@@ -856,20 +896,20 @@
     .metrics-summary {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.6rem;
-      margin-bottom: 1rem;
+      gap: 0.35rem;
+      margin-bottom: 0.45rem;
     }
 
     .metric-box {
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: var(--radius-sm);
-      padding: 0.6rem;
+      padding: 0.3rem 0.2rem;
       text-align: center;
     }
 
     .metric-number {
-      font-size: 1.3rem;
+      font-size: 1.05rem;
       font-weight: 800;
       font-family: 'JetBrains Mono', monospace;
     }
@@ -879,37 +919,38 @@
     .metric-number.errors { color: #f87171; }
 
     .metric-caption {
-      font-size: 0.68rem;
+      font-size: 0.58rem;
       color: var(--text-dim);
       text-transform: uppercase;
       font-weight: 600;
-      margin-top: 0.15rem;
+      margin-top: 0.1rem;
     }
 
     /* Server Distribution Bars */
     .server-dist {
       display: flex;
       flex-direction: column;
-      gap: 0.7rem;
+      gap: 0.35rem;
     }
 
     .dist-row {
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: 0.12rem;
     }
 
     .dist-header {
       display: flex;
       justify-content: space-between;
-      font-size: 0.75rem;
+      align-items: center;
+      font-size: 0.68rem;
       font-weight: 600;
     }
 
     .dist-header .s-name {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.35rem;
     }
 
     .dist-header .s-val {
@@ -918,7 +959,7 @@
     }
 
     .dist-track {
-      height: 8px;
+      height: 6px;
       background: rgba(255, 255, 255, 0.06);
       border-radius: var(--radius-full);
       overflow: hidden;
@@ -939,14 +980,15 @@
 
     /* Live Events Terminal Log */
     .events-log {
-      height: 200px;
+      flex: 1;
+      min-height: 80px;
       overflow-y: auto;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.74rem;
+      font-size: 0.68rem;
       display: flex;
       flex-direction: column-reverse;
-      gap: 0.35rem;
-      padding-right: 0.3rem;
+      gap: 0.25rem;
+      padding-right: 0.25rem;
     }
 
     .events-log::-webkit-scrollbar {
@@ -958,13 +1000,13 @@
     }
 
     .log-item {
-      padding: 0.35rem 0.55rem;
+      padding: 0.25rem 0.45rem;
       border-radius: 4px;
       background: rgba(255, 255, 255, 0.02);
       border-left: 2px solid transparent;
       display: flex;
-      gap: 0.45rem;
-      line-height: 1.35;
+      gap: 0.35rem;
+      line-height: 1.3;
       animation: fadeIn 0.25s ease;
     }
 
@@ -990,14 +1032,17 @@
 
     /* Footer */
     footer {
-      padding: 0.75rem 2rem;
+      padding: 0.2rem 1.25rem;
       border-top: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       color: var(--text-dim);
-      background: rgba(10, 14, 23, 0.7);
+      background: rgba(10, 14, 23, 0.9);
+      flex-shrink: 0;
+      height: 24px;
+      box-sizing: border-box;
     }
 
     .footer-tags {
@@ -1462,35 +1507,43 @@
     /* ============================================================
        Responsividade para Dispositivos Móveis e Telas Menores
        ============================================================ */
-    @media (max-width: 1200px) {
+    @media (max-width: 1024px) {
+      body {
+        height: auto;
+        max-height: none;
+        overflow-y: auto;
+      }
       header {
         flex-direction: column;
         align-items: stretch;
-        gap: 0.85rem;
-        padding: 0.85rem 1.25rem;
+        gap: 0.65rem;
+        padding: 0.65rem 1rem;
       }
       .controls-wrapper {
         justify-content: flex-start;
-        gap: 0.65rem;
-      }
-      .ctrl-group {
-        display: flex;
-        align-items: center;
         gap: 0.5rem;
       }
       main {
+        height: auto;
+        overflow: visible;
         grid-template-columns: 1fr;
-        padding: 1rem 1.25rem;
-        gap: 1.25rem;
+        padding: 0.75rem 1rem;
+        gap: 1rem;
       }
       .dashboard-sidebar {
+        grid-template-columns: 1fr;
+        height: auto;
         width: 100%;
       }
+      .sidebar-col {
+        height: auto;
+        overflow: visible;
+      }
       .canvas-container {
-        min-height: 500px;
+        min-height: 420px;
       }
       svg#arch-canvas {
-        min-height: 500px;
+        min-height: 420px;
       }
     }
 
@@ -1884,32 +1937,81 @@
       }
     }
 
-    /* Modal Minimizado / Docked (Permite ver o painel rodando) */
+    /* Modal Minimizado / Docked (Canto inferior esquerdo, sem cobrir painéis da direita) */
     .modal-overlay.minimized {
       background: transparent;
       backdrop-filter: none;
       pointer-events: none;
       align-items: flex-end;
-      justify-content: flex-end;
-      padding: 1.25rem;
+      justify-content: flex-start;
+      padding: 0 0 2rem 1.8rem;
     }
 
     .modal-overlay.minimized .modal-card {
       pointer-events: auto;
-      width: 400px;
-      max-width: 92vw;
-      padding: 0.85rem 1.15rem;
-      border-radius: 14px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(249, 115, 22, 0.3);
+      width: 360px;
+      max-width: 45vw;
+      padding: 0.7rem 0.95rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(249, 115, 22, 0.35);
       border: 1px solid rgba(249, 115, 22, 0.45);
-      background: rgba(17, 24, 39, 0.96);
-      backdrop-filter: blur(12px);
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(14px);
+      max-height: none;
+      overflow: visible;
+      animation: none;
+    }
+
+    .modal-overlay.minimized .modal-header {
+      margin-bottom: 0.45rem;
+    }
+
+    .modal-overlay.minimized .modal-header h2 {
+      font-size: 0.92rem;
     }
 
     .modal-overlay.minimized .tc-config,
-    .modal-overlay.minimized .tc-log-terminal,
-    .modal-overlay.minimized .tc-dist-container {
-      display: none;
+    .modal-overlay.minimized .tc-dist-title,
+    .modal-overlay.minimized .tc-dist-list,
+    .modal-overlay.minimized .tc-log-title,
+    .modal-overlay.minimized .tc-log-terminal {
+      display: none !important;
+    }
+
+    .modal-overlay.minimized .tc-actions {
+      margin-bottom: 0.45rem;
+      gap: 0.45rem;
+    }
+
+    .modal-overlay.minimized .tc-btn-start,
+    .modal-overlay.minimized .tc-btn-stop {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.78rem;
+    }
+
+    .modal-overlay.minimized .tc-progress-wrap {
+      margin-bottom: 0.45rem;
+    }
+
+    .modal-overlay.minimized .tc-progress-bar {
+      height: 6px;
+    }
+
+    .modal-overlay.minimized .tc-kpi-grid {
+      margin-bottom: 0;
+      gap: 0.35rem;
+    }
+
+    .modal-overlay.minimized .tc-kpi {
+      padding: 0.3rem 0.4rem;
+    }
+
+    .modal-overlay.minimized .tc-kpi-value {
+      font-size: 0.9rem;
+    }
+
+    .modal-overlay.minimized .tc-kpi-label {
+      font-size: 0.62rem;
     }
 
     .modal-minimize {
@@ -1928,6 +2030,754 @@
       background: rgba(255, 255, 255, 0.18);
       color: #fff;
     }
+
+    /* ══════════════════════════════════════════════
+       Enterprise Scalability Panel
+       ══════════════════════════════════════════════ */
+
+    .ent-panel {
+      background: var(--bg-card);
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      padding: 0.55rem 0.7rem;
+      margin-bottom: 0;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    .ent-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .ent-panel-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ent-badge {
+      font-size: 0.62rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .ent-badge-algo {
+      background: rgba(139,92,246,0.15);
+      color: #a78bfa;
+    }
+
+    .ent-badge-autoscale-on {
+      background: rgba(52,211,153,0.15);
+      color: #34d399;
+    }
+
+    .ent-badge-autoscale-off {
+      background: rgba(156,163,175,0.12);
+      color: #9ca3af;
+    }
+
+    .ent-controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+
+    .ent-select {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 5px 8px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .ent-select:focus {
+      border-color: #8b5cf6;
+    }
+
+    .ent-select option {
+      background: #1a1a2e;
+      color: var(--text);
+    }
+
+    .ent-toggle-btn {
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.68rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .ent-toggle-btn.active {
+      background: rgba(52,211,153,0.15);
+      border-color: #34d399;
+      color: #34d399;
+    }
+
+    .ent-toggle-btn.inactive {
+      background: rgba(156,163,175,0.08);
+      border-color: var(--border);
+      color: #9ca3af;
+    }
+
+    .ent-toggle-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .ent-global-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.4rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .ent-gm-item {
+      text-align: center;
+      padding: 0.35rem 0.2rem;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .ent-gm-value {
+      font-size: 0.92rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .ent-gm-label {
+      font-size: 0.58rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-top: 2px;
+    }
+
+    .ent-node-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .ent-node-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 0.5rem 0.6rem;
+      transition: all 0.3s;
+    }
+
+    .ent-node-card:hover {
+      border-color: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .ent-node-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+
+    .ent-node-name {
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .ent-node-badges {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .ent-cb-badge {
+      font-size: 0.56rem;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .ent-cb-closed {
+      background: rgba(52,211,153,0.12);
+      color: #34d399;
+    }
+
+    .ent-cb-open {
+      background: rgba(248,113,113,0.15);
+      color: #f87171;
+      animation: pulse-glow 1.5s infinite;
+    }
+
+    .ent-cb-half-open {
+      background: rgba(251,191,36,0.15);
+      color: #fbbf24;
+    }
+
+    .ent-health-badge {
+      font-size: 0.56rem;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .ent-health-healthy { background: rgba(52,211,153,0.12); color: #34d399; }
+    .ent-health-degraded { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .ent-health-unhealthy { background: rgba(248,113,113,0.15); color: #f87171; }
+
+    .ent-node-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.3rem;
+    }
+
+    .ent-stat {
+      text-align: center;
+    }
+
+    .ent-stat-value {
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .ent-stat-label {
+      font-size: 0.52rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .ent-scale-history {
+      margin-top: 0.5rem;
+      max-height: 80px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    .ent-scale-event {
+      font-size: 0.62rem;
+      padding: 3px 6px;
+      margin-bottom: 2px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ent-scale-out {
+      background: rgba(52,211,153,0.08);
+      color: #34d399;
+    }
+
+    .ent-scale-in {
+      background: rgba(251,191,36,0.08);
+      color: #fbbf24;
+    }
+
+    /* ══════════════════════════════════════════════
+       Apache Kafka MOM (KRaft Enterprise) Panel
+       ══════════════════════════════════════════════ */
+    .kafka-panel, .esb-panel {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.92) 0%, rgba(24, 24, 32, 0.95) 100%);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      border-radius: 12px;
+      padding: 0.65rem 0.75rem;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      transition: all 0.3s ease;
+    }
+    .kafka-panel:hover, .esb-panel:hover {
+      border-color: rgba(249, 115, 22, 0.6);
+      box-shadow: 0 8px 30px rgba(249, 115, 22, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .kafka-header, .esb-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .kafka-title, .esb-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fb923c;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .kafka-badges, .esb-badges {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .kafka-badge, .esb-badge {
+      font-size: 0.62rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      font-family: 'JetBrains Mono', monospace;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .kafka-badge-online, .esb-badge-active {
+      background: rgba(16, 185, 129, 0.16);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .kafka-badge-topic {
+      background: rgba(249, 115, 22, 0.15);
+      color: #fdba74;
+      border: 1px solid rgba(249, 115, 22, 0.35);
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse-dot-anim 1.6s infinite ease-in-out;
+    }
+    @keyframes pulse-dot-anim {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* 4 Partições Section */
+    .kafka-partitions-section {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .kafka-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .kafka-counter-pill {
+      background: rgba(249, 115, 22, 0.2);
+      color: #fb923c;
+      padding: 1px 6px;
+      border-radius: 9999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+    }
+    .kafka-partitions-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .kafka-part-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 5px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .kafka-part-card.active-partition {
+      border-color: #f97316;
+      box-shadow: 0 0 14px rgba(249, 115, 22, 0.5);
+      transform: translateY(-2px);
+      background: rgba(249, 115, 22, 0.12);
+    }
+    .part-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .part-pill {
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .pill-p0 { background: rgba(6, 182, 212, 0.22); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.4); }
+    .pill-p1 { background: rgba(59, 130, 246, 0.22); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .pill-p2 { background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .pill-p3 { background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .part-hash {
+      font-size: 0.56rem;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .part-count {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .part-offset {
+      font-size: 0.56rem;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .part-bar {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .part-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: #f97316;
+      transition: width 0.3s ease;
+    }
+
+    /* Consumer Groups Section (Multi-Group Fanout) */
+    .kafka-groups-section {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      background: rgba(0, 0, 0, 0.22);
+      border-radius: 8px;
+      padding: 5px 7px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .kafka-groups-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+    }
+    .kafka-group-card {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 3px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      transition: all 0.25s ease;
+    }
+    .kafka-group-card.cg-flash {
+      background: rgba(16, 185, 129, 0.18);
+      border-color: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    }
+    .cg-info {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cg-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #34d399;
+      display: inline-block;
+    }
+    .cg-dot.standby {
+      background: #f59e0b;
+    }
+    .cg-name {
+      font-size: 0.58rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cg-target {
+      font-size: 0.54rem;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Kafka Telemetry & Resiliency */
+    .kafka-telemetry-box {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      background: rgba(0, 0, 0, 0.22);
+      border-radius: 8px;
+      padding: 5px 7px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .kafka-meta-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .kafka-chip {
+      font-size: 0.58rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.03);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .chip-cb { border-color: rgba(52, 211, 153, 0.3); color: #34d399; }
+    .chip-rl { border-color: rgba(96, 165, 250, 0.3); color: #60a5fa; }
+    .chip-comp { border-color: rgba(192, 132, 252, 0.3); color: #c084fc; }
+    .chip-dlt { border-color: rgba(248, 113, 113, 0.3); color: #f87171; }
+    .kafka-ticker-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.58rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding-top: 2px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .ticker-label {
+      color: #f97316;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .ticker-text {
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .orb-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .orb-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      color: #9ca3af;
+      padding: 2px 4px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 4px;
+    }
+    .orb-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    /* VM Badges & Pills */
+    .btn-vm-info {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(16, 185, 129, 0.22));
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      color: #93c5fd;
+      border-radius: 9999px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .btn-vm-info:hover {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.38), rgba(16, 185, 129, 0.38));
+      border-color: #60a5fa;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .btn-vm-info .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 1.8s infinite;
+      display: inline-block;
+    }
+    .btn-vm-action {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+      border-radius: 10px;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-vm-action:hover {
+      background: rgba(59, 130, 246, 0.3);
+      color: #ffffff;
+      border-color: #60a5fa;
+      transform: translateY(-1px);
+    }
+    .vm-pill-ip {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 600;
+    }
+    .vm-pill-spec {
+      background: rgba(148, 163, 184, 0.08);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      color: #94a3b8;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.65rem;
+    }
+    .vm-pill-db {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .btn-inspect-vm {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-inspect-vm:hover {
+      background: rgba(59, 130, 246, 0.3);
+      color: #ffffff;
+      border-color: #60a5fa;
+    }
+    .modal-vms-card {
+      width: 900px;
+      max-width: 95vw;
+    }
+    .vm-modal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1rem;
+      max-height: 58vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .vm-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+    .vm-card:hover {
+      border-color: rgba(59, 130, 246, 0.45);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transform: translateY(-2px);
+    }
+    .vm-card.highlight {
+      border-color: #60a5fa;
+      box-shadow: 0 0 25px rgba(96, 165, 250, 0.4);
+      background: rgba(30, 58, 138, 0.25);
+    }
+    .vm-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 0.4rem;
+    }
+    .vm-card-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .vm-badge-status {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .vm-badge-status.online {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .vm-badge-status.standby {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .vm-badge-status.offline {
+      background: rgba(239, 68, 68, 0.18);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .vm-details-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem 0.6rem;
+      font-size: 0.72rem;
+      color: #cbd5e1;
+    }
+    .vm-detail-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .vm-detail-lbl {
+      color: #64748b;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+    .vm-detail-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
   </style>
 </head>
 <body>
@@ -1944,6 +2794,10 @@
         <h1>
           Monitor do Sistema Distribuído
           <span class="badge-milestone badge-m3">Marcos 1, 2 & 3 • Fanout + Standby</span>
+          <button id="btn-open-vms" class="btn-vm-info" title="Topologia de Máquinas Virtuais (VMs)">
+            <span class="pulse-dot"></span>
+            🖥️ Cluster 8 VMs (192.168.56.0/24)
+          </button>
         </h1>
         <p>Visualização Didática em Tempo Real — Hospital Data Stream & Elastic Standby</p>
       </div>
@@ -1972,7 +2826,7 @@
         </div>
       </div>
 
-      <!-- 2. Ações Estratégicas (Scale-Out & Benchmark) -->
+      <!-- 2. Ações Estratégicas (Scale-Out & Benchmark & VMs) -->
       <div class="ctrl-group ctrl-actions">
         <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
           <span id="reserva-icon">⚡</span>
@@ -1981,6 +2835,10 @@
 
         <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
           ⚡ Teste de Carga
+        </button>
+
+        <button id="btn-vms-modal-action" class="btn btn-vm-action" title="Abrir Mapa e Detalhes de Hardware de todas as VMs">
+          🖥️ Ver VMs
         </button>
       </div>
 
@@ -2110,10 +2968,10 @@
           <!-- CSV -> Client -->
           <path id="pipe-csv-client" class="pipe pipe-common" d="M 370 70 L 480 70" />
 
-          <!-- Client -> Middleware RabbitMQ (AMQP publish) -->
+          <!-- Client -> Middleware Apache Kafka (KRaft :9092) -->
           <path id="pipe-client-mw" class="pipe pipe-mw" d="M 590 105 L 590 170" />
 
-          <!-- Middleware RabbitMQ -> Load Balancer (AMQP consume + HTTP POST) -->
+          <!-- Middleware Apache Kafka -> Load Balancer (Fanout Multi-Group) -->
           <path id="pipe-mw-lb" class="pipe pipe-mw" d="M 590 245 L 590 290" />
 
           <!-- Load Balancer -> Server 1 -->
@@ -2147,86 +3005,86 @@
 
           <!-- VM 1: CLIENTE (192.168.56.10) -->
           <rect x="180" y="18" width="530" height="100" rx="14" ry="14"
-                fill="none" stroke="rgba(6, 182, 212, 0.25)" stroke-width="1.5"
-                stroke-dasharray="8 5" />
-          <rect x="182" y="20" width="130" height="22" rx="6" fill="rgba(6, 182, 212, 0.12)" />
-          <text x="191" y="35" font-size="9" font-weight="700" fill="#06b6d4" font-family="JetBrains Mono, monospace">
+                fill="none" stroke="rgba(6, 182, 212, 0.3)" stroke-width="1.5"
+                stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-cliente')" />
+          <rect x="182" y="20" width="145" height="22" rx="6" fill="rgba(6, 182, 212, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-cliente')" />
+          <text x="191" y="35" font-size="9" font-weight="700" fill="#06b6d4" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-cliente')">
             🖥 VM-CLIENTE
           </text>
-          <text x="290" y="35" font-size="8" fill="rgba(6, 182, 212, 0.7)" font-family="JetBrains Mono, monospace">
+          <text x="275" y="35" font-size="8" fill="rgba(6, 182, 212, 0.85)" font-family="JetBrains Mono, monospace">
             192.168.56.10
           </text>
 
-          <!-- VM 2: MIDDLEWARE (192.168.56.11) -->
+          <!-- VM 2: MIDDLEWARE APACHE KAFKA (192.168.56.11) -->
           <rect x="420" y="153" width="340" height="105" rx="14" ry="14"
-                fill="none" stroke="rgba(249, 115, 22, 0.25)" stroke-width="1.5"
-                stroke-dasharray="8 5" />
-          <rect x="422" y="155" width="155" height="22" rx="6" fill="rgba(249, 115, 22, 0.12)" />
-          <text x="431" y="170" font-size="9" font-weight="700" fill="#f97316" font-family="JetBrains Mono, monospace">
-            🖥 VM-MIDDLEWARE
+                fill="none" stroke="rgba(239, 68, 68, 0.3)" stroke-width="1.5"
+                stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-middleware')" />
+          <rect x="422" y="155" width="195" height="22" rx="6" fill="rgba(239, 68, 68, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-middleware')" />
+          <text x="431" y="170" font-size="9" font-weight="700" fill="#ef4444" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-middleware')">
+            🖥 VM-MIDDLEWARE (KAFKA)
           </text>
-          <text x="550" y="170" font-size="8" fill="rgba(249, 115, 22, 0.7)" font-family="JetBrains Mono, monospace">
-            192.168.56.11
+          <text x="575" y="170" font-size="8" fill="rgba(239, 68, 68, 0.85)" font-family="JetBrains Mono, monospace">
+            192.168.56.11:9092
           </text>
 
           <!-- VM 3: BALANCEADOR (192.168.56.12) -->
           <rect x="450" y="273" width="280" height="100" rx="14" ry="14"
-                fill="none" stroke="rgba(245, 158, 11, 0.25)" stroke-width="1.5"
-                stroke-dasharray="8 5" />
-          <rect x="452" y="275" width="160" height="22" rx="6" fill="rgba(245, 158, 11, 0.12)" />
-          <text x="461" y="290" font-size="9" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono, monospace">
+                fill="none" stroke="rgba(245, 158, 11, 0.3)" stroke-width="1.5"
+                stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-balanceador')" />
+          <rect x="452" y="275" width="180" height="22" rx="6" fill="rgba(245, 158, 11, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-balanceador')" />
+          <text x="461" y="290" font-size="9" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-balanceador')">
             🖥 VM-BALANCEADOR
           </text>
-          <text x="587" y="290" font-size="8" fill="rgba(245, 158, 11, 0.7)" font-family="JetBrains Mono, monospace">
-            192.168.56.12
+          <text x="580" y="290" font-size="8" fill="rgba(245, 158, 11, 0.85)" font-family="JetBrains Mono, monospace">
+            192.168.56.12:8000
           </text>
 
           <!-- VM 4: SERVIDOR 01 (192.168.56.13) -->
           <rect x="40" y="400" width="240" height="240" rx="14" ry="14"
                 fill="none" stroke="rgba(59, 130, 246, 0.3)" stroke-width="1.5"
-                stroke-dasharray="8 5" />
-          <rect x="42" y="392" width="165" height="22" rx="6" fill="rgba(59, 130, 246, 0.12)" />
-          <text x="50" y="407" font-size="9" font-weight="700" fill="#60a5fa" font-family="JetBrains Mono, monospace">
+                stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-01')" />
+          <rect x="42" y="392" width="175" height="22" rx="6" fill="rgba(59, 130, 246, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-01')" />
+          <text x="50" y="407" font-size="9" font-weight="700" fill="#60a5fa" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-01')">
             🖥 VM-SERVIDOR-01
           </text>
-          <text x="155" y="407" font-size="8" fill="rgba(96, 165, 250, 0.7)" font-family="JetBrains Mono, monospace">
-            192.168.56.13
+          <text x="148" y="407" font-size="8" fill="rgba(96, 165, 250, 0.85)" font-family="JetBrains Mono, monospace">
+            192.168.56.13:8001
           </text>
 
           <!-- VM 5: SERVIDOR 02 (192.168.56.14) -->
           <rect x="325" y="400" width="240" height="240" rx="14" ry="14"
                 fill="none" stroke="rgba(139, 92, 246, 0.3)" stroke-width="1.5"
-                stroke-dasharray="8 5" />
-          <rect x="327" y="392" width="165" height="22" rx="6" fill="rgba(139, 92, 246, 0.12)" />
-          <text x="335" y="407" font-size="9" font-weight="700" fill="#a78bfa" font-family="JetBrains Mono, monospace">
+                stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-02')" />
+          <rect x="327" y="392" width="175" height="22" rx="6" fill="rgba(139, 92, 246, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-02')" />
+          <text x="335" y="407" font-size="9" font-weight="700" fill="#a78bfa" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-02')">
             🖥 VM-SERVIDOR-02
           </text>
-          <text x="440" y="407" font-size="8" fill="rgba(167, 139, 250, 0.7)" font-family="JetBrains Mono, monospace">
-            192.168.56.14
+          <text x="433" y="407" font-size="8" fill="rgba(167, 139, 250, 0.85)" font-family="JetBrains Mono, monospace">
+            192.168.56.14:8002
           </text>
 
           <!-- VM 6: SERVIDOR 03 (192.168.56.15) -->
           <rect x="610" y="400" width="240" height="240" rx="14" ry="14"
                 fill="none" stroke="rgba(236, 72, 153, 0.3)" stroke-width="1.5"
-                stroke-dasharray="8 5" />
-          <rect x="612" y="392" width="165" height="22" rx="6" fill="rgba(236, 72, 153, 0.12)" />
-          <text x="620" y="407" font-size="9" font-weight="700" fill="#f472b6" font-family="JetBrains Mono, monospace">
+                stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-03')" />
+          <rect x="612" y="392" width="175" height="22" rx="6" fill="rgba(236, 72, 153, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-03')" />
+          <text x="620" y="407" font-size="9" font-weight="700" fill="#f472b6" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-03')">
             🖥 VM-SERVIDOR-03
           </text>
-          <text x="725" y="407" font-size="8" fill="rgba(244, 114, 182, 0.7)" font-family="JetBrains Mono, monospace">
-            192.168.56.15
+          <text x="718" y="407" font-size="8" fill="rgba(244, 114, 182, 0.85)" font-family="JetBrains Mono, monospace">
+            192.168.56.15:8003
           </text>
 
           <!-- VM 7: SERVIDOR 04 (RESERVA WARM STANDBY) -->
           <rect x="895" y="400" width="245" height="240" rx="14" ry="14"
                 fill="none" stroke="rgba(16, 185, 129, 0.35)" stroke-width="1.5"
-                stroke-dasharray="8 5" />
-          <rect x="897" y="392" width="185" height="22" rx="6" fill="rgba(16, 185, 129, 0.15)" />
-          <text x="905" y="407" font-size="9" font-weight="700" fill="#34d399" font-family="JetBrains Mono, monospace">
+                stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-04')" />
+          <rect x="897" y="392" width="205" height="22" rx="6" fill="rgba(16, 185, 129, 0.18)" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-04')" />
+          <text x="905" y="407" font-size="9" font-weight="700" fill="#34d399" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-04')">
             🖥 VM-SERVIDOR-04 (RESERVA)
           </text>
-          <text x="1040" y="407" font-size="8" fill="rgba(52, 211, 153, 0.7)" font-family="JetBrains Mono, monospace">
-            :8004
+          <text x="1035" y="407" font-size="8" fill="rgba(52, 211, 153, 0.85)" font-family="JetBrains Mono, monospace">
+            192.168.56.16:8004
           </text>
 
 
@@ -2253,19 +3111,19 @@
             <text x="32" y="40" font-size="16" text-anchor="middle">🚀</text>
             <text x="58" y="30" font-size="12" font-weight="700" fill="#f3f4f6">Produtor (Cliente)</text>
             <text x="58" y="46" font-size="9.5" fill="#9ca3af">middleware/produtor.py</text>
-            <text x="58" y="58" font-size="8.5" fill="#06b6d4" font-weight="600">Publica via AMQP :5672</text>
+            <text x="58" y="58" font-size="8.5" fill="#06b6d4" font-weight="600">Publica via Apache Kafka MOM</text>
           </g>
 
-          <!-- 2.5 MIDDLEWARE RABBITMQ NODE (FANOUT BROADCAST) -->
+          <!-- 2.5 MIDDLEWARE APACHE KAFKA NODE (KRaft Multi-Group Fanout) -->
           <g id="node-mw" class="node-box node-mw" transform="translate(435, 170)">
             <rect class="node-bg" width="310" height="75" />
             <rect x="0" y="0" width="6" height="75" rx="3" fill="url(#grad-mw)" />
             <circle cx="35" cy="37" r="18" fill="rgba(249, 115, 22, 0.15)" />
-            <text x="35" y="43" font-size="18" text-anchor="middle">🐰</text>
-            <text x="64" y="24" font-size="13" font-weight="700" fill="#f3f4f6">Middleware RabbitMQ</text>
-            <text x="64" y="40" font-size="10" fill="#f97316" font-weight="600">AMQP :5672 • Exchange Fanout (Pub-Sub)</text>
-            <text x="64" y="54" font-size="8.5" fill="#9ca3af">Exchange: telemetria_hospitalar (Broadcast)</text>
-            <text id="badge-mw-queue" x="64" y="66" font-size="8" fill="#fb923c">Filas: fila_servidor_1 .. fila_servidor_4</text>
+            <text x="35" y="43" font-size="18" text-anchor="middle">⚡</text>
+            <text x="64" y="24" font-size="13" font-weight="700" fill="#f3f4f6">Apache Kafka (KRaft)</text>
+            <text x="64" y="40" font-size="10" fill="#f97316" font-weight="600">MOM Enterprise • 4 Partições • Multi-Group</text>
+            <text x="64" y="54" font-size="8.5" fill="#9ca3af">Tópico: telemetria_hospitalar (Gzip, Rate Limit)</text>
+            <text id="badge-mw-queue" x="64" y="66" font-size="8" fill="#fb923c">Fanout Grupos: consumidor_servidor_1..4</text>
           </g>
 
           <!-- 3. LOAD BALANCER NODE -->
@@ -2377,160 +3235,371 @@
       </div>
     </section>
 
-    <!-- Right Column: Live Data & Metrics Dashboard -->
+    <!-- Right Column: Live Data & Metrics Dashboard (2 parallel columns for zero-scroll observability) -->
     <aside class="dashboard-sidebar">
-      <!-- 1. Patient Vital Signs Card -->
-      <section class="panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-            Dados Vitais do Paciente
-          </div>
-          <span id="patient-badge" class="badge-milestone">Aguardando</span>
-        </div>
-        <div class="patient-grid">
-          <div class="vital-item">
-            <div class="vital-label">ID Paciente</div>
-            <div id="val-paciente" class="vital-value">—</div>
-          </div>
-          <div class="vital-item">
-            <div class="vital-label">Freq. Cardíaca</div>
-            <div class="vital-value heart">
-              <span id="val-fc">—</span>
-              <span class="heart-icon">❤️</span>
+      <!-- Sub-column 1: Sinais Vitais, Distribuição de Servidores e Log de Eventos -->
+      <div class="sidebar-col sidebar-col-1">
+        <!-- 1. Patient Vital Signs Card -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+              Dados Vitais do Paciente
             </div>
+            <span id="patient-badge" class="badge-milestone">Aguardando</span>
           </div>
-          <div class="vital-item">
-            <div class="vital-label">Oxigênio (SpO2)</div>
-            <div id="val-spo2" class="vital-value oxygen">—</div>
-          </div>
-          <div class="vital-item">
-            <div class="vital-label">Pressão Art.</div>
-            <div id="val-pa" class="vital-value bp">—</div>
-          </div>
-          <div class="vital-item">
-            <div class="vital-label">Temperatura</div>
-            <div id="val-temp" class="vital-value temp">—</div>
-          </div>
-          <div class="vital-item">
-            <div class="vital-label">Diagnóstico / Queda</div>
-            <div id="val-dor" class="vital-value" style="font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 2. Metrics & Load Distribution -->
-      <section class="panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-            Métricas & Distribuição
-          </div>
-          <span style="font-size: 0.72rem; color: #34d399; font-weight: 600;">Marco 3 (Fanout)</span>
-        </div>
-
-        <div class="metrics-summary">
-          <div class="metric-box">
-            <div id="metric-total" class="metric-number total">0</div>
-            <div class="metric-caption">Total</div>
-          </div>
-          <div class="metric-box">
-            <div id="metric-success" class="metric-number success">0</div>
-            <div class="metric-caption">Sucesso</div>
-          </div>
-          <div class="metric-box">
-            <div id="metric-errors" class="metric-number errors">0</div>
-            <div class="metric-caption">Erros</div>
-          </div>
-        </div>
-
-        <div class="server-dist">
-          <!-- Server 1 -->
-          <div class="dist-row" id="dist-row-s1">
-            <div class="dist-header">
-              <div class="s-name-group">
-                <span class="s-name" style="color: #60a5fa;">● Servidor 01 (:8001)</span>
-                <span id="badge-status-s1" class="srv-status-badge online">ONLINE</span>
-              </div>
-              <div class="s-action-group">
-                <span id="dist-count-s1" class="s-val">0 (0%)</span>
-                <button class="btn-srv-toggle" data-server="1" title="Derrubar ou religar Servidor 01">💥 Derrubar</button>
+          <div class="patient-grid">
+            <div class="vital-item">
+              <div class="vital-label">ID Paciente</div>
+              <div id="val-paciente" class="vital-value">—</div>
+            </div>
+            <div class="vital-item">
+              <div class="vital-label">Freq. Cardíaca</div>
+              <div class="vital-value heart">
+                <span id="val-fc">—</span>
+                <span class="heart-icon">❤️</span>
               </div>
             </div>
-            <div class="dist-track">
-              <div id="dist-bar-s1" class="dist-bar bar-s1"></div>
+            <div class="vital-item">
+              <div class="vital-label">Oxigênio (SpO2)</div>
+              <div id="val-spo2" class="vital-value oxygen">—</div>
+            </div>
+            <div class="vital-item">
+              <div class="vital-label">Pressão Art.</div>
+              <div id="val-pa" class="vital-value bp">—</div>
+            </div>
+            <div class="vital-item">
+              <div class="vital-label">Temperatura</div>
+              <div id="val-temp" class="vital-value temp">—</div>
+            </div>
+            <div class="vital-item">
+              <div class="vital-label">Diagnóstico / Queda</div>
+              <div id="val-dor" class="vital-value" style="font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Metrics & Load Distribution -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+              Métricas & Distribuição
+            </div>
+            <span style="font-size: 0.72rem; color: #34d399; font-weight: 600;">Marco 3 (Fanout)</span>
+          </div>
+
+          <div class="metrics-summary">
+            <div class="metric-box">
+              <div id="metric-total" class="metric-number total">0</div>
+              <div class="metric-caption">Total</div>
+            </div>
+            <div class="metric-box">
+              <div id="metric-success" class="metric-number success">0</div>
+              <div class="metric-caption">Sucesso</div>
+            </div>
+            <div class="metric-box">
+              <div id="metric-errors" class="metric-number errors">0</div>
+              <div class="metric-caption">Erros</div>
             </div>
           </div>
 
-          <!-- Server 2 -->
-          <div class="dist-row" id="dist-row-s2">
-            <div class="dist-header">
-              <div class="s-name-group">
-                <span class="s-name" style="color: #c084fc;">● Servidor 02 (:8002)</span>
-                <span id="badge-status-s2" class="srv-status-badge online">ONLINE</span>
+          <div class="server-dist">
+            <!-- Server 1 -->
+            <div class="dist-row" id="dist-row-s1">
+              <div class="dist-header">
+                <div class="s-name-group" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                  <span class="s-name" style="color: #60a5fa; font-weight: 700;">🖥️ vm-servidor-01</span>
+                  <span class="vm-pill-ip">192.168.56.13:8001</span>
+                  <span class="vm-pill-spec">Ubuntu 22.04 • 1 vCPU • 512MB</span>
+                  <span class="vm-pill-db">📁 server1.db</span>
+                  <span id="badge-status-s1" class="srv-status-badge online">ONLINE</span>
+                  <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-01')" title="Inspecionar parâmetros de hardware e rede da VM">🔍 VM Info</button>
+                </div>
+                <div class="s-action-group">
+                  <span id="dist-count-s1" class="s-val">0 (0%)</span>
+                  <button class="btn-srv-toggle" data-server="1" title="Derrubar ou religar Servidor 01">💥 Derrubar</button>
+                </div>
               </div>
-              <div class="s-action-group">
-                <span id="dist-count-s2" class="s-val">0 (0%)</span>
-                <button class="btn-srv-toggle" data-server="2" title="Derrubar ou religar Servidor 02">💥 Derrubar</button>
+              <div class="dist-track">
+                <div id="dist-bar-s1" class="dist-bar bar-s1"></div>
               </div>
             </div>
-            <div class="dist-track">
-              <div id="dist-bar-s2" class="dist-bar bar-s2"></div>
+
+            <!-- Server 2 -->
+            <div class="dist-row" id="dist-row-s2">
+              <div class="dist-header">
+                <div class="s-name-group" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                  <span class="s-name" style="color: #c084fc; font-weight: 700;">🖥️ vm-servidor-02</span>
+                  <span class="vm-pill-ip">192.168.56.14:8002</span>
+                  <span class="vm-pill-spec">Ubuntu 22.04 • 1 vCPU • 512MB</span>
+                  <span class="vm-pill-db">📁 server2.db</span>
+                  <span id="badge-status-s2" class="srv-status-badge online">ONLINE</span>
+                  <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-02')" title="Inspecionar parâmetros de hardware e rede da VM">🔍 VM Info</button>
+                </div>
+                <div class="s-action-group">
+                  <span id="dist-count-s2" class="s-val">0 (0%)</span>
+                  <button class="btn-srv-toggle" data-server="2" title="Derrubar ou religar Servidor 02">💥 Derrubar</button>
+                </div>
+              </div>
+              <div class="dist-track">
+                <div id="dist-bar-s2" class="dist-bar bar-s2"></div>
+              </div>
+            </div>
+
+            <!-- Server 3 -->
+            <div class="dist-row" id="dist-row-s3">
+              <div class="dist-header">
+                <div class="s-name-group" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                  <span class="s-name" style="color: #f472b6; font-weight: 700;">🖥️ vm-servidor-03</span>
+                  <span class="vm-pill-ip">192.168.56.15:8003</span>
+                  <span class="vm-pill-spec">Ubuntu 22.04 • 1 vCPU • 512MB</span>
+                  <span class="vm-pill-db">📁 server3.db</span>
+                  <span id="badge-status-s3" class="srv-status-badge online">ONLINE</span>
+                  <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-03')" title="Inspecionar parâmetros de hardware e rede da VM">🔍 VM Info</button>
+                </div>
+                <div class="s-action-group">
+                  <span id="dist-count-s3" class="s-val">0 (0%)</span>
+                  <button class="btn-srv-toggle" data-server="3" title="Derrubar ou religar Servidor 03">💥 Derrubar</button>
+                </div>
+              </div>
+              <div class="dist-track">
+                <div id="dist-bar-s3" class="dist-bar bar-s3"></div>
+              </div>
+            </div>
+
+            <!-- Server 4 (Reserva Standby) -->
+            <div class="dist-row" id="dist-row-s4">
+              <div class="dist-header">
+                <div class="s-name-group" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                  <span class="s-name" style="color: #34d399; font-weight: 700;">🖥️ vm-servidor-04 (Reserva)</span>
+                  <span class="vm-pill-ip">192.168.56.16:8004</span>
+                  <span class="vm-pill-spec">Ubuntu 22.04 • 1 vCPU • 512MB</span>
+                  <span class="vm-pill-db">📁 server4.db</span>
+                  <span id="badge-status-s4" class="srv-status-badge standby">STANDBY</span>
+                  <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-04')" title="Inspecionar parâmetros de hardware e rede da VM">🔍 VM Info</button>
+                </div>
+                <div class="s-action-group">
+                  <span id="dist-count-s4" class="s-val">0 (0%)</span>
+                  <button class="btn-srv-toggle" data-server="4" title="Derrubar ou religar Servidor 04">💥 Derrubar</button>
+                </div>
+              </div>
+              <div class="dist-track">
+                <div id="dist-bar-s4" class="dist-bar bar-s4"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. Live Events Log -->
+        <section class="panel" style="flex: 1; min-height: 100px; display: flex; flex-direction: column;">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.2"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+              Log de Eventos em Tempo Real
+            </div>
+            <button id="btn-clear-log" style="background: none; border: none; font-size: 0.72rem; color: var(--text-dim); cursor: pointer;">Limpar</button>
+          </div>
+          <div id="events-log" class="events-log">
+            <div class="log-item">
+              <span class="log-time">--:--:--</span>
+              <span>Aguardando início da demonstração...</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Sub-column 2: Apache Kafka MOM & Enterprise Scalability -->
+      <div class="sidebar-col sidebar-col-2">
+        <!-- 4. Apache Kafka MOM Panel -->
+        <section class="kafka-panel esb-panel" id="kafka-panel">
+          <div class="kafka-header">
+            <div class="kafka-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.08M8.46 8.46a5 5 0 0 0 0 7.08"/>
+              </svg>
+              <span>Apache Kafka MOM</span>
+            </div>
+            <div class="kafka-badges">
+              <span id="kafka-broker-badge" class="kafka-badge kafka-badge-online" title="Broker KRaft na porta 9092">
+                <span class="pulse-dot"></span>KRaft :9092
+              </span>
+              <span class="kafka-badge kafka-badge-topic" title="Tópico principal particionado">
+                telemetria_hospitalar
+              </span>
             </div>
           </div>
 
-          <!-- Server 3 -->
-          <div class="dist-row" id="dist-row-s3">
-            <div class="dist-header">
-              <div class="s-name-group">
-                <span class="s-name" style="color: #f472b6;">● Servidor 03 (:8003)</span>
-                <span id="badge-status-s3" class="srv-status-badge online">ONLINE</span>
-              </div>
-              <div class="s-action-group">
-                <span id="dist-count-s3" class="s-val">0 (0%)</span>
-                <button class="btn-srv-toggle" data-server="3" title="Derrubar ou religar Servidor 03">💥 Derrubar</button>
-              </div>
+          <!-- 4 Partições do Tópico -->
+          <div class="kafka-partitions-section">
+            <div class="kafka-section-header">
+              <span>PARTIÇÕES DO TÓPICO (Key: paciente_id)</span>
+              <span id="kafka-total-msgs" class="kafka-counter-pill">0 msgs</span>
             </div>
-            <div class="dist-track">
-              <div id="dist-bar-s3" class="dist-bar bar-s3"></div>
+            <div class="kafka-partitions-grid">
+              <!-- Partição 0 -->
+              <div id="kafka-part-0" class="kafka-part-card part-p0">
+                <div class="part-top">
+                  <span class="part-pill pill-p0">P0</span>
+                  <span class="part-hash">ID % 4 = 0</span>
+                </div>
+                <div class="part-count"><span id="part-0-count">0</span> msgs</div>
+                <div class="part-offset" id="part-0-offset">Offset: 0</div>
+                <div class="part-bar"><div id="part-0-bar" class="part-bar-fill"></div></div>
+              </div>
+              <!-- Partição 1 -->
+              <div id="kafka-part-1" class="kafka-part-card part-p1">
+                <div class="part-top">
+                  <span class="part-pill pill-p1">P1</span>
+                  <span class="part-hash">ID % 4 = 1</span>
+                </div>
+                <div class="part-count"><span id="part-1-count">0</span> msgs</div>
+                <div class="part-offset" id="part-1-offset">Offset: 0</div>
+                <div class="part-bar"><div id="part-1-bar" class="part-bar-fill"></div></div>
+              </div>
+              <!-- Partição 2 -->
+              <div id="kafka-part-2" class="kafka-part-card part-p2">
+                <div class="part-top">
+                  <span class="part-pill pill-p2">P2</span>
+                  <span class="part-hash">ID % 4 = 2</span>
+                </div>
+                <div class="part-count"><span id="part-2-count">0</span> msgs</div>
+                <div class="part-offset" id="part-2-offset">Offset: 0</div>
+                <div class="part-bar"><div id="part-2-bar" class="part-bar-fill"></div></div>
+              </div>
+              <!-- Partição 3 -->
+              <div id="kafka-part-3" class="kafka-part-card part-p3">
+                <div class="part-top">
+                  <span class="part-pill pill-p3">P3</span>
+                  <span class="part-hash">ID % 4 = 3</span>
+                </div>
+                <div class="part-count"><span id="part-3-count">0</span> msgs</div>
+                <div class="part-offset" id="part-3-offset">Offset: 0</div>
+                <div class="part-bar"><div id="part-3-bar" class="part-bar-fill"></div></div>
+              </div>
             </div>
           </div>
 
-          <!-- Server 4 (Reserva Standby) -->
-          <div class="dist-row" id="dist-row-s4">
-            <div class="dist-header">
-              <div class="s-name-group">
-                <span class="s-name" style="color: #34d399;">● Servidor 04 (:8004)</span>
-                <span id="badge-status-s4" class="srv-status-badge standby">STANDBY</span>
-              </div>
-              <div class="s-action-group">
-                <span id="dist-count-s4" class="s-val">0 (0%)</span>
-                <button class="btn-srv-toggle" data-server="4" title="Derrubar ou religar Servidor 04">💥 Derrubar</button>
-              </div>
+          <!-- Multi-Consumer Groups (Fanout 1:4 At-Least-Once) -->
+          <div class="kafka-groups-section">
+            <div class="kafka-section-header">
+              <span>CONSUMER GROUPS (Fanout At-Least-Once)</span>
+              <span id="kafka-active-groups" style="color:#34d399;font-weight:700;font-size:0.65rem;">4 Grupos Ativos</span>
             </div>
-            <div class="dist-track">
-              <div id="dist-bar-s4" class="dist-bar bar-s4"></div>
+            <div id="kafka-groups-list" class="kafka-groups-grid orb-servants-list">
+              <div id="cg-server-1" class="kafka-group-card">
+                <div class="cg-info">
+                  <span class="cg-dot"></span>
+                  <span class="cg-name">consumidor_servidor_1</span>
+                </div>
+                <span class="cg-target">➔ server-01 (:8001)</span>
+              </div>
+              <div id="cg-server-2" class="kafka-group-card">
+                <div class="cg-info">
+                  <span class="cg-dot"></span>
+                  <span class="cg-name">consumidor_servidor_2</span>
+                </div>
+                <span class="cg-target">➔ server-02 (:8002)</span>
+              </div>
+              <div id="cg-server-3" class="kafka-group-card">
+                <div class="cg-info">
+                  <span class="cg-dot"></span>
+                  <span class="cg-name">consumidor_servidor_3</span>
+                </div>
+                <span class="cg-target">➔ server-03 (:8003)</span>
+              </div>
+              <div id="cg-server-4" class="kafka-group-card">
+                <div class="cg-info">
+                  <span class="cg-dot standby"></span>
+                  <span class="cg-name">consumidor_servidor_4</span>
+                </div>
+                <span class="cg-target">➔ server-04 (:8004 Standby)</span>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- 3. Live Events Log -->
-      <section class="panel" style="flex: 1; display: flex; flex-direction: column;">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.2"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
-            Log de Eventos em Tempo Real
+          <!-- Enterprise Features & Telemetry -->
+          <div class="kafka-telemetry-box">
+            <div class="kafka-meta-chips">
+              <span class="kafka-chip chip-cb" title="Circuit Breaker Status" id="kafka-cb-badge">
+                🛡️ Circuit Breaker: <strong id="kafka-cb-state">CLOSED</strong>
+              </span>
+              <span class="kafka-chip chip-rl" title="Token Bucket Rate Limiter">
+                ⏱️ Token Bucket: <strong>100 req/s</strong>
+              </span>
+              <span class="kafka-chip chip-comp" title="Compressão dos registros">
+                📦 GZIP (Ack: all)
+              </span>
+              <span class="kafka-chip chip-dlt" title="Dead Letter Topic em caso de falha irreversível">
+                ⚠️ DLT: <strong id="kafka-dlt-count">0 falhas</strong>
+              </span>
+            </div>
+            <div class="kafka-ticker-bar">
+              <span class="ticker-label">Último Evento:</span>
+              <span id="kafka-last-event" class="ticker-text">Aguardando telemetria hospitalar...</span>
+            </div>
           </div>
-          <button id="btn-clear-log" style="background: none; border: none; font-size: 0.72rem; color: var(--text-dim); cursor: pointer;">Limpar</button>
-        </div>
-        <div id="events-log" class="events-log">
-          <div class="log-item">
-            <span class="log-time">--:--:--</span>
-            <span>Aguardando início da demonstração...</span>
+        </section>
+
+        <!-- 5. Enterprise Scalability Panel -->
+        <section class="ent-panel" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+          <div class="ent-panel-header">
+            <div class="ent-panel-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              Escalabilidade Enterprise
+            </div>
+            <div style="display:flex;gap:4px;">
+              <span id="ent-badge-algo" class="ent-badge ent-badge-algo">Round Robin</span>
+              <span id="ent-badge-autoscale" class="ent-badge ent-badge-autoscale-off">Auto-Scale: OFF</span>
+            </div>
           </div>
-        </div>
-      </section>
+
+          <!-- Controls Row -->
+          <div class="ent-controls">
+            <select id="ent-sel-algorithm" class="ent-select" title="Algoritmo de Balanceamento">
+              <option value="round_robin">Round Robin</option>
+              <option value="weighted_round_robin">Weighted Round Robin</option>
+              <option value="least_connections">Least Connections</option>
+              <option value="least_response_time">Least Response Time</option>
+              <option value="patient_hash">Patient Hash (Sticky)</option>
+              <option value="adaptive">⚡ Adaptativo (Automático)</option>
+            </select>
+            <button id="ent-btn-autoscale" class="ent-toggle-btn inactive" title="Ativar/Desativar Auto-Scaling">
+              ⚡ Auto-Scale
+            </button>
+          </div>
+
+          <!-- Global Metrics -->
+          <div class="ent-global-metrics">
+            <div class="ent-gm-item">
+              <div id="ent-gm-tps" class="ent-gm-value" style="color:#a78bfa;">0</div>
+              <div class="ent-gm-label">TPS</div>
+            </div>
+            <div class="ent-gm-item">
+              <div id="ent-gm-latency" class="ent-gm-value" style="color:#60a5fa;">0ms</div>
+              <div class="ent-gm-label">Latência</div>
+            </div>
+            <div class="ent-gm-item">
+              <div id="ent-gm-active" class="ent-gm-value" style="color:#34d399;">0</div>
+              <div class="ent-gm-label">Nós Ativos</div>
+            </div>
+            <div class="ent-gm-item">
+              <div id="ent-gm-errors" class="ent-gm-value" style="color:#f87171;">0%</div>
+              <div class="ent-gm-label">Erro</div>
+            </div>
+          </div>
+
+          <!-- Per-Node Cards -->
+          <div id="ent-node-grid" class="ent-node-grid" style="flex: 1; min-height: 60px; overflow-y: auto;">
+            <!-- Populated dynamically by JS -->
+          </div>
+
+          <!-- Scale History -->
+          <div id="ent-scale-history" class="ent-scale-history"></div>
+        </section>
+      </div>
     </aside>
   </main>
 
@@ -2633,6 +3702,55 @@
       <div class="tc-log-title">🖥️ Requisições em Tempo Real</div>
       <div id="tc-log-terminal" class="tc-log-terminal">
         <div class="tc-log-line" style="color: var(--text-dim);">Aguardando início do teste...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Topologia e Detalhes de Máquinas Virtuais (VMs) -->
+  <div id="modal-vms-cluster" class="modal-overlay">
+    <div class="modal-card modal-vms-card">
+      <div class="modal-header">
+        <div>
+          <h2 style="background: linear-gradient(135deg, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            🖥️ Infraestrutura de Máquinas Virtuais (Cluster Real)
+          </h2>
+          <p style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px;">
+            Cluster de 8 Máquinas Virtuais Ubuntu 22.04 LTS em Sub-rede Privada Dedicada <code>192.168.56.0/24</code> (Vagrant / VirtualBox / KVM)
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button id="btn-refresh-vms" class="btn-inspect-vm" style="padding: 6px 12px; font-size: 0.75rem;" title="Atualizar ping e métricas das VMs">🔄 Atualizar Ping</button>
+          <button id="vms-modal-close" class="modal-close" title="Fechar">✕</button>
+        </div>
+      </div>
+
+      <!-- Overview Bar -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; margin-bottom: 1.2rem;">
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.8rem; text-align: center;">
+          <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">Total de VMs</div>
+          <div style="font-size: 1.3rem; font-weight: 800; color: #60a5fa;">8 VMs</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.8rem; text-align: center;">
+          <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">Sub-rede Privada</div>
+          <div style="font-size: 1.05rem; font-weight: 700; color: #38bdf8; font-family: monospace;">192.168.56.0/24</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.8rem; text-align: center;">
+          <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">Gateway / Host</div>
+          <div style="font-size: 1.05rem; font-weight: 700; color: #cbd5e1; font-family: monospace;">192.168.56.1</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.8rem; text-align: center;">
+          <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">Hypervisor</div>
+          <div style="font-size: 0.88rem; font-weight: 700; color: #a78bfa;">VirtualBox / KVM</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.8rem; text-align: center;">
+          <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">VMs Online</div>
+          <div id="vms-count-online" style="font-size: 1.3rem; font-weight: 800; color: #34d399;">—</div>
+        </div>
+      </div>
+
+      <!-- VM Grid List Container -->
+      <div id="vms-grid-container" class="vm-modal-grid">
+        <!-- Preenchido dinamicamente via JS a partir de /api/vms -->
       </div>
     </div>
   </div>
@@ -2752,6 +3870,14 @@
 
     // Logging helper
     function addLog(time, text, type = 'info') {
+      if (text === undefined || (typeof text === 'string' && (text.startsWith('#') || text.startsWith('rgb') || ['info', 'error', 'complete', 'lb', 's1', 's2', 's3', 's4'].includes(text)))) {
+        type = typeof text === 'string' && (text.startsWith('#') || text.startsWith('rgb')) ? 'info' : (text || 'info');
+        text = time;
+        time = new Date().toLocaleTimeString();
+      }
+      while (eventsLog.children.length >= 50) {
+        eventsLog.removeChild(eventsLog.lastChild);
+      }
       const item = document.createElement('div');
       item.className = `log-item log-${type}`;
       item.innerHTML = `<span class="log-time">${time}</span><span>${text}</span>`;
@@ -2955,16 +4081,25 @@
         case 'sending':
           clearActiveNodes();
           nodeClient.classList.add('active-node');
-          setStatus(`Produtor publicando registro #${d.numero} no RabbitMQ Fanout...`, 'busy');
-          addLog(d.timestamp, `[Produtor AMQP] Publicando registro #${d.numero} na exchange telemetria_hospitalar`, 'client');
+          setStatus(`Produtor Kafka preparando registro #${d.numero}...`, 'busy');
+          addLog(d.timestamp, `[Produtor Kafka] Registro #${d.numero} → Serialização JSON + Compressão GZIP`, 'client');
           animatePacketAlongPath(pipeClientMw, 350);
+          break;
+
+        case 'kafka_stage':
+          clearActiveNodes();
+          nodeMw.classList.add('active-node');
+          handleKafkaEvent(d);
+          setStatus(`Apache Kafka: Tópico ${d.topico} | Partição P${d.particao}`, 'busy');
+          addLog(d.timestamp, `[Kafka Broker :9092] Tópico ${d.topico} ➔ Partição P${d.particao} (Key: Paciente ${d.paciente_id}) | GZIP At-Least-Once`, 'mw');
+          animatePacketAlongPath(pipeMwLb, 350);
           break;
 
         case 'http_post':
           clearActiveNodes();
           nodeMw.classList.add('active-node');
-          setStatus(`Middleware Fanout: Replicado para todos os nós → HTTP POST :8000`, 'busy');
-          addLog(d.timestamp, `[Middleware RabbitMQ Fanout] Difusão broadcast das filas → POST http://localhost:8000/dados`, 'lb');
+          setStatus(`Kafka Multi-Group: Fanout para consumidores dos nós → HTTP POST :8000`, 'busy');
+          addLog(d.timestamp, `[Kafka Multi-Group] 4 Consumer Groups ativos consumindo simultaneamente → POST :8000`, 'lb');
           animatePacketAlongPath(pipeMwLb, 350);
           break;
 
@@ -3017,6 +4152,8 @@
         case 'escala_alterada':
           const isAtivo = (d.acao === 'servidor_reserva_ativado');
           setReservaUIState(isAtivo, d.total_servidores);
+          syncServidoresStatus();
+          syncEscalaStatus();
           addLog(new Date().toLocaleTimeString(), `[ESCALA] ${d.mensagem}`, 'complete');
           break;
 
@@ -3126,6 +4263,29 @@
           addLog(d.timestamp, `[Tráfego Externo${badgeFailover}] ➔ ${d.server_id} (:800${sNumExt}) | ${d.latencia_ms}ms | HTTP ${d.status_code}`, tipoCor);
           setStatus(`Tráfego Externo: ${d.server_id} atendeu requisição (${d.latencia_ms}ms)`, 'busy');
           break;
+
+        case 'auto_scale_event':
+          const isAtivoAS = (d.acao === 'scale_out' || d.acao === 'scale_out_processo_iniciado' || d.acao === 'ativacao_servidor_reserva');
+          const isDesativoAS = (d.acao === 'scale_in' || d.acao === 'desativacao_servidor_reserva');
+          if (isAtivoAS) {
+            setReservaUIState(true, d.total_servidores || 4);
+          } else if (isDesativoAS) {
+            setReservaUIState(false, d.total_servidores || 3);
+          }
+          syncServidoresStatus();
+          syncEscalaStatus();
+          addLog(d.timestamp || new Date().toLocaleTimeString(), d.mensagem, 'complete');
+          setStatus(d.mensagem, 'ready');
+          // Highlight server 4 node briefly
+          if (d.servidor_num === 4 && nodeS4) {
+            nodeS4.classList.add('active-node');
+            setTimeout(() => nodeS4.classList.remove('active-node'), 3000);
+          }
+          break;
+
+        case 'esb_vetro':
+          handleESBVetroEvent(d);
+          break;
       }
     }
 
@@ -3146,11 +4306,12 @@
       evtSource = new EventSource(`${API_BASE}/api/eventos`);
 
       const allEvents = [
-        'connected', 'csv_read', 'sending', 'http_post', 'lb_routing',
+        'connected', 'csv_read', 'sending', 'kafka_stage', 'http_post', 'lb_routing',
         'server_received', 'db_saving', 'complete', 'escala_alterada',
         'servidor_status', 'failover', 'fila_retida', 'fila_descarregada',
         'error', 'paused', 'reset', 'finished', 'teste_carga_iniciado',
-        'teste_carga_progresso', 'teste_carga_concluido', 'evento_externo'
+        'teste_carga_progresso', 'teste_carga_concluido', 'evento_externo',
+        'esb_vetro', 'algorithm_changed', 'auto_scale_changed', 'auto_scale_event'
       ];
 
       for (const evName of allEvents) {
@@ -3554,14 +4715,25 @@
       });
     }
 
+    let tcScrollPending = false;
     function appendTcLog(text, cor = '#94a3b8') {
       if (!tcLogTerminal) return;
+      while (tcLogTerminal.children.length >= 60) {
+        tcLogTerminal.removeChild(tcLogTerminal.firstChild);
+      }
       const line = document.createElement('div');
       line.className = 'tc-log-line';
       line.style.color = cor;
       line.textContent = text;
       tcLogTerminal.appendChild(line);
-      tcLogTerminal.scrollTop = tcLogTerminal.scrollHeight;
+
+      if (!tcScrollPending) {
+        tcScrollPending = true;
+        requestAnimationFrame(() => {
+          tcLogTerminal.scrollTop = tcLogTerminal.scrollHeight;
+          tcScrollPending = false;
+        });
+      }
     }
 
     // Iniciar teste de carga
@@ -3634,40 +4806,13 @@
       setStatus(`Teste de carga em andamento (${d.total} reqs)...`, 'busy');
     }
 
+    let tcProgressPending = false;
+    let latestProgData = null;
+
     function handleTesteCargaProgresso(d) {
-      const pct = Math.min(100, Math.round((d.numero / d.total) * 100));
-      if (tcProgressFill) tcProgressFill.style.width = `${pct}%`;
-      if (tcProgressLabel) tcProgressLabel.textContent = `${d.numero} / ${d.total}`;
-      if (tcProgressPct) tcProgressPct.textContent = `${pct}%`;
+      latestProgData = d;
 
-      if (tcKpiLatency) tcKpiLatency.textContent = `${d.media_ms} ms`;
-      if (tcKpiErrors) tcKpiErrors.textContent = `${d.erros}`;
-      if (tcKpiSent) tcKpiSent.textContent = `${d.numero} / ${d.total}`;
-
-      if (tcBenchmarkStartTime) {
-        const seg = (Date.now() - tcBenchmarkStartTime) / 1000;
-        if (seg > 0.3) {
-          const rps = (d.numero / seg).toFixed(1);
-          if (tcKpiRps) tcKpiRps.textContent = `${rps}`;
-        }
-      }
-
-      if (d.distribuicao) {
-        const p1 = d.distribuicao['server-01'] || 0;
-        const p2 = d.distribuicao['server-02'] || 0;
-        const p3 = d.distribuicao['server-03'] || 0;
-        const p4 = d.distribuicao['server-04'] || 0;
-        if (tcBarS1) tcBarS1.style.width = `${p1}%`;
-        if (tcPctS1) tcPctS1.textContent = `${p1}% (${d.contadores['server-01'] || 0})`;
-        if (tcBarS2) tcBarS2.style.width = `${p2}%`;
-        if (tcPctS2) tcPctS2.textContent = `${p2}% (${d.contadores['server-02'] || 0})`;
-        if (tcBarS3) tcBarS3.style.width = `${p3}%`;
-        if (tcPctS3) tcPctS3.textContent = `${p3}% (${d.contadores['server-03'] || 0})`;
-        if (tcBarS4) tcBarS4.style.width = `${p4}%`;
-        if (tcPctS4) tcPctS4.textContent = `${p4}% (${d.contadores['server-04'] || 0})`;
-      }
-
-      // Cor no terminal por servidor
+      // Cor no terminal por servidor e log instantâneo
       const sCor = d.erro ? '#f87171' : (
         d.server_id === 'server-01' ? '#60a5fa' :
         d.server_id === 'server-02' ? '#a78bfa' :
@@ -3675,15 +4820,64 @@
         d.server_id === 'server-04' ? '#34d399' : '#e2e8f0'
       );
       const statusIcon = d.erro ? '❌ ERRO' : `✅ ${d.http_code || 200}`;
-      appendTcLog(`[#${String(d.numero).padStart(3, '0')}] ${d.timestamp} ➔ ${d.server_id} | ${d.latencia_ms}ms | ${statusIcon}`, sCor);
+      const stratLabel = d.adaptive_strategy ? ` | ⚡ [${ALGO_LABELS[d.adaptive_strategy] || d.adaptive_strategy}]` : '';
+      appendTcLog(`[#${String(d.numero).padStart(3, '0')}] ${d.timestamp} ➔ ${d.server_id} | ${d.latencia_ms}ms | ${statusIcon}${stratLabel}`, sCor);
 
-      // Animar diagrama principal e atualizar contadores da sidebar
+      // Atualizar badge de algoritmo adaptativo em tempo real
+      if (d.adaptive_strategy && entBadgeAlgo && entSelAlgo && entSelAlgo.value === 'adaptive') {
+        entBadgeAlgo.textContent = `⚡ Adaptativo [${ALGO_LABELS[d.adaptive_strategy] || d.adaptive_strategy}]`;
+      }
+
+      // Animar diagrama principal com throttling
       const sNum = parseInt((d.server_id || 'server-01').split('-')[1]);
       if (!isNaN(sNum)) {
         updateRoundRobinTurn(sNum);
         animarNoPainelPrincipal(sNum, d.erro);
       }
-      if (d.contadores) updateMetrics(d.contadores);
+
+      // Renderizar barras e KPIs sincronizados com a taxa de atualização da tela (rAF)
+      if (!tcProgressPending) {
+        tcProgressPending = true;
+        requestAnimationFrame(() => {
+          tcProgressPending = false;
+          if (!latestProgData) return;
+          const pData = latestProgData;
+
+          const pct = Math.min(100, Math.round((pData.numero / pData.total) * 100));
+          if (tcProgressFill) tcProgressFill.style.width = `${pct}%`;
+          if (tcProgressLabel) tcProgressLabel.textContent = `${pData.numero} / ${pData.total}`;
+          if (tcProgressPct) tcProgressPct.textContent = `${pct}%`;
+
+          if (tcKpiLatency) tcKpiLatency.textContent = `${pData.media_ms} ms`;
+          if (tcKpiErrors) tcKpiErrors.textContent = `${pData.erros}`;
+          if (tcKpiSent) tcKpiSent.textContent = `${pData.numero} / ${pData.total}`;
+
+          if (tcBenchmarkStartTime) {
+            const seg = (Date.now() - tcBenchmarkStartTime) / 1000;
+            if (seg > 0.3) {
+              const rps = (pData.numero / seg).toFixed(1);
+              if (tcKpiRps) tcKpiRps.textContent = `${rps}`;
+            }
+          }
+
+          if (pData.distribuicao) {
+            const p1 = pData.distribuicao['server-01'] || 0;
+            const p2 = pData.distribuicao['server-02'] || 0;
+            const p3 = pData.distribuicao['server-03'] || 0;
+            const p4 = pData.distribuicao['server-04'] || 0;
+            if (tcBarS1) tcBarS1.style.width = `${p1}%`;
+            if (tcPctS1) tcPctS1.textContent = `${p1}% (${pData.contadores['server-01'] || 0})`;
+            if (tcBarS2) tcBarS2.style.width = `${p2}%`;
+            if (tcPctS2) tcPctS2.textContent = `${p2}% (${pData.contadores['server-02'] || 0})`;
+            if (tcBarS3) tcBarS3.style.width = `${p3}%`;
+            if (tcPctS3) tcPctS3.textContent = `${p3}% (${pData.contadores['server-03'] || 0})`;
+            if (tcBarS4) tcBarS4.style.width = `${p4}%`;
+            if (tcPctS4) tcPctS4.textContent = `${p4}% (${pData.contadores['server-04'] || 0})`;
+          }
+
+          if (pData.contadores) updateMetrics(pData.contadores);
+        });
+      }
     }
 
     function handleTesteCargaConcluido(d) {
@@ -3724,11 +4918,14 @@
     }
 
     // Animar nós no diagrama principal quando o teste de carga ou tráfego externo envia dados
+    let lastAnimTimestamp = 0;
     function animarNoPainelPrincipal(serverNum, isError) {
-      clearActiveNodes();
+      const now = performance.now();
+      const isHighFrequency = (now - lastAnimTimestamp) < 90;
+      lastAnimTimestamp = now;
 
       // Destacar Load Balancer
-      nodeLb.classList.add('active-node');
+      if (nodeLb) nodeLb.classList.add('active-node');
 
       // Selecionar pipe e nó do servidor correto
       let pipe, serverNode;
@@ -3737,15 +4934,26 @@
       else if (serverNum === 3) { pipe = pipeLbS3; serverNode = nodeS3; }
       else if (serverNum === 4) { pipe = pipeLbS4; serverNode = nodeS4; }
 
-      if (pipe) animatePacketAlongPath(pipe, 250, () => {
-        clearActiveNodes();
-        if (serverNode) serverNode.classList.add('active-node');
-        if (!isError) {
-          setTimeout(() => {
-            if (serverNode) serverNode.classList.remove('active-node');
-          }, 350);
-        }
-      });
+      // Durante tráfego de alta frequência, usar iluminação CSS direta nos nós/pipes
+      // evitando o gargalo de recalcular comprimento de arcos SVG no DOM repetidamente
+      if (serverNode) serverNode.classList.add('active-node');
+      if (pipe) pipe.classList.add('active-flow');
+
+      setTimeout(() => {
+        if (serverNode && !isError) serverNode.classList.remove('active-node');
+        if (pipe) pipe.classList.remove('active-flow');
+      }, 180);
+
+      // Apenas acionar animação SVG de trajetória se houver folga na taxa de quadros
+      if (!isHighFrequency && pipe) {
+        animatePacketAlongPath(pipe, 200, () => {
+          if (serverNode && !isError) {
+            setTimeout(() => {
+              if (serverNode) serverNode.classList.remove('active-node');
+            }, 150);
+          }
+        });
+      }
     }
 
     // ── Botão Minimizar do Modal de Teste de Carga ──
@@ -3765,6 +4973,431 @@
       });
     }
 
+    // ══════════════════════════════════════════════
+    // Enterprise Scalability Dashboard Logic
+    // ══════════════════════════════════════════════
+
+    const entSelAlgo = document.getElementById('ent-sel-algorithm');
+    const entBtnAutoScale = document.getElementById('ent-btn-autoscale');
+    const entBadgeAlgo = document.getElementById('ent-badge-algo');
+    const entBadgeAutoScale = document.getElementById('ent-badge-autoscale');
+    const entGmTps = document.getElementById('ent-gm-tps');
+    const entGmLatency = document.getElementById('ent-gm-latency');
+    const entGmActive = document.getElementById('ent-gm-active');
+    const entGmErrors = document.getElementById('ent-gm-errors');
+    const entNodeGrid = document.getElementById('ent-node-grid');
+    const entScaleHistory = document.getElementById('ent-scale-history');
+
+    let entAutoScaleEnabled = false;
+
+    const ALGO_LABELS = {
+      'round_robin': 'Round Robin',
+      'weighted_round_robin': 'Weighted RR',
+      'least_connections': 'Least Conn',
+      'least_response_time': 'Least RT',
+      'patient_hash': 'Patient Hash',
+      'adaptive': '⚡ Adaptativo',
+    };
+
+    const NODE_COLORS = ['#60a5fa', '#c084fc', '#f472b6', '#34d399', '#fbbf24', '#f87171'];
+
+    function getNodeColor(index) {
+      return NODE_COLORS[index % NODE_COLORS.length];
+    }
+
+    function getCbBadgeClass(state) {
+      if (state === 'closed') return 'ent-cb-closed';
+      if (state === 'open') return 'ent-cb-open';
+      return 'ent-cb-half-open';
+    }
+
+    function getHealthBadgeClass(status) {
+      if (status === 'healthy') return 'ent-health-healthy';
+      if (status === 'degraded') return 'ent-health-degraded';
+      return 'ent-health-unhealthy';
+    }
+
+    function renderNodeCard(url, data, index) {
+      const port = url.match(/:([0-9]+)/)?.[1] || '?';
+      const color = getNodeColor(index);
+      const cbClass = getCbBadgeClass(data.circuit_breaker || 'closed');
+      const healthClass = getHealthBadgeClass(data.status || 'healthy');
+
+      return `
+        <div class="ent-node-card" style="border-left: 3px solid ${color};">
+          <div class="ent-node-header">
+            <span class="ent-node-name" style="color:${color};">● :${port}</span>
+            <div class="ent-node-badges">
+              <span class="ent-health-badge ${healthClass}">${(data.status || 'healthy').toUpperCase()}</span>
+              <span class="ent-cb-badge ${cbClass}">CB: ${(data.circuit_breaker || 'closed').toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="ent-node-stats">
+            <div class="ent-stat">
+              <div class="ent-stat-value" style="color:#60a5fa;">${(data.avg_latency_ms || 0).toFixed(0)}ms</div>
+              <div class="ent-stat-label">Latência</div>
+            </div>
+            <div class="ent-stat">
+              <div class="ent-stat-value" style="color:#a78bfa;">${data.active_connections || 0}</div>
+              <div class="ent-stat-label">Conexões</div>
+            </div>
+            <div class="ent-stat">
+              <div class="ent-stat-value" style="color:#34d399;">${(data.tps || 0).toFixed(1)}</div>
+              <div class="ent-stat-label">TPS</div>
+            </div>
+            <div class="ent-stat">
+              <div class="ent-stat-value" style="color:#f87171;">${(data.error_rate_pct || 0).toFixed(1)}%</div>
+              <div class="ent-stat-label">Erros</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderScaleHistory(history) {
+      if (!history || history.length === 0) {
+        entScaleHistory.innerHTML = '';
+        return;
+      }
+      const items = history.slice(-5).reverse().map(ev => {
+        const cls = ev.action === 'scale_out' ? 'ent-scale-out' : 'ent-scale-in';
+        const icon = ev.action === 'scale_out' ? '🚀' : '⬇️';
+        const time = ev.timestamp ? ev.timestamp.split('T').pop().substring(0, 8) : '';
+        return `<div class="ent-scale-event ${cls}">
+          <span>${icon} ${ev.action === 'scale_out' ? 'Scale-Out' : 'Scale-In'}: ${ev.server || '?'}</span>
+          <span>${time}</span>
+        </div>`;
+      });
+      entScaleHistory.innerHTML = items.join('');
+    }
+
+    async function syncEnterpriseMetrics() {
+      try {
+        const [nodesRes, metricsRes, historyRes] = await Promise.all([
+          fetch('/api/enterprise/nodes').then(r => r.json()).catch(() => ({})),
+          fetch('/api/enterprise/metrics').then(r => r.json()).catch(() => ({})),
+          fetch('/api/enterprise/scale-history').then(r => r.json()).catch(() => ({history: []})),
+        ]);
+
+        // Update global metrics
+        if (metricsRes && !metricsRes.error) {
+          entGmTps.textContent = (metricsRes.throughput_tps || 0).toFixed(1);
+          entGmLatency.textContent = (metricsRes.avg_latency_ms || 0).toFixed(0) + 'ms';
+          entGmActive.textContent = metricsRes.active_nodes || 0;
+          entGmErrors.textContent = (metricsRes.error_rate_pct || 0).toFixed(1) + '%';
+
+          // Update algorithm badge
+          const algoName = ALGO_LABELS[metricsRes.algorithm] || metricsRes.algorithm || 'Round Robin';
+          const subStrat = metricsRes.adaptive_strategy ? ` [${ALGO_LABELS[metricsRes.adaptive_strategy] || metricsRes.adaptive_strategy}]` : '';
+          entBadgeAlgo.textContent = metricsRes.algorithm === 'adaptive' ? `⚡ Adaptativo${subStrat}` : algoName;
+          if (entSelAlgo.value !== metricsRes.algorithm && metricsRes.algorithm) {
+            entSelAlgo.value = metricsRes.algorithm;
+          }
+
+          // Update auto-scale badge
+          if (metricsRes.auto_scale) {
+            entAutoScaleEnabled = metricsRes.auto_scale.enabled;
+            if (entAutoScaleEnabled) {
+              entBadgeAutoScale.textContent = 'Auto-Scale: ON';
+              entBadgeAutoScale.className = 'ent-badge ent-badge-autoscale-on';
+              entBtnAutoScale.className = 'ent-toggle-btn active';
+              entBtnAutoScale.innerHTML = '⚡ Auto-Scale ON';
+            } else {
+              entBadgeAutoScale.textContent = 'Auto-Scale: OFF';
+              entBadgeAutoScale.className = 'ent-badge ent-badge-autoscale-off';
+              entBtnAutoScale.className = 'ent-toggle-btn inactive';
+              entBtnAutoScale.innerHTML = '⚡ Auto-Scale';
+            }
+          }
+        }
+
+        // Update node cards
+        if (nodesRes && !nodesRes.error) {
+          const nodes = nodesRes.nodes || nodesRes;
+          const entries = Object.entries(nodes);
+          if (entries.length > 0) {
+            entNodeGrid.innerHTML = entries.map(([url, data], i) => renderNodeCard(url, data, i)).join('');
+          }
+        }
+
+        // Update scale history
+        const history = historyRes.history || (metricsRes.auto_scale ? metricsRes.auto_scale.history : []);
+        renderScaleHistory(history);
+
+      } catch (e) {
+        // Silent fail — enterprise features are optional
+      }
+    }
+
+    // Algorithm change handler
+    if (entSelAlgo) {
+      entSelAlgo.addEventListener('change', async () => {
+        try {
+          const algo = entSelAlgo.value;
+          const res = await fetch('/api/enterprise/algorithm', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({algorithm: algo}),
+          });
+          if (res.ok) {
+            entBadgeAlgo.textContent = ALGO_LABELS[algo] || algo;
+            addLog(`🔄 Algoritmo alterado para: ${ALGO_LABELS[algo] || algo}`, '#a78bfa');
+          }
+        } catch (e) {
+          addLog('❌ Erro ao alterar algoritmo', '#f87171');
+        }
+      });
+    }
+
+    // Auto-scale toggle handler
+    if (entBtnAutoScale) {
+      entBtnAutoScale.addEventListener('click', async () => {
+        try {
+          const newState = !entAutoScaleEnabled;
+          const res = await fetch('/api/enterprise/auto-scale', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({enabled: newState}),
+          });
+          if (res.ok) {
+            entAutoScaleEnabled = newState;
+            if (newState) {
+              entBadgeAutoScale.textContent = 'Auto-Scale: ON';
+              entBadgeAutoScale.className = 'ent-badge ent-badge-autoscale-on';
+              entBtnAutoScale.className = 'ent-toggle-btn active';
+              entBtnAutoScale.innerHTML = '⚡ Auto-Scale ON';
+              addLog('🚀 Auto-Scaling ATIVADO', '#34d399');
+            } else {
+              entBadgeAutoScale.textContent = 'Auto-Scale: OFF';
+              entBadgeAutoScale.className = 'ent-badge ent-badge-autoscale-off';
+              entBtnAutoScale.className = 'ent-toggle-btn inactive';
+              entBtnAutoScale.innerHTML = '⚡ Auto-Scale';
+              addLog('⏸️ Auto-Scaling DESATIVADO', '#9ca3af');
+            }
+          }
+        } catch (e) {
+          addLog('❌ Erro ao alterar auto-scale', '#f87171');
+        }
+      });
+    }
+
+    // ══════════════════════════════════════════════
+    // Apache Kafka MOM (KRaft) Logic
+    // ══════════════════════════════════════════════
+    const kafkaBrokerBadge = document.getElementById('kafka-broker-badge');
+    const kafkaTotalMsgs = document.getElementById('kafka-total-msgs');
+    const kafkaLastEvent = document.getElementById('kafka-last-event');
+    const kafkaCbBadge = document.getElementById('kafka-cb-badge');
+    const kafkaCbState = document.getElementById('kafka-cb-state');
+    const kafkaDltCount = document.getElementById('kafka-dlt-count');
+
+    let totalKafkaMsgs = 0;
+    const partitionCounters = [0, 0, 0, 0];
+    const partitionOffsets = [0, 0, 0, 0];
+
+    function handleKafkaEvent(d) {
+      if (!d) return;
+      totalKafkaMsgs++;
+      if (kafkaTotalMsgs) kafkaTotalMsgs.textContent = `${totalKafkaMsgs} msgs`;
+
+      const p = (d.particao !== undefined && d.particao !== null)
+        ? d.particao
+        : ((parseInt(d.paciente_id || 0)) % 4);
+      partitionCounters[p] = (partitionCounters[p] || 0) + 1;
+      partitionOffsets[p] = (partitionOffsets[p] || 0) + 1;
+
+      // Atualiza contador e offset na partição
+      const countEl = document.getElementById(`part-${p}-count`);
+      const offsetEl = document.getElementById(`part-${p}-offset`);
+      const cardEl = document.getElementById(`kafka-part-${p}`);
+      const barEl = document.getElementById(`part-${p}-bar`);
+
+      if (countEl) countEl.textContent = partitionCounters[p];
+      if (offsetEl) offsetEl.textContent = `Offset: ${partitionOffsets[p]}`;
+
+      if (cardEl) {
+        cardEl.classList.add('active-partition');
+        setTimeout(() => cardEl.classList.remove('active-partition'), 750);
+      }
+
+      if (barEl) {
+        const fillPct = Math.min(100, (partitionCounters[p] % 20) * 5 + 10);
+        barEl.style.width = `${fillPct}%`;
+      }
+
+      // Flash nos 4 Consumer Groups para demonstrar Fanout At-Least-Once
+      for (let s = 1; s <= 4; s++) {
+        const cgEl = document.getElementById(`cg-server-${s}`);
+        if (cgEl) {
+          cgEl.classList.add('cg-flash');
+          setTimeout(() => cgEl.classList.remove('cg-flash'), 600);
+        }
+      }
+
+      // Atualiza ticker de evento em tempo real
+      if (kafkaLastEvent) {
+        kafkaLastEvent.innerHTML = `Pac. <strong>#${d.paciente_id}</strong> ➔ Partição <strong style="color:#fb923c;">P${p}</strong> (Off: #${partitionOffsets[p]}) • <span style="color:#34d399;">GZIP Ack:all</span>`;
+      }
+    }
+
+    // Compatibilidade com eventos legados se emitidos
+    function handleESBVetroEvent(d) {
+      handleKafkaEvent(d);
+    }
+
+    async function syncKafkaStatus() {
+      try {
+        const res = await fetch('/api/kafka/status').then(r => r.json()).catch(() => null);
+        if (!res) return;
+
+        if (kafkaBrokerBadge) {
+          if (res.broker_conectado) {
+            kafkaBrokerBadge.className = 'kafka-badge kafka-badge-online';
+            kafkaBrokerBadge.innerHTML = '<span class="pulse-dot"></span>KRaft :9092 (Online)';
+          } else {
+            kafkaBrokerBadge.className = 'kafka-badge';
+            kafkaBrokerBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+            kafkaBrokerBadge.style.color = '#fbbf24';
+            kafkaBrokerBadge.style.border = '1px solid rgba(245, 158, 11, 0.35)';
+            kafkaBrokerBadge.innerHTML = 'KRaft :9092 (Local)';
+          }
+        }
+
+        if (res.metrics) {
+          const m = res.metrics;
+          if (m.total_publicadas !== undefined && m.total_publicadas > totalKafkaMsgs) {
+            totalKafkaMsgs = m.total_publicadas;
+            if (kafkaTotalMsgs) kafkaTotalMsgs.textContent = `${totalKafkaMsgs} msgs`;
+          }
+          if (m.particoes) {
+            ['P0', 'P1', 'P2', 'P3'].forEach((pName, idx) => {
+              const val = m.particoes[pName] || 0;
+              const off = (m.offsets && m.offsets[pName]) || val;
+              if (val > partitionCounters[idx]) {
+                partitionCounters[idx] = val;
+                partitionOffsets[idx] = off;
+                const cEl = document.getElementById(`part-${idx}-count`);
+                const oEl = document.getElementById(`part-${idx}-offset`);
+                if (cEl) cEl.textContent = val;
+                if (oEl) oEl.textContent = `Offset: ${off}`;
+              }
+            });
+          }
+          if (m.circuit_breaker && kafkaCbState) {
+            kafkaCbState.textContent = m.circuit_breaker;
+          }
+        }
+      } catch (_) {}
+    }
+
+    async function syncESBAndORBStatus() {
+      await syncKafkaStatus();
+    }
+
+    // ── Gestão e Visualização do Cluster de VMs Reais ──
+    const modalVmsCluster = document.getElementById('modal-vms-cluster');
+    const vmsModalClose = document.getElementById('vms-modal-close');
+    const btnOpenVms = document.getElementById('btn-open-vms');
+    const btnVmsModalAction = document.getElementById('btn-vms-modal-action');
+    const btnRefreshVms = document.getElementById('btn-refresh-vms');
+    const vmsGridContainer = document.getElementById('vms-grid-container');
+    const vmsCountOnline = document.getElementById('vms-count-online');
+
+    if (btnOpenVms) btnOpenVms.addEventListener('click', () => abrirModalVM());
+    if (btnVmsModalAction) btnVmsModalAction.addEventListener('click', () => abrirModalVM());
+    if (vmsModalClose) vmsModalClose.addEventListener('click', () => fecharModalVM());
+    if (btnRefreshVms) btnRefreshVms.addEventListener('click', () => carregarVMsTopology());
+
+    if (modalVmsCluster) {
+      modalVmsCluster.addEventListener('click', (e) => {
+        if (e.target === modalVmsCluster) fecharModalVM();
+      });
+    }
+
+    function fecharModalVM() {
+      if (modalVmsCluster) modalVmsCluster.classList.remove('active');
+    }
+
+    async function abrirModalVM(targetVmId = null) {
+      if (!modalVmsCluster) return;
+      modalVmsCluster.classList.add('active');
+      await carregarVMsTopology(targetVmId);
+    }
+    window.abrirModalVM = abrirModalVM;
+
+    async function carregarVMsTopology(highlightVmId = null) {
+      if (!vmsGridContainer) return;
+      try {
+        const resp = await fetch('/api/vms');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const vms = data.vms || [];
+        if (vmsCountOnline) vmsCountOnline.textContent = `${data.vms_online || 0} / ${vms.length}`;
+
+        vmsGridContainer.innerHTML = vms.map(vm => {
+          const isTarget = highlightVmId && (vm.id === highlightVmId || vm.vm_name === highlightVmId);
+          const isOnline = vm.status && vm.status.includes('ONLINE');
+          const isStandby = vm.status && vm.status.includes('STANDBY');
+          const statusClass = isOnline ? 'online' : (isStandby ? 'standby' : 'offline');
+          const pingFmt = vm.ping_ms ? `${vm.ping_ms} ms` : '—';
+          const dbFmt = vm.db_size_bytes ? `${(vm.db_size_bytes / 1024).toFixed(1)} KB` : 'N/A';
+
+          return `
+            <div id="vm-card-${vm.id}" class="vm-card ${isTarget ? 'highlight' : ''} ${vm.id.includes('servidor-04') ? 'reserva' : ''}">
+              <div class="vm-card-header">
+                <div class="vm-card-title">
+                  <span>🖥️</span>
+                  <span style="color: #60a5fa; font-family: monospace;">${vm.vm_name}</span>
+                </div>
+                <span class="vm-badge-status ${statusClass}">${vm.status}</span>
+              </div>
+              <div style="font-size: 0.72rem; color: #94a3b8; line-height: 1.3;">
+                ${vm.funcao}
+              </div>
+              <div class="vm-details-list">
+                <div class="vm-detail-item">
+                  <span class="vm-detail-lbl">IP Virtual</span>
+                  <span class="vm-detail-val" style="color: #38bdf8;">${vm.ip}${vm.porta ? `:${vm.porta}` : ''}</span>
+                </div>
+                <div class="vm-detail-item">
+                  <span class="vm-detail-lbl">Ping / Latência</span>
+                  <span class="vm-detail-val" style="color: #34d399;">${pingFmt}</span>
+                </div>
+                <div class="vm-detail-item">
+                  <span class="vm-detail-lbl">Hardware VM</span>
+                  <span class="vm-detail-val">${vm.hardware || '1 vCPU | 512 MB'}</span>
+                </div>
+                <div class="vm-detail-item">
+                  <span class="vm-detail-lbl">MAC Address</span>
+                  <span class="vm-detail-val" style="font-size: 0.65rem;">${vm.mac || '08:00:27:xx:xx'}</span>
+                </div>
+                <div class="vm-detail-item">
+                  <span class="vm-detail-lbl">Interface / Sub-rede</span>
+                  <span class="vm-detail-val" style="font-size: 0.65rem;">${vm.interface || 'enp0s8'} (192.168.56.0/24)</span>
+                </div>
+                <div class="vm-detail-item">
+                  <span class="vm-detail-lbl">Sistema Operacional</span>
+                  <span class="vm-detail-val" style="font-size: 0.65rem;">${vm.os || 'Ubuntu 22.04 LTS'}</span>
+                </div>
+                ${vm.db ? `
+                <div class="vm-detail-item" style="grid-column: span 2;">
+                  <span class="vm-detail-lbl">Shard SQLite Isolado</span>
+                  <span class="vm-detail-val" style="color: #a78bfa;">${vm.db} (${dbFmt})</span>
+                </div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        if (highlightVmId) {
+          const el = document.getElementById(`vm-card-${highlightVmId}`) || document.querySelector(`.vm-card.highlight`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } catch (e) {
+        console.error('Erro ao carregar topologia de VMs:', e);
+      }
+    }
+
     // Start SSE Connection and Polling Fallback on load
     window.addEventListener('DOMContentLoaded', () => {
       connectSSE();
@@ -3772,7 +5405,12 @@
       syncEscalaStatus();
       syncServidoresStatus();
       syncTesteCargaStatus();
+      syncEnterpriseMetrics();
+      syncKafkaStatus();
+      setInterval(syncEscalaStatus, 3000);
       setInterval(syncServidoresStatus, 3000);
+      setInterval(syncEnterpriseMetrics, 5000);
+      setInterval(syncKafkaStatus, 3500);
     });
   </script>
 </body>

@@ -18,8 +18,6 @@ import sys
 import tempfile
 import threading
 import time
-
-import pika
 import pytest
 import requests
 import uvicorn
@@ -31,11 +29,11 @@ from server.app import criar_app
 from server.database import buscar_por_paciente, buscar_todos
 from load_balancer.balancer import criar_balanceador, RoundRobinBalancer
 from middleware.config import (
-    get_connection_params,
-    EXCHANGE_NAME,
-    FILAS_SERVIDORES,
+    KAFKA_BOOTSTRAP_SERVERS,
+    KAFKA_TOPIC,
+    KAFKA_CONSUMER_GROUPS,
 )
-from middleware.consumidor import ConsumidorAMQP
+
 
 
 # ============================================================
@@ -46,19 +44,24 @@ PORTAS_TESTE = [19101, 19102, 19103, 19104]  # S1, S2, S3 e S4 (reserva)
 PORTA_LB_TESTE = 19100
 
 
-def _rabbitmq_disponivel():
-    """Retorna True se o RabbitMQ está acessível na porta 5672."""
+def _kafka_disponivel():
+    """Retorna True se o Apache Kafka está acessível na porta 9092."""
     try:
-        conn = pika.BlockingConnection(get_connection_params())
-        conn.close()
+        from kafka import KafkaAdminClient
+        admin = KafkaAdminClient(
+            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS.split(","),
+            request_timeout_ms=1000,
+            api_version_auto_timeout_ms=1000,
+        )
+        admin.close()
         return True
     except Exception:
         return False
 
 
-requer_rabbitmq = pytest.mark.skipif(
-    not _rabbitmq_disponivel(),
-    reason="RabbitMQ não está rodando (docker start rabbitmq-sd)",
+requer_kafka = pytest.mark.skipif(
+    not _kafka_disponivel(),
+    reason="Apache Kafka não está rodando (porta 9092)",
 )
 
 
@@ -153,51 +156,39 @@ class TestMarco3ReplicacaoEEscalabilidade:
         assert len(data["servidores_reserva"]) == 1
         assert data["distribuicao_esperada_por_no"] == "33.3%"
 
-    @requer_rabbitmq
+    @requer_kafka
     def test_03_replicacao_fanout_em_todos_os_bancos(self):
         """
-        Publica uma mensagem na exchange Fanout e consome pelas 4 filas.
+        Publica uma mensagem no tópico do Kafka e consome via Consumer Groups paralelos.
         Todos os 4 bancos SQLite devem receber e persistir a mesma telemetria.
         """
-        conn = pika.BlockingConnection(get_connection_params())
-        ch = conn.channel()
+        from kafka import KafkaProducer, KafkaConsumer
+        import uuid
 
-        # Declarar exchange Fanout de teste
-        exchange_fanout = "test_marco3_fanout"
-        ch.exchange_declare(exchange=exchange_fanout, exchange_type="fanout", durable=True)
-
-        filas_teste = [f"test_fila_s{i+1}" for i in range(4)]
-        for f in filas_teste:
-            ch.queue_declare(queue=f, durable=True)
-            ch.queue_bind(queue=f, exchange=exchange_fanout)
-            ch.queue_purge(queue=f)
-
-        # Publicar dado de paciente 777
-        dado_777 = _exemplo_telemetria(paciente_id=777)
-        ch.basic_publish(
-            exchange=exchange_fanout,
-            routing_key="",
-            body=json.dumps(dado_777).encode("utf-8"),
+        topic_test = f"test_fanout_{uuid.uuid4().hex[:8]}"
+        producer = KafkaProducer(
+            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS.split(","),
+            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
         )
-        conn.close()
+        dado_777 = _exemplo_telemetria(paciente_id=777)
+        future = producer.send(topic_test, dado_777)
+        future.get(timeout=5)
+        producer.close()
 
-        # Cada consumidor drena sua fila e envia diretamente para o respectivo servidor
-        consumidores = []
-        for i in range(4):
-            c = ConsumidorAMQP(
-                queue_name=filas_teste[i],
-                target_url=self.server_urls[i],
-                server_id=f"test-s{i+1}",
+        # Cada consumidor drena o tópico e envia diretamente para o respectivo servidor
+        for i, url in enumerate(self.server_urls):
+            consumer = KafkaConsumer(
+                topic_test,
+                bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS.split(","),
+                group_id=f"group_test_s{i+1}_{uuid.uuid4().hex[:4]}",
+                auto_offset_reset="earliest",
+                consumer_timeout_ms=3000,
+                value_deserializer=lambda m: json.loads(m.decode("utf-8")),
             )
-            c.conectar()
-            consumidores.append(c)
-
-        # Executar 1 consumo por fila
-        for c in consumidores:
-            method_frame, header_frame, body = c.channel.basic_get(queue=c.queue_name, auto_ack=False)
-            assert method_frame is not None
-            c._callback(c.channel, method_frame, header_frame, body)
-            c.parar()
+            for msg in consumer:
+                requests.post(f"{url}/dados", json=msg.value, timeout=3)
+                break
+            consumer.close()
 
         # Validar que os 4 bancos SQLite possuem o paciente 777 gravado
         for i, db_path in enumerate(self.db_paths):
@@ -206,7 +197,7 @@ class TestMarco3ReplicacaoEEscalabilidade:
             assert registros[0]["frequencia_cardiaca"] == 82
             assert registros[0]["spo2"] == 98
 
-    @requer_rabbitmq
+    @requer_kafka
     def test_04_consultas_get_sem_erro_404(self):
         """
         Como todos os 4 servidores possuem o paciente 777,
@@ -238,7 +229,7 @@ class TestMarco3ReplicacaoEEscalabilidade:
         assert st["total_servidores"] == 4
         assert st["distribuicao_esperada_por_no"] == "25.0%"
 
-    @requer_rabbitmq
+    @requer_kafka
     def test_06_distribuicao_uniforme_com_4_servidores(self):
         """
         Com 4 servidores ativos, 4 requisições consecutivas devem

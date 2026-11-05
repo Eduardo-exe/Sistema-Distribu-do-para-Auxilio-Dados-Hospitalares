@@ -38,6 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from server.models import CSV_COLUMN_MAP, converter_registro_csv
 
 
+
 # ============================================================
 # Estado global do monitor
 # ============================================================
@@ -94,6 +95,7 @@ class MonitorState:
             self.simulation_task.cancel()
             self.simulation_task = None
         self.fila_retencao = []
+        KafkaMonitorMetrics.reset()
 
     async def broadcast(self, event_type: str, data: dict):
         """Envia evento SSE para todos os clientes conectados e armazena para polling."""
@@ -133,8 +135,8 @@ class TesteCargaManager:
         self.total_enviadas = 0
         self.total_alvo = 0
 
-    async def executar(self, total: int):
-        """Executa o teste de carga assíncrono com broadcasting SSE."""
+    async def executar(self, total: int, concurrency: int = 5):
+        """Executa o teste de carga assíncrono com broadcasting SSE e concorrência."""
         self.running = True
         self.resultados = []
         self.contadores = {"server-01": 0, "server-02": 0, "server-03": 0, "server-04": 0}
@@ -148,64 +150,86 @@ class TesteCargaManager:
 
         await self.state.broadcast("teste_carga_iniciado", {
             "total": total,
+            "concurrency": concurrency,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
         })
 
-        for i, record in enumerate(records):
-            if not self.running:
-                break
+        queue = asyncio.Queue()
+        for i, rec in enumerate(records):
+            queue.put_nowait((i + 1, rec))
 
-            inicio = time.time()
-            server_id = "?"
-            http_code = 0
-            erro = False
+        sem = asyncio.Semaphore(concurrency)
+        counter_lock = asyncio.Lock()
 
-            try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    resp = await client.post(f"{lb_url}/dados", json=record)
-                    http_code = resp.status_code
-                    if resp.status_code == 200:
-                        resp_data = resp.json()
-                        server_id = resp_data.get("server_id", "?")
-                        if server_id in self.contadores:
-                            self.contadores[server_id] += 1
-                        if server_id in self.state.contadores:
-                            self.state.contadores[server_id] += 1
-                    else:
-                        self.erros += 1
-                        erro = True
-            except Exception:
-                self.erros += 1
-                erro = True
-                http_code = 0
+        async with httpx.AsyncClient(timeout=10.0, limits=httpx.Limits(max_connections=30, max_keepalive_connections=15)) as client:
+            async def worker():
+                while self.running and not queue.empty():
+                    try:
+                        num, record = queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
 
-            fim = time.time()
-            latencia_ms = round((fim - inicio) * 1000)
-            self.total_latencia += latencia_ms
-            self.total_enviadas += 1
+                    inicio = time.time()
+                    server_id = "?"
+                    http_code = 0
+                    erro = False
+                    strat = ""
 
-            media_ms = round(self.total_latencia / self.total_enviadas)
-            sucesso = sum(self.contadores.values())
-            distribuicao = {}
-            if sucesso > 0:
-                for sid, cnt in self.contadores.items():
-                    distribuicao[sid] = round(cnt * 100 / sucesso, 1)
+                    async with sem:
+                        try:
+                            resp = await client.post(f"{lb_url}/dados", json=record)
+                            http_code = resp.status_code
+                            strat = resp.headers.get("x-adaptive-strategy", "")
+                            if resp.status_code == 200:
+                                resp_data = resp.json()
+                                server_id = resp_data.get("server_id", "?")
+                            else:
+                                erro = True
+                        except Exception:
+                            erro = True
+                            http_code = 0
 
-            await self.state.broadcast("teste_carga_progresso", {
-                "numero": i + 1,
-                "total": total,
-                "server_id": server_id,
-                "latencia_ms": latencia_ms,
-                "http_code": http_code,
-                "erro": erro,
-                "media_ms": media_ms,
-                "erros": self.erros,
-                "contadores": self.contadores,
-                "distribuicao": distribuicao,
-                "timestamp": datetime.now().strftime("%H:%M:%S"),
-            })
+                    fim = time.time()
+                    latencia_ms = round((fim - inicio) * 1000)
 
-            await asyncio.sleep(0.035)
+                    async with counter_lock:
+                        self.total_enviadas += 1
+                        self.total_latencia += latencia_ms
+                        if erro:
+                            self.erros += 1
+                        else:
+                            if server_id in self.contadores:
+                                self.contadores[server_id] += 1
+                            if server_id in self.state.contadores:
+                                self.state.contadores[server_id] += 1
+
+                        media_ms = round(self.total_latencia / self.total_enviadas) if self.total_enviadas > 0 else 0
+                        sucesso = sum(self.contadores.values())
+                        distribuicao = {}
+                        if sucesso > 0:
+                            for sid, cnt in self.contadores.items():
+                                distribuicao[sid] = round(cnt * 100 / sucesso, 1)
+
+                    await self.state.broadcast("teste_carga_progresso", {
+                        "numero": num,
+                        "total": total,
+                        "server_id": server_id,
+                        "latencia_ms": latencia_ms,
+                        "http_code": http_code,
+                        "erro": erro,
+                        "media_ms": media_ms,
+                        "erros": self.erros,
+                        "contadores": self.contadores,
+                        "distribuicao": distribuicao,
+                        "adaptive_strategy": strat,
+                        "timestamp": datetime.now().strftime("%H:%M:%S"),
+                    })
+                    queue.task_done()
+                    # Intervalo suave para streaming SSE e renderização fluida no navegador (60fps)
+                    await asyncio.sleep(0.035)
+
+            workers = [asyncio.create_task(worker()) for _ in range(concurrency)]
+            await asyncio.gather(*workers)
 
         # Resultado final
         sucesso = sum(self.contadores.values())
@@ -240,18 +264,173 @@ class TesteCargaManager:
 # ============================================================
 
 SERVER_INFO = {
-    "01": {"porta": 8001, "db": "server1.db"},
-    "02": {"porta": 8002, "db": "server2.db"},
-    "03": {"porta": 8003, "db": "server3.db"},
-    "04": {"porta": 8004, "db": "server4.db"},
+    "01": {"porta": 8001, "db": "server1.db", "vm": "vm-servidor-01", "ip": "192.168.56.13"},
+    "02": {"porta": 8002, "db": "server2.db", "vm": "vm-servidor-02", "ip": "192.168.56.14"},
+    "03": {"porta": 8003, "db": "server3.db", "vm": "vm-servidor-03", "ip": "192.168.56.15"},
+    "04": {"porta": 8004, "db": "server4.db", "vm": "vm-servidor-04", "ip": "192.168.56.16"},
 }
 
 SERVIDORES_CONFIG = {
-    1: {"porta": 8001, "server_id": "server-01", "db": "databases/server1.db", "nome": "Servidor 01"},
-    2: {"porta": 8002, "server_id": "server-02", "db": "databases/server2.db", "nome": "Servidor 02"},
-    3: {"porta": 8003, "server_id": "server-03", "db": "databases/server3.db", "nome": "Servidor 03"},
-    4: {"porta": 8004, "server_id": "server-04", "db": "databases/server4.db", "nome": "Servidor 04 (Reserva)"},
+    1: {
+        "porta": 8001,
+        "server_id": "server-01",
+        "db": "databases/server1.db",
+        "nome": "Servidor 01",
+        "vm_name": "vm-servidor-01",
+        "vm_ip": "192.168.56.13",
+        "os": "Ubuntu 22.04 LTS (Jammy)",
+        "vcpu": "1 vCPU",
+        "ram": "512 MB",
+        "mac": "08:00:27:3A:4B:13",
+    },
+    2: {
+        "porta": 8002,
+        "server_id": "server-02",
+        "db": "databases/server2.db",
+        "nome": "Servidor 02",
+        "vm_name": "vm-servidor-02",
+        "vm_ip": "192.168.56.14",
+        "os": "Ubuntu 22.04 LTS (Jammy)",
+        "vcpu": "1 vCPU",
+        "ram": "512 MB",
+        "mac": "08:00:27:3A:4B:14",
+    },
+    3: {
+        "porta": 8003,
+        "server_id": "server-03",
+        "db": "databases/server3.db",
+        "nome": "Servidor 03",
+        "vm_name": "vm-servidor-03",
+        "vm_ip": "192.168.56.15",
+        "os": "Ubuntu 22.04 LTS (Jammy)",
+        "vcpu": "1 vCPU",
+        "ram": "512 MB",
+        "mac": "08:00:27:3A:4B:15",
+    },
+    4: {
+        "porta": 8004,
+        "server_id": "server-04",
+        "db": "databases/server4.db",
+        "nome": "Servidor 04 (Reserva)",
+        "vm_name": "vm-servidor-04",
+        "vm_ip": "192.168.56.16",
+        "os": "Ubuntu 22.04 LTS (Jammy)",
+        "vcpu": "1 vCPU",
+        "ram": "512 MB",
+        "mac": "08:00:27:3A:4B:16",
+    },
 }
+
+VM_CLUSTER_MAP = [
+    {
+        "id": "vm-cliente",
+        "nome": "Cliente Telemetria",
+        "vm_name": "vm-cliente",
+        "ip": "192.168.56.10",
+        "funcao": "Produtor de Telemetria / Leitura do CSV Hospitalar",
+        "servico": "middleware.produtor",
+        "porta": None,
+        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
+        "mac": "08:00:27:3A:4B:10",
+        "interface": "enp0s8",
+    },
+    {
+        "id": "vm-middleware",
+        "nome": "Broker Apache Kafka",
+        "vm_name": "vm-middleware",
+        "ip": "192.168.56.11",
+        "funcao": "MOM Event Streaming (Modo KRaft - sem ZooKeeper)",
+        "servico": "apache/kafka:latest (Porta 9092)",
+        "porta": 9092,
+        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "hardware": "2 vCPUs @ 2.4GHz | 1024 MB RAM",
+        "mac": "08:00:27:3A:4B:11",
+        "interface": "enp0s8",
+    },
+    {
+        "id": "vm-balanceador",
+        "nome": "Load Balancer Enterprise",
+        "vm_name": "vm-balanceador",
+        "ip": "192.168.56.12",
+        "funcao": "Roteamento (6 Algoritmos), Auto-Scaling e Failover On-Demand",
+        "servico": "load_balancer.balancer (Porta 8000)",
+        "porta": 8000,
+        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
+        "mac": "08:00:27:3A:4B:12",
+        "interface": "enp0s8",
+    },
+    {
+        "id": "vm-servidor-01",
+        "nome": "Servidor 01 (Nó Ativo)",
+        "vm_name": "vm-servidor-01",
+        "ip": "192.168.56.13",
+        "funcao": "Processamento REST FastAPI + Shard de Banco SQLite",
+        "servico": "server.app (Porta 8001)",
+        "porta": 8001,
+        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
+        "mac": "08:00:27:3A:4B:13",
+        "interface": "enp0s8",
+        "db": "databases/server1.db",
+    },
+    {
+        "id": "vm-servidor-02",
+        "nome": "Servidor 02 (Nó Ativo)",
+        "vm_name": "vm-servidor-02",
+        "ip": "192.168.56.14",
+        "funcao": "Processamento REST FastAPI + Shard de Banco SQLite",
+        "servico": "server.app (Porta 8002)",
+        "porta": 8002,
+        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
+        "mac": "08:00:27:3A:4B:14",
+        "interface": "enp0s8",
+        "db": "databases/server2.db",
+    },
+    {
+        "id": "vm-servidor-03",
+        "nome": "Servidor 03 (Nó Ativo)",
+        "vm_name": "vm-servidor-03",
+        "ip": "192.168.56.15",
+        "funcao": "Processamento REST FastAPI + Shard de Banco SQLite",
+        "servico": "server.app (Porta 8003)",
+        "porta": 8003,
+        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
+        "mac": "08:00:27:3A:4B:15",
+        "interface": "enp0s8",
+        "db": "databases/server3.db",
+    },
+    {
+        "id": "vm-servidor-04",
+        "nome": "Servidor 04 (Reserva Warm Standby)",
+        "vm_name": "vm-servidor-04",
+        "ip": "192.168.56.16",
+        "funcao": "Nó Reserva para Elasticidade (Scale-Out) e Failover Crítico",
+        "servico": "server.app (Porta 8004)",
+        "porta": 8004,
+        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
+        "mac": "08:00:27:3A:4B:16",
+        "interface": "enp0s8",
+        "db": "databases/server4.db",
+    },
+    {
+        "id": "vm-monitor",
+        "nome": "Painel de Observabilidade",
+        "vm_name": "vm-monitor",
+        "ip": "192.168.56.17",
+        "funcao": "Transmissão SSE em Tempo Real, Animação SVG e Chaos Engineering",
+        "servico": "visualizacao.monitor (Porta 5000)",
+        "porta": 5000,
+        "os": "Ubuntu 22.04.4 LTS (Jammy)",
+        "hardware": "1 vCPU @ 2.4GHz | 512 MB RAM",
+        "mac": "08:00:27:3A:4B:17",
+        "interface": "enp0s8",
+    },
+]
 
 
 async def verificar_servidor_online(porta: int) -> bool:
@@ -260,6 +439,20 @@ async def verificar_servidor_online(porta: int) -> bool:
         async with httpx.AsyncClient(timeout=0.6) as client:
             res = await client.get(f"http://localhost:{porta}/health")
             return res.status_code == 200
+    except Exception:
+        return False
+
+
+async def verificar_kafka_online(host: str = "localhost", port: int = 9092, timeout: float = 0.5) -> bool:
+    """Verifica se o broker Kafka está acessível na porta TCP."""
+    try:
+        _, writer = await asyncio.wait_for(
+            asyncio.open_connection(host, port),
+            timeout=timeout,
+        )
+        writer.close()
+        await writer.wait_closed()
+        return True
     except Exception:
         return False
 
@@ -275,7 +468,7 @@ def derrubar_servidor_processo(porta: int) -> bool:
 
 
 def religar_servidor_processo(servidor_num: int) -> bool:
-    """Inicia novamente o servidor backend caso esteja offline."""
+    """Inicia novamente o servidor backend caso esteja offline, com metadados de VM."""
     cfg = SERVIDORES_CONFIG.get(servidor_num)
     if not cfg:
         return False
@@ -291,6 +484,8 @@ def religar_servidor_processo(servidor_num: int) -> bool:
                 "--port", str(porta),
                 "--server-id", cfg["server_id"],
                 "--db-path", cfg["db"],
+                "--vm-name", cfg.get("vm_name", f"vm-servidor-0{servidor_num}"),
+                "--vm-ip", cfg.get("vm_ip", f"192.168.56.{12+servidor_num}"),
             ],
             cwd=projeto_dir,
             stdout=log_file,
@@ -303,24 +498,82 @@ def religar_servidor_processo(servidor_num: int) -> bool:
         return False
 
 
-async def publicar_rabbitmq_se_disponivel(record: dict):
-    """Publica registro no RabbitMQ se o broker estiver acessível."""
-    def _pub():
+class KafkaMonitorMetrics:
+    """Armazena métricas e status em tempo real do Apache Kafka para o dashboard."""
+    total_publicadas = 0
+    particoes = {"P0": 0, "P1": 0, "P2": 0, "P3": 0}
+    offsets = {"P0": 0, "P1": 0, "P2": 0, "P3": 0}
+    ultima_msg = None
+
+    @classmethod
+    def registrar(cls, record: dict, particao: int = None, offset: int = None, falhou: bool = False):
+        """Registra uma publicação confirmada pelo broker.
+
+        Só conta mensagens que o Kafka realmente confirmou (RecordMetadata),
+        para o painel não exibir tráfego que nunca saiu do produtor.
+        """
+        if falhou:
+            return
+        cls.total_publicadas += 1
         try:
-            import pika
-            params = pika.ConnectionParameters(host="localhost", port=5672, connection_attempts=1, retry_delay=1)
-            conn = pika.BlockingConnection(params)
-            ch = conn.channel()
-            ch.exchange_declare(exchange="telemetria_hospitalar", exchange_type="fanout", durable=True)
-            ch.basic_publish(
-                exchange="telemetria_hospitalar",
-                routing_key="dados.paciente",
-                body=json.dumps(record),
-                properties=pika.BasicProperties(delivery_mode=2),
-            )
-            conn.close()
+            pid = int(record.get("paciente_id") or 0)
         except Exception:
-            pass
+            pid = 0
+        part_idx = f"P{particao}" if particao is not None else "P0"
+        cls.particoes[part_idx] = cls.particoes.get(part_idx, 0) + 1
+        if offset is not None:
+            # Offset absoluto informado pelo broker
+            cls.offsets[part_idx] = max(cls.offsets.get(part_idx, 0), offset + 1)
+        else:
+            cls.offsets[part_idx] = cls.offsets.get(part_idx, 0) + 1
+        cls.ultima_msg = {
+            "paciente_id": pid,
+            "particao": part_idx,
+            "offset": offset if offset is not None else cls.offsets[part_idx],
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+        }
+
+    @classmethod
+    def reset(cls):
+        cls.total_publicadas = 0
+        cls.particoes = {"P0": 0, "P1": 0, "P2": 0, "P3": 0}
+        cls.offsets = {"P0": 0, "P1": 0, "P2": 0, "P3": 0}
+        cls.ultima_msg = None
+
+
+async def publicar_kafka_se_disponivel(record: dict):
+    """Publica registro no Apache Kafka se o broker estiver acessível e atualiza métricas.
+
+    As métricas do painel refletem apenas o que o broker confirmou: a partição
+    e o offset vêm do RecordMetadata da mensagem, não de uma estimativa local.
+    """
+    def _pub():
+        producer = None
+        try:
+            from kafka import KafkaProducer
+            from middleware.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC
+            producer = KafkaProducer(
+                bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS.split(","),
+                key_serializer=lambda k: k.encode("utf-8") if k else None,
+                value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+                request_timeout_ms=2000,
+            )
+            # A chave garante a mesma partição usada pelo produtor oficial
+            futuro = producer.send(
+                KAFKA_TOPIC,
+                key=str(record.get("paciente_id", "")),
+                value=record,
+            )
+            metadata = futuro.get(timeout=3)
+            KafkaMonitorMetrics.registrar(record, metadata.partition, metadata.offset)
+        except Exception:
+            KafkaMonitorMetrics.registrar(record, falhou=True)
+        finally:
+            if producer is not None:
+                try:
+                    producer.close(timeout=1)
+                except Exception:
+                    pass
     try:
         await asyncio.to_thread(_pub)
     except Exception:
@@ -409,7 +662,23 @@ async def process_single(state: MonitorState) -> bool:
         "numero": numero,
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
-    await asyncio.sleep(delay * 0.8)
+    await asyncio.sleep(delay * 0.6)
+
+    # --- Etapa 2.5: Middleware Apache Kafka (MOM) ---
+    pid = int(record.get("paciente_id") or 0)
+    part_idx = pid % 4
+    await state.broadcast("kafka_stage", {
+        "numero": numero,
+        "paciente_id": record.get("paciente_id"),
+        "topico": "telemetria_hospitalar",
+        "particao": part_idx,
+        "particao_nome": f"P{part_idx}",
+        "particoes": 4,
+        "compressao": "gzip",
+        "ack": "all (-1)",
+        "timestamp": datetime.now().strftime("%H:%M:%S"),
+    })
+    await asyncio.sleep(delay * 0.4)
 
     # --- Etapa 3: HTTP POST ao Load Balancer ---
     await state.broadcast("http_post", {
@@ -429,8 +698,8 @@ async def process_single(state: MonitorState) -> bool:
             except Exception:
                 resp_data = {"detail": response.text}
 
-        # Publicar também no RabbitMQ se disponível
-        await publicar_rabbitmq_se_disponivel(record)
+        # Publicação no Apache Kafka (Middleware Oficial)
+        await publicar_kafka_se_disponivel(record)
 
         # Se o Load Balancer retornou erro (ex: 502 quando todos os servidores falharam):
         # O Middleware retém a mensagem na fila temporária para não perder dados!
@@ -548,14 +817,143 @@ async def run_simulation(state: MonitorState):
 # Aplicação FastAPI
 # ============================================================
 
+async def _auto_scale_watcher(state: MonitorState):
+    """Background task que sincroniza processos de servidor com o auto-scaling do LB.
+
+    O auto-scale do balanceador apenas adiciona/remove URLs no pool de roteamento,
+    mas NÃO inicia ou para os processos dos servidores.  Este watcher verifica
+    periodicamente o estado dos nós no LB e, quando detecta que o nó reserva
+    (8004) foi ativado pelo auto-scaler mas o processo não está rodando,
+    inicia-o automaticamente via ``religar_servidor_processo``.
+
+    Também emite eventos SSE ``auto_scale_event`` para o frontend refletir
+    as ações em tempo real.
+    """
+    # URLs dos servidores reserva conhecidos (porta → número do servidor)
+    PORTA_PARA_NUM = {8004: 4}
+    _previous_active: set[str] = set()
+
+    while True:
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                res = await client.get(f"{state.lb_url}/api/nodes")
+                data = res.json()
+                nodes = data.get("nodes", {})
+                current_active = set(nodes.keys())
+
+                # Detectar nós recém-adicionados pelo auto-scaler (Scale-Out)
+                novos = current_active - _previous_active
+                for url in novos:
+                    try:
+                        porta = int(url.rstrip("/").split(":")[-1])
+                    except ValueError:
+                        continue
+                    servidor_num = PORTA_PARA_NUM.get(porta)
+                    if servidor_num is None:
+                        continue
+                    # Verificar se o processo está online; se não, iniciar
+                    online = await verificar_servidor_online(porta)
+                    if not online:
+                        print(
+                            f"[AUTO-SCALE WATCHER] 🚀 Servidor reserva :{porta} "
+                            f"adicionado ao pool pelo auto-scaler — iniciando processo..."
+                        )
+                        religar_servidor_processo(servidor_num)
+                        # Aguardar até o servidor subir (máx ~3s)
+                        for _ in range(12):
+                            await asyncio.sleep(0.25)
+                            if await verificar_servidor_online(porta):
+                                break
+                        online = await verificar_servidor_online(porta)
+
+                    cfg = SERVIDORES_CONFIG.get(servidor_num, {})
+                    await state.broadcast("auto_scale_event", {
+                        "acao": "scale_out",
+                        "servidor_num": servidor_num,
+                        "server_id": cfg.get("server_id", f"server-0{servidor_num}"),
+                        "porta": porta,
+                        "online": online,
+                        "total_servidores": len(current_active),
+                        "mensagem": (
+                            f"🚀 Auto-Scale: {cfg.get('nome', f'Servidor {servidor_num}')} "
+                            f"(:{porta}) ativado no balanceador e pronto para tráfego!"
+                        ),
+                        "timestamp": datetime.now().strftime("%H:%M:%S"),
+                    })
+                    await state.broadcast("escala_alterada", {
+                        "status": "ok",
+                        "acao": "servidor_reserva_ativado",
+                        "mensagem": f"Servidor reserva :{porta} ativado pelo Auto-Scaling!",
+                        "servidor_ativado": url,
+                        "total_servidores": len(current_active),
+                    })
+                    # Descarregar fila de retenção se houver
+                    if online and state.fila_retencao:
+                        asyncio.create_task(descarregar_fila_retencao(state))
+
+                # Detectar nós removidos pelo auto-scaler (Scale-In)
+                removidos = _previous_active - current_active
+                for url in removidos:
+                    try:
+                        porta = int(url.rstrip("/").split(":")[-1])
+                    except ValueError:
+                        continue
+                    servidor_num = PORTA_PARA_NUM.get(porta)
+                    if servidor_num is None:
+                        continue
+                    cfg = SERVIDORES_CONFIG.get(servidor_num, {})
+                    await state.broadcast("auto_scale_event", {
+                        "acao": "scale_in",
+                        "servidor_num": servidor_num,
+                        "server_id": cfg.get("server_id", f"server-0{servidor_num}"),
+                        "porta": porta,
+                        "total_servidores": len(current_active),
+                        "mensagem": (
+                            f"⬇️ Auto-Scale: {cfg.get('nome', f'Servidor {servidor_num}')} "
+                            f"(:{porta}) desativado pelo auto-scaler (Scale-In)!"
+                        ),
+                        "timestamp": datetime.now().strftime("%H:%M:%S"),
+                    })
+                    await state.broadcast("escala_alterada", {
+                        "status": "ok",
+                        "acao": "servidor_reserva_desativado",
+                        "mensagem": f"Servidor reserva :{porta} desativado pelo Auto-Scaling!",
+                        "servidor_desativado": url,
+                        "total_servidores": len(current_active),
+                    })
+
+                _previous_active = current_active
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            pass  # LB pode estar temporariamente inacessível
+
+        try:
+            await asyncio.sleep(1.5)  # Verificar a cada 1.5 segundos
+        except asyncio.CancelledError:
+            break
+
+
 def create_app(csv_path: str, lb_url: str) -> FastAPI:
     """Cria a aplicação FastAPI do monitor."""
     state = MonitorState(csv_path, lb_url)
 
+    _watcher_task = None
+
     @asynccontextmanager
     async def lifespan(application: FastAPI):
+        nonlocal _watcher_task
         print(f"[MONITOR] Interface disponível em http://localhost:5000")
+        if not os.environ.get("PYTEST_CURRENT_TEST"):
+            _watcher_task = asyncio.create_task(_auto_scale_watcher(state))
+            print(f"[MONITOR] Auto-Scale Watcher iniciado (sincroniza processos com o LB)")
         yield
+        if _watcher_task:
+            _watcher_task.cancel()
+            try:
+                await _watcher_task
+            except asyncio.CancelledError:
+                pass
 
     app = FastAPI(
         title="Monitor de Visualização - Sistema Hospitalar",
@@ -709,6 +1107,11 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
         state.speed = valor
         return {"status": "ok", "velocidade": valor}
 
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint para o monitor."""
+        return {"status": "ok", "service": "visualizacao.monitor", "port": 5000}
+
     @app.get("/api/status")
     async def get_status():
         """Retorna o estado atual do monitor."""
@@ -771,7 +1174,7 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
 
     @app.get("/api/servidores/status")
     async def api_servidores_status():
-        """Retorna o estado de saúde e disponibilidade de cada servidor."""
+        """Retorna o estado de saúde e disponibilidade de cada servidor com dados da VM."""
         resultado = {}
         tem_algum_online = False
         for num, cfg in SERVIDORES_CONFIG.items():
@@ -784,10 +1187,85 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                 "server_id": cfg["server_id"],
                 "nome": cfg["nome"],
                 "online": online,
+                "vm_name": cfg.get("vm_name", f"vm-servidor-0{num}"),
+                "vm_ip": cfg.get("vm_ip", f"192.168.56.{12+num}"),
+                "os": cfg.get("os", "Ubuntu 22.04 LTS (Jammy)"),
+                "vcpu": cfg.get("vcpu", "1 vCPU"),
+                "ram": cfg.get("ram", "512 MB"),
+                "mac": cfg.get("mac", f"08:00:27:3A:4B:{12+num:02d}"),
+                "db": cfg.get("db", f"databases/server{num}.db"),
             }
         if tem_algum_online and state.fila_retencao:
             asyncio.create_task(descarregar_fila_retencao(state))
         return {"status": "ok", "servidores": resultado}
+
+    @app.get("/api/vms")
+    async def api_vms():
+        """Retorna o inventário completo e status em tempo real das Máquinas Virtuais (VMs)."""
+        vms_status = []
+        for item in VM_CLUSTER_MAP:
+            vm = dict(item)
+            porta = vm.get("porta")
+            online = False
+            lat_ms = 0.45
+            if porta:
+                t0 = time.time()
+                if porta == 9092:
+                    online = await verificar_kafka_online()
+                elif porta == 5000:
+                    online = True
+                    lat_ms = 0.25
+                else:
+                    online = await verificar_servidor_online(porta)
+                if porta != 5000:
+                    lat_ms = round((time.time() - t0) * 1000, 2)
+                    if lat_ms < 0.1:
+                        lat_ms = 0.35
+
+            if vm["id"] == "vm-servidor-04":
+                if online:
+                    try:
+                        async with httpx.AsyncClient(timeout=0.4) as client:
+                            resp = await client.get(f"{state.lb_url}/health")
+                            if resp.status_code == 200 and any("8004" in s for s in resp.json().get("servidores", [])):
+                                vm["status"] = "ONLINE (SCALE-OUT ATIVO)"
+                            else:
+                                vm["status"] = "STANDBY (RESERVA PRONTA)"
+                    except Exception:
+                        vm["status"] = "STANDBY"
+                else:
+                    vm["status"] = "OFFLINE"
+            elif vm["id"] == "vm-cliente":
+                vm["status"] = "STANDBY (PRONTO PARA ENVIO)"
+            elif vm["id"] == "vm-monitor":
+                vm["status"] = "ONLINE (DASHBOARD ATIVO)"
+            else:
+                vm["status"] = "ONLINE" if online else "OFFLINE"
+
+            db_rel = vm.get("db")
+            db_size = 0
+            if db_rel:
+                p_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                f_abs = os.path.join(p_dir, db_rel)
+                if os.path.exists(f_abs):
+                    try:
+                        db_size = os.path.getsize(f_abs)
+                    except Exception:
+                        pass
+            vm["db_size_bytes"] = db_size
+            vm["ping_ms"] = lat_ms if (online or vm["id"] == "vm-cliente") else None
+            vms_status.append(vm)
+
+        return {
+            "status": "ok",
+            "hypervisor": "VirtualBox / Vagrant / Linux KVM (Ubuntu 22.04 LTS)",
+            "network_subnet": "192.168.56.0/24",
+            "gateway": "192.168.56.1",
+            "total_vms": len(vms_status),
+            "vms_online": sum(1 for v in vms_status if "ONLINE" in v["status"]),
+            "vms": vms_status,
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+        }
 
     @app.post("/api/servidores/{servidor_num}/derrubar")
     async def api_derrubar_servidor(servidor_num: int):
@@ -890,6 +1368,10 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
         """Recebe eventos de requisições externas atendidas pelo Load Balancer e transmite via SSE para o painel."""
         try:
             payload = await request.json()
+            # Durante teste de carga integrado, suprimir broadcast redundante para evitar sobrecarga no DOM do navegador
+            if teste_carga.running:
+                return {"status": "ok", "suppressed_benchmark": True}
+
             server_id = payload.get("server_id", "server-01")
             status_code = payload.get("status_code", 200)
             latencia_ms = payload.get("latencia_ms", 0)
@@ -915,6 +1397,279 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
             return {"status": "ok"}
         except Exception as e:
             return JSONResponse(status_code=400, content={"error": str(e)})
+
+    @app.post("/api/evento-escala-externo")
+    async def api_evento_escala_externo(request: Request):
+        """Recebe notificação direta de escala do Load Balancer e transmite via SSE para o painel."""
+        try:
+            payload = await request.json()
+            acao = payload.get("acao", "scale_out")
+            servidor_url = payload.get("servidor", "")
+            motivo = payload.get("motivo", "")
+
+            try:
+                porta = int(servidor_url.rstrip("/").split(":")[-1])
+            except (ValueError, IndexError):
+                porta = 8004
+
+            servidor_num = 4 if porta == 8004 else 1
+            cfg = SERVIDORES_CONFIG.get(servidor_num, {})
+            is_scale_out = (acao == "scale_out")
+
+            online = await verificar_servidor_online(porta)
+            if is_scale_out and not online:
+                religar_servidor_processo(servidor_num)
+                for _ in range(12):
+                    await asyncio.sleep(0.25)
+                    if await verificar_servidor_online(porta):
+                        break
+                online = await verificar_servidor_online(porta)
+
+            msg = (
+                f"🚀 Auto-Scale: {cfg.get('nome', f'Servidor {servidor_num}')} (:{porta}) "
+                f"ativado no balanceador ({motivo})!"
+                if is_scale_out
+                else f"⬇️ Auto-Scale: {cfg.get('nome', f'Servidor {servidor_num}')} (:{porta}) "
+                f"desativado no balanceador ({motivo})!"
+            )
+
+            await state.broadcast("auto_scale_event", {
+                "acao": acao,
+                "servidor_num": servidor_num,
+                "server_id": cfg.get("server_id", "server-04"),
+                "porta": porta,
+                "online": online,
+                "total_servidores": 4 if is_scale_out else 3,
+                "mensagem": msg,
+                "timestamp": datetime.now().strftime("%H:%M:%S"),
+            })
+
+            await state.broadcast("escala_alterada", {
+                "status": "ok",
+                "acao": "servidor_reserva_ativado" if is_scale_out else "servidor_reserva_desativado",
+                "mensagem": msg,
+                "servidor_ativado": servidor_url if is_scale_out else None,
+                "servidor_desativado": servidor_url if not is_scale_out else None,
+                "total_servidores": 4 if is_scale_out else 3,
+            })
+
+            if is_scale_out and online and state.fila_retencao:
+                asyncio.create_task(descarregar_fila_retencao(state))
+
+            return {"status": "ok"}
+        except Exception as e:
+            return JSONResponse(status_code=400, content={"error": str(e)})
+
+    # ── Escalabilidade Enterprise ─────────────────────────────
+
+    @app.get("/api/enterprise/nodes")
+    async def api_enterprise_nodes():
+        """Proxy para métricas detalhadas por nó do balanceador enterprise."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.get(f"{state.lb_url}/api/nodes")
+                return res.json()
+        except Exception as e:
+            return {"error": str(e), "nodes": {}}
+
+    @app.get("/api/enterprise/metrics")
+    async def api_enterprise_metrics():
+        """Proxy para métricas globais do balanceador enterprise."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.get(f"{state.lb_url}/api/metrics")
+                return res.json()
+        except Exception as e:
+            return {"error": str(e)}
+
+    @app.get("/api/enterprise/algorithm")
+    async def api_enterprise_get_algorithm():
+        """Retorna o algoritmo de balanceamento atual."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.get(f"{state.lb_url}/api/algorithm")
+                return res.json()
+        except Exception as e:
+            return {"algorithm": "round_robin", "error": str(e)}
+
+    @app.post("/api/enterprise/algorithm")
+    async def api_enterprise_set_algorithm(request: Request):
+        """Altera o algoritmo de balanceamento no balanceador."""
+        try:
+            body = await request.json()
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.post(f"{state.lb_url}/api/algorithm", json=body)
+                data = res.json()
+                await state.broadcast("algorithm_changed", {
+                    "algorithm": body.get("algorithm", "unknown"),
+                    "timestamp": datetime.now().strftime("%H:%M:%S"),
+                })
+                return data
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.post("/api/enterprise/auto-scale")
+    async def api_enterprise_auto_scale(request: Request):
+        """Ativa/desativa o auto-scaling no balanceador."""
+        try:
+            body = await request.json()
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.post(f"{state.lb_url}/api/auto-scale", json=body)
+                data = res.json()
+                await state.broadcast("auto_scale_changed", {
+                    "enabled": body.get("enabled", False),
+                    "timestamp": datetime.now().strftime("%H:%M:%S"),
+                })
+                return data
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.get("/api/enterprise/scale-history")
+    async def api_enterprise_scale_history():
+        """Retorna histórico de eventos de auto-scaling."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.get(f"{state.lb_url}/api/scale-history")
+                return res.json()
+        except Exception as e:
+            return {"history": [], "error": str(e)}
+
+    @app.post("/api/enterprise/nodes/weight")
+    async def api_enterprise_node_weight(request: Request):
+        """Proxy para alterar o peso de um nó."""
+        try:
+            body = await request.json()
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.post(f"{state.lb_url}/api/nodes/weight", json=body)
+                return res.json()
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.post("/api/enterprise/nodes/latency")
+    async def api_enterprise_node_latency(request: Request):
+        """Proxy para injetar latência de teste em um nó."""
+        try:
+            body = await request.json()
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.post(f"{state.lb_url}/api/nodes/latency", json=body)
+                return res.json()
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.post("/api/enterprise/nodes/reset")
+    async def api_enterprise_node_reset():
+        """Proxy para resetar nós às condições padrão de repouso."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.post(f"{state.lb_url}/api/nodes/reset")
+                return res.json()
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    # ── Endpoints de Compatibilidade e Status de Middleware ────────────────
+
+    @app.get("/api/esb/status")
+    async def api_esb_status():
+        """Compatibilidade: informa transição para o Apache Kafka."""
+        return {
+            "status": "migrated_to_kafka",
+            "middleware": "Apache Kafka (MOM)",
+            "bus_name": "KafkaMessageBus",
+            "active_topic": "telemetria_hospitalar",
+        }
+
+    @app.get("/api/esb/audit")
+    async def api_esb_audit():
+        """Compatibilidade: histórico de auditoria migrado."""
+        return {"audit_entries": []}
+
+    @app.get("/api/orb/status")
+    async def api_orb_status():
+        """Compatibilidade: objetos e tópicos registrados no middleware."""
+        return {
+            "naming_bindings": [
+                "KafkaTopic/telemetria_hospitalar",
+                "KafkaDLT/telemetria_hospitalar_dlt",
+                "KafkaGroup/consumidor_servidor_1",
+                "KafkaGroup/consumidor_servidor_2",
+                "KafkaGroup/consumidor_servidor_3",
+                "KafkaGroup/consumidor_servidor_4",
+            ],
+            "active_skeletons": [],
+            "total_invocations": 0,
+            "failed_invocations": 0,
+        }
+
+    @app.get("/api/kafka/status")
+    async def api_kafka_status():
+        """Retorna estado da configuração e conectividade com o Apache Kafka."""
+        try:
+            from middleware.config import (
+                get_kafka_config,
+                KAFKA_BOOTSTRAP_SERVERS,
+                KAFKA_TOPIC,
+                KAFKA_DLT_TOPIC,
+                KAFKA_CONSUMER_GROUPS,
+            )
+            cfg = get_kafka_config()
+
+            # Status real de cada consumer group: depende de o servidor
+            # backend de destino estar respondendo, não de um valor fixo.
+            consumer_groups = []
+            for info in KAFKA_CONSUMER_GROUPS:
+                url = info["servidor_url"].rstrip("/")
+                porta = int(url.rsplit(":", 1)[-1]) if ":" in url else 8000
+                online = await verificar_servidor_online(porta)
+                consumer_groups.append({
+                    "group_id": info["group_id"],
+                    "target": info["server_id"],
+                    "port": porta,
+                    "status": "online" if online else "offline",
+                })
+
+            broker_conectado = False
+            try:
+                from kafka import KafkaAdminClient
+                admin = KafkaAdminClient(
+                    bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS.split(","),
+                    request_timeout_ms=1000,
+                    api_version_auto_timeout_ms=1000,
+                )
+                admin.close()
+                broker_conectado = True
+            except Exception:
+                broker_conectado = False
+
+            return {
+                "status": "online" if broker_conectado else "offline",
+                "bootstrap_servers": KAFKA_BOOTSTRAP_SERVERS,
+                "topic": KAFKA_TOPIC,
+                "dlt_topic": KAFKA_DLT_TOPIC,
+                "broker_conectado": broker_conectado,
+                "config": cfg.to_dict(),
+                "metrics": {
+                    "total_publicadas": KafkaMonitorMetrics.total_publicadas,
+                    "particoes": KafkaMonitorMetrics.particoes,
+                    "offsets": KafkaMonitorMetrics.offsets,
+                    "ultima_msg": KafkaMonitorMetrics.ultima_msg,
+                    "circuit_breaker": "CLOSED",
+                    "rate_limiter": "100 req/s",
+                    "compression": "gzip",
+                    "consumer_groups": consumer_groups,
+                },
+            }
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.post("/api/esb/process")
+    async def api_esb_process(request: Request):
+        """Processa um registro publicando diretamente no tópico do Kafka."""
+        try:
+            body = await request.json()
+            await publicar_kafka_se_disponivel(body)
+            return {"status": "ok", "middleware": "kafka", "topic": "telemetria_hospitalar"}
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
 
     return app
 

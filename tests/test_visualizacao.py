@@ -85,3 +85,106 @@ class TestMonitor:
         assert "servidores_reserva" in data
         assert "distribuicao_esperada_por_no" in data
 
+    def test_elementos_enterprise_escalabilidade_no_html(self, monitor_client):
+        resp = monitor_client.get("/")
+        assert resp.status_code == 200
+        html = resp.text
+        assert "ent-panel" in html
+        assert "ent-sel-algorithm" in html
+        assert "ent-btn-autoscale" in html
+        assert "ent-node-grid" in html
+        assert "ent-scale-history" in html
+        assert "Round Robin" in html
+        assert "Least Connections" in html
+        assert "Weighted Round Robin" in html
+
+    def test_enterprise_proxy_endpoints(self, monitor_client):
+        # Nodes proxy fallback
+        resp = monitor_client.get("/api/enterprise/nodes")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "nodes" in data or "error" in data
+
+        # Metrics proxy fallback
+        resp = monitor_client.get("/api/enterprise/metrics")
+        assert resp.status_code == 200
+
+        # Algorithm proxy fallback
+        resp = monitor_client.get("/api/enterprise/algorithm")
+        assert resp.status_code == 200
+
+        # Scale history proxy fallback
+        resp = monitor_client.get("/api/enterprise/scale-history")
+        assert resp.status_code == 200
+
+    def test_elementos_kafka_middleware_no_html(self, monitor_client):
+        resp = monitor_client.get("/")
+        assert resp.status_code == 200
+        html = resp.text
+        assert "kafka-panel" in html
+        assert "telemetria_hospitalar" in html
+        assert "P0" in html
+        assert "P1" in html
+        assert "P2" in html
+        assert "P3" in html
+        assert "consumidor_servidor_1" in html
+        assert "consumidor_servidor_2" in html
+        assert "consumidor_servidor_3" in html
+        assert "consumidor_servidor_4" in html
+        assert "KRaft" in html
+        assert "Token Bucket" in html
+
+    def test_esb_orb_monitor_endpoints(self, monitor_client):
+        resp_esb = monitor_client.get("/api/esb/status")
+        assert resp_esb.status_code == 200
+        assert "bus_name" in resp_esb.json()
+
+        resp_audit = monitor_client.get("/api/esb/audit")
+        assert resp_audit.status_code == 200
+        assert "audit_entries" in resp_audit.json()
+
+    def test_kafka_monitor_endpoint(self, monitor_client):
+        resp_kafka = monitor_client.get("/api/kafka/status")
+        assert resp_kafka.status_code == 200
+        data = resp_kafka.json()
+        assert "bootstrap_servers" in data
+        assert "topic" in data
+        assert data["topic"] == "telemetria_hospitalar"
+        assert "metrics" in data
+        assert "particoes" in data["metrics"]
+
+    def test_evento_escala_externo(self, monitor_client):
+        resp = monitor_client.post(
+            "/api/evento-escala-externo",
+            json={
+                "acao": "scale_out",
+                "servidor": "http://localhost:8004",
+                "motivo": "failover_sem_nos_saudaveis",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
+        resp_in = monitor_client.post(
+            "/api/evento-escala-externo",
+            json={
+                "acao": "scale_in",
+                "servidor": "http://localhost:8004",
+                "motivo": "low_load",
+            },
+        )
+        assert resp_in.status_code == 200
+        assert resp_in.json()["status"] == "ok"
+
+    def test_vms_endpoint(self, monitor_client):
+        resp = monitor_client.get("/api/vms")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert "vms" in data
+        assert len(data["vms"]) >= 7
+        assert any(v["vm_name"] == "vm-servidor-01" for v in data["vms"])
+        assert any(v["ip"] == "192.168.56.13" for v in data["vms"])
+        assert any(v["vm_name"] == "vm-servidor-04" for v in data["vms"])
+        assert any(v["ip"] == "192.168.56.16" for v in data["vms"])
+        assert data["network_subnet"] == "192.168.56.0/24"

@@ -7,11 +7,11 @@ simulando a chegada de dados de telemetria de pacientes.
 
 Suporta dois modos de envio:
   - HTTP direto (padrão): envia via requests.post ao Load Balancer
-  - Via RabbitMQ (--via-rabbitmq): publica na fila AMQP do middleware
+  - Via Apache Kafka (--via-kafka): publica no tópico do middleware MOM
 
 Uso:
     python client/csv_sender.py --url http://localhost:8000/dados --intervalo 1.0 --limite 10
-    python client/csv_sender.py --via-rabbitmq --intervalo 0.5 --limite 20
+    python client/csv_sender.py --via-kafka --intervalo 0.5 --limite 20
 """
 
 import argparse
@@ -119,30 +119,26 @@ def enviar_dados(url: str, csv_path: str, intervalo: float, limite: int = 0):
     print("=" * 60)
 
 
-def enviar_dados_via_rabbitmq(csv_path: str, intervalo: float, limite: int = 0):
+def enviar_dados_via_kafka(csv_path: str, intervalo: float, limite: int = 0):
     """
-    Lê o CSV e publica cada registro na fila do RabbitMQ (middleware MOM).
-
-    Delega para o módulo middleware/produtor.py, mantendo a mesma interface
-    de linha de comando do csv_sender.
-
-    Args:
-        csv_path: Caminho para o arquivo CSV.
-        intervalo: Intervalo em segundos entre cada publicação.
-        limite: Número máximo de registros a publicar (0 = todos).
+    Lê o CSV e publica cada registro no tópico do Apache Kafka (middleware MOM).
     """
-    from middleware.produtor import publicar_dados
+    from middleware.produtor import publicar_dados_kafka
 
     print("=" * 60)
-    print("  LEITOR DE DADOS — CSV Sender (modo MIDDLEWARE RabbitMQ)")
+    print("  LEITOR DE DADOS — CSV Sender (modo MIDDLEWARE Apache Kafka)")
     print("=" * 60)
     print()
 
-    publicar_dados(
+    publicar_dados_kafka(
         csv_path=csv_path,
         intervalo=intervalo,
         limite=limite,
     )
+
+
+# Alias
+enviar_dados_via_middleware = enviar_dados_via_kafka
 
 
 # ============================================================
@@ -150,7 +146,6 @@ def enviar_dados_via_rabbitmq(csv_path: str, intervalo: float, limite: int = 0):
 # ============================================================
 
 if __name__ == "__main__":
-    # Caminho padrão do CSV (relativo ao diretório raiz do projeto)
     projeto_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     csv_padrao = os.path.join(projeto_dir, "data", "dataset.csv")
 
@@ -174,24 +169,24 @@ if __name__ == "__main__":
         help="Número máximo de registros a enviar, 0 = todos (padrão: 0)"
     )
     parser.add_argument(
-        "--via-rabbitmq", action="store_true", default=False,
-        help="Enviar via middleware RabbitMQ em vez de HTTP direto"
+        "--via-kafka", "--via-middleware", action="store_true", default=False,
+        dest="via_kafka",
+        help="Enviar via middleware Apache Kafka MOM (:9092)"
     )
 
     args = parser.parse_args()
 
-    if args.via_rabbitmq:
-        # Modo middleware: publicar na fila RabbitMQ
-        enviar_dados_via_rabbitmq(
+    if args.via_kafka:
+        enviar_dados_via_kafka(
             csv_path=args.csv,
             intervalo=args.intervalo,
             limite=args.limite,
         )
     else:
-        # Modo HTTP direto (padrão — compatível com Marcos 1 e 2)
         enviar_dados(
             url=args.url,
             csv_path=args.csv,
             intervalo=args.intervalo,
             limite=args.limite,
         )
+

@@ -1,147 +1,214 @@
 # docker-compose.yml
 # ==============================================================================
-# Ambiente de Desenvolvimento Local — Sistema Distribuído Hospitalar
-# ==============================================================================
-#
-# Sobe o RabbitMQ e opcionalmente todos os componentes do sistema em containers.
-#
-# Uso rápido (apenas RabbitMQ para desenvolvimento):
-#     docker-compose up rabbitmq
-#
-# Uso completo (todos os componentes):
-#     docker-compose up
-#
-# Interface de gerenciamento do RabbitMQ:
-#     http://localhost:15672  (guest/guest)
-#
+# Ambiente Distribuído Enterprise em Contêineres Isolados como VMs Reais
+# Sub-rede Privada Hospitalar: 192.168.56.0/24
 # ==============================================================================
 
 services:
-  # ── RabbitMQ (Middleware MOM) ─────────────────────────────────
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq-middleware
-    hostname: rabbitmq
+  # ── Apache Kafka (Middleware MOM Enterprise - 192.168.56.11) ───────────────
+  kafka:
+    image: apache/kafka:latest
+    container_name: kafka-middleware
+    hostname: vm-middleware
     ports:
-      - "5672:5672"      # AMQP
-      - "15672:15672"    # Management UI
+      - "9092:9092"
+      - "9094:9094"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://192.168.56.11:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 4
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1"]
       interval: 10s
-      timeout: 5s
-      retries: 10
+      timeout: 10s
+      retries: 5
     networks:
-      - rede_hospitalar
+      rede_hospitalar:
+        ipv4_address: 192.168.56.11
 
-  # ── Servidor 1 ───────────────────────────────────────────────
+  # ── Servidor 1 (VM: vm-servidor-01 - 192.168.56.13) ─────────────────────────
   server1:
     build: .
     container_name: server-01
+    hostname: vm-servidor-01
     command: >
       python server/app.py
         --port 8001
         --server-id server-01
         --db-path databases/server1.db
+        --vm-name vm-servidor-01
+        --vm-ip 192.168.56.13
     ports:
       - "8001:8001"
     volumes:
       - ./databases:/app/databases
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; r=requests.get('http://localhost:8001/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     networks:
-      - rede_hospitalar
+      rede_hospitalar:
+        ipv4_address: 192.168.56.13
 
-  # ── Servidor 2 ───────────────────────────────────────────────
+  # ── Servidor 2 (VM: vm-servidor-02 - 192.168.56.14) ─────────────────────────
   server2:
     build: .
     container_name: server-02
+    hostname: vm-servidor-02
     command: >
       python server/app.py
         --port 8002
         --server-id server-02
         --db-path databases/server2.db
+        --vm-name vm-servidor-02
+        --vm-ip 192.168.56.14
     ports:
       - "8002:8002"
     volumes:
       - ./databases:/app/databases
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; r=requests.get('http://localhost:8002/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     networks:
-      - rede_hospitalar
+      rede_hospitalar:
+        ipv4_address: 192.168.56.14
 
-  # ── Servidor 3 ───────────────────────────────────────────────
+  # ── Servidor 3 (VM: vm-servidor-03 - 192.168.56.15) ─────────────────────────
   server3:
     build: .
     container_name: server-03
+    hostname: vm-servidor-03
     command: >
       python server/app.py
         --port 8003
         --server-id server-03
         --db-path databases/server3.db
+        --vm-name vm-servidor-03
+        --vm-ip 192.168.56.15
     ports:
       - "8003:8003"
     volumes:
       - ./databases:/app/databases
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; r=requests.get('http://localhost:8003/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     networks:
-      - rede_hospitalar
+      rede_hospitalar:
+        ipv4_address: 192.168.56.15
 
-  # ── Balanceador de Carga ─────────────────────────────────────
+  # ── Servidor 4 (VM: vm-servidor-04 Reserva - 192.168.56.16) ─────────────────
+  server4:
+    build: .
+    container_name: server-04
+    hostname: vm-servidor-04
+    command: >
+      python server/app.py
+        --port 8004
+        --server-id server-04
+        --db-path databases/server4.db
+        --vm-name vm-servidor-04
+        --vm-ip 192.168.56.16
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./databases:/app/databases
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; r=requests.get('http://localhost:8004/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      rede_hospitalar:
+        ipv4_address: 192.168.56.16
+
+  # ── Balanceador de Carga Enterprise (VM: vm-balanceador - 192.168.56.12) ───
   balanceador:
     build: .
     container_name: balanceador
+    hostname: vm-balanceador
     command: >
       python load_balancer/balancer.py
         --port 8000
-        --servidores http://server1:8001,http://server2:8002,http://server3:8003
+        --servidores http://192.168.56.13:8001,http://192.168.56.14:8002,http://192.168.56.15:8003
+        --servidores-reserva http://192.168.56.16:8004
+        --algorithm round_robin
+        --auto-scale
     ports:
       - "8000:8000"
     depends_on:
       - server1
       - server2
       - server3
+      - server4
     networks:
-      - rede_hospitalar
+      rede_hospitalar:
+        ipv4_address: 192.168.56.12
 
-  # ── Consumidor AMQP (Middleware → Load Balancer) ─────────────
+  # ── Consumidor Kafka Enterprise (192.168.56.18) ─────────────────────────────
   consumidor:
     build: .
-    container_name: consumidor-amqp
+    container_name: consumidor-kafka
+    hostname: vm-consumidor
     command: >
-      python middleware/consumidor.py
-        --lb-url http://balanceador:8000
+      python -m middleware.consumidor
+        --multi
     environment:
-      RABBITMQ_HOST: rabbitmq
+      KAFKA_BOOTSTRAP_SERVERS: 192.168.56.11:9092
+      LOAD_BALANCER_URL: http://192.168.56.12:8000
     depends_on:
-      rabbitmq:
+      kafka:
         condition: service_healthy
       balanceador:
         condition: service_started
     networks:
-      - rede_hospitalar
+      rede_hospitalar:
+        ipv4_address: 192.168.56.18
 
-  # ── Produtor AMQP (Leitor CSV → RabbitMQ) ───────────────────
-  # Usar com: docker-compose run produtor --limite 20 --intervalo 0.3
+  # ── Produtor Kafka Enterprise (VM: vm-cliente - 192.168.56.10) ──────────────
+  # Usar com: docker-compose --profile envio up
   produtor:
     build: .
-    container_name: produtor-amqp
+    container_name: produtor-kafka
+    hostname: vm-cliente
     command: >
-      python middleware/produtor.py
+      python -m middleware.produtor
         --intervalo 0.5
-        --limite 12
+        --limite 20
     environment:
-      RABBITMQ_HOST: rabbitmq
+      KAFKA_BOOTSTRAP_SERVERS: 192.168.56.11:9092
     depends_on:
-      rabbitmq:
+      kafka:
         condition: service_healthy
     profiles:
-      - envio     # Só sobe se usar: docker-compose --profile envio up
+      - envio
     networks:
-      - rede_hospitalar
+      rede_hospitalar:
+        ipv4_address: 192.168.56.10
 
 volumes:
-  rabbitmq_data:
+  kafka_data:
 
 networks:
   rede_hospitalar:
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.56.0/24
+          gateway: 192.168.56.1
