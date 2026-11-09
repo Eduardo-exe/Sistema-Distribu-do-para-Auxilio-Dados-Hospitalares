@@ -1,0 +1,411 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\geometry{a4paper, margin=1.8cm, top=1.8cm, bottom=1.8cm}
+\setlength{\headheight}{15pt}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{microtype}
+\usepackage[skins,breakable]{tcolorbox}
+
+% --- PALETA DE CORES INSTITUCIONAL ---
+\definecolor{azulPrimario}{RGB}{18, 52, 102}      % Azul marinho técnico
+\definecolor{azulSecundario}{RGB}{35, 85, 145}   % Azul institucional
+\definecolor{verdeSucesso}{RGB}{30, 110, 60}     % Verde sóbrio
+\definecolor{cinzaFundo}{RGB}{246, 248, 250}     % Cinza muito claro
+\definecolor{cinzaBorda}{RGB}{210, 218, 226}     % Cinza sutil
+\definecolor{azulCaixa}{RGB}{238, 244, 252}      % Azul pastel suave
+\definecolor{laranjaCaixa}{RGB}{253, 246, 237}   % Laranja suave para avisos
+\definecolor{roxoTecnico}{RGB}{109, 40, 217}     % Roxo para ESB / ORB
+\definecolor{vermelhoAlerta}{RGB}{185, 28, 28}   % Vermelho para falhas / resiliência
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=azulPrimario,
+    urlcolor=azulPrimario,
+    citecolor=azulSecundario
+}
+
+% --- ESTILOS DE CAIXAS CONCEITUAIS E ARQUITETURAIS ---
+\newtcolorbox{fundamento}[1][]{
+    enhanced,
+    colback=azulCaixa,
+    colframe=azulSecundario,
+    coltitle=white,
+    fonttitle=\bfseries\small\color{white},
+    arc=2.5mm,
+    boxrule=0.8pt,
+    left=9pt,
+    right=9pt,
+    top=7pt,
+    bottom=7pt,
+    title={Princípio Arquitetural: #1},
+    breakable
+}
+
+\newtcolorbox{conceito}[1][]{
+    enhanced,
+    colback=cinzaFundo,
+    colframe=cinzaBorda,
+    coltitle=azulPrimario,
+    fonttitle=\bfseries\small\color{azulPrimario},
+    arc=2mm,
+    boxrule=0.6pt,
+    left=8pt,
+    right=8pt,
+    top=6pt,
+    bottom=6pt,
+    title={Fundamentação Teórica: #1},
+    breakable
+}
+
+\newtcolorbox{destaque}[1][]{
+    enhanced,
+    colback=laranjaCaixa,
+    colframe=azulPrimario,
+    coltitle=white,
+    fonttitle=\bfseries\small\color{white},
+    arc=2mm,
+    boxrule=0.8pt,
+    left=8pt,
+    right=8pt,
+    top=6pt,
+    bottom=6pt,
+    title={Decisão de Engenharia: #1},
+    breakable
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\footnotesize \textbf{Sistemas Distribuídos} — Evolução do Middleware e Tolerância a Falhas}
+\rhead{\footnotesize UFMA / Engenharia da Computação}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+% --- CABEÇALHO FORMAL ---
+\begin{center}
+    {\large \textsc{Universidade Federal do Maranhão}}\\[1pt]
+    {\small Centro de Ciências Exatas e Tecnologia — Departamento de Engenharia da Computação}\\[2pt]
+    {\small Disciplina: Sistemas Distribuídos — Docente: Prof. Dr. Luiz Henrique Neves Rodrigues}\\[8pt]
+    
+    {\Large \textbf{Relatório Técnico de Evolução Arquitetural}}\\[3pt]
+    {\large \textit{Transição do Middleware RabbitMQ para Barramento Híbrido ESB + ORB, Replicação Fanout e Tolerância Sistemática a Falhas (Marcos 3 e 4)}}\\[6pt]
+    
+    \textbf{Discentes:} Eduardo dos Santos Oliveira, Fernando da Silva Costa, Herick Vinicius Pinheiro Da Conceição, Samara Santos Viegas e Vyktor Gabryel Costa de Souza\\[6pt]
+    \rule{\linewidth}{1pt}
+\end{center}
+
+\vspace{-0.2cm}
+
+% =========================================================================
+\section{Introdução e Contexto do Problema}
+% =========================================================================
+
+Em ambientes hospitalares modernos, particularmente em Unidades de Terapia Intensiva (UTI), os sinais vitais de pacientes (frequência cardíaca, saturação de oxigênio SpO2, pressão arterial e temperatura) são gerados em alta frequência por monitores multiparamétricos à beira do leito. Um sistema distribuído encarregado de processar esse fluxo de dados enfrenta desafios rigorosos:
+
+\begin{enumerate}
+    \item \textbf{Missão Crítica}: A perda de um único pacote contendo um alerta de parada cardiorrespiratória ou de queda do leito pode comprometer vidas. O sistema deve operar sob garantia estrita de \textit{Zero Data Loss}.
+    \item \textbf{Tolerância a Falhas Parciais}: Em um cluster distribuído, nós servidores podem falhar a qualquer momento devido a esgotamento de memória, sobrecarga de CPU ou falhas de rede. A infraestrutura deve continuar operando mesmo com a queda de um ou mais nós (\textbf{Marco 4}).
+    \item \textbf{Escalabilidade e Replicação Ativa}: Os dados devem ser replicados de forma consistente entre múltiplas instâncias para permitir leitura paralela e sobrevivência a desastres (\textbf{Marco 3}).
+\end{enumerate}
+
+O presente documento detalha a transição arquitetural realizada no núcleo de processamento do sistema: a substituição do broker externo tradicional (\textbf{RabbitMQ}) por uma solução de \textbf{Middleware Corporativo Híbrido} (integrando \textbf{ESB} com pipeline VETRO e \textbf{ORB} com serviço de nomes CORBA CosNaming), associada a técnicas de resiliência (\textit{Circuit Breakers}, \textit{Retry} com recuo exponencial e \textit{Dead-Letter Queues}).
+
+% =========================================================================
+\section{Motivação da Substituição do RabbitMQ: Análise de Limitações Técnicas}
+% =========================================================================
+
+\subsection{Transmissão Agnóstica (Dumb Pipes) vs. Mediação Ativa (Smart Bus)}
+Inicialmente, o sistema utilizava o RabbitMQ operando via protocolo AMQP na porta 5672 para enfileirar as mensagens entre o cliente produtor e os servidores de persistência. Embora o RabbitMQ seja amplamente utilizado na indústria para mensageria assíncrona desacoplada, sua arquitetura baseia-se no princípio clássico de \textit{Dumb Pipes and Smart Endpoints}: o broker atua estritamente como um canal passivo de transporte de bytes, delegando todo o tratamento semântico exclusivamente às extremidades.
+
+\begin{fundamento}{Incompatibilidade de Brokers Tradicionais com Telemetria Crítica}
+Em fluxos contínuos de sinais vitais, a transmissão passiva é insuficiente. O sistema demanda \textbf{mediação ativa}: o barramento necessita inspecionar o payload em trânsito para validar limites fisiológicos, normalizar dados heterogêneos para padrões interoperáveis (como HL7/FHIR) e aplicar roteamento baseado no conteúdo (\textit{Content-Based Routing}). 
+
+Transferir essas responsabilidades para os nós finais gera duplicação de lógica e acoplamento desnecessário. Além disso, a dependência de um processo \textit{daemon} monolítico externo introduz um Ponto Único de Falha (\textit{Single Point of Failure} - SPOF), onde a indisponibilidade do broker paralisaria toda a comunicação entre clientes e servidores de persistência.
+\end{fundamento}
+
+\subsection{Limitações Técnicas do RabbitMQ no Cenário Hospitalar}
+\begin{enumerate}
+    \item \textbf{Ponto Único de Falha (SPOF) Monolítico}: A operação dependia de um processo \textit{daemon} externo de terceiros (\texttt{rabbitmq-server}) executando sobre a máquina virtual Erlang (BEAM). Caso o daemon sofresse pane ou a porta AMQP 5672 fosse bloqueada, todo o fluxo era interrompido.
+    \item \textbf{Agnosticismo Semântico de Carga Útil}: O RabbitMQ enfileira sequências opacas de bytes (\textit{byte payloads}). Ele não valida conformidade com padrões hospitalares (como HL7 ou FHIR), não calcula escores de risco e não descarta dados corrompidos antes da entrega.
+    \item \textbf{Sobrecarga de Protocolo AMQP}: O handshake de conexão, confirmações por canal (\textit{channel acks}) e negociação de prefetch criam latência desnecessária quando comparados a uma arquitetura orientada a serviços com despacho direto e transacional.
+    \item \textbf{Incompatibilidade com Objetos Distribuídos}: O RabbitMQ é um middleware puramente orientado a mensagens (MOM). Ele não oferece suporte nativo a invocação remota orientada a objetos (RPC / CORBA) ou resolução hierárquica de nomes de serviços.
+\end{enumerate}
+
+% =========================================================================
+\section{A Nova Arquitetura: Middleware Híbrido ESB + ORB}
+% =========================================================================
+
+Para superar as limitações do RabbitMQ, concebeu-se um middleware nativo completo que combina dois paradigmas clássicos e consolidados da computação distribuída:
+
+\begin{destaque}{Padrão Híbrido: Barramento de Serviços + Barramento de Objetos}
+A nova solução integra nativamente:
+\begin{itemize}
+    \item \textbf{Enterprise Service Bus (ESB)}: Responsável pelo desacoplamento de fluxos, validação semântica clínica e roteamento inteligente através do padrão \textbf{Pipeline VETRO}.
+    \item \textbf{Object Request Broker (ORB - CORBA)}: Responsável pela interoperabilidade de componentes, transparência de localização e resolução dinâmica de instâncias através do padrão \textbf{CosNaming}.
+\end{itemize}
+\end{destaque}
+
+\subsection{O Enterprise Service Bus (ESB) e o Pipeline VETRO}
+
+O padrão \textbf{VETRO} é uma referência internacional em integração de sistemas corporativos (\textit{Enterprise Integration Patterns}). No contexto deste projeto, cada dado de sensor clínico atravessa sequencialmente cinco etapas atômicas antes de alcançar os bancos de dados:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{c X p{5.2cm}}
+\toprule
+\textbf{Fase} & \textbf{Conceito e Mecanismo Técnico} & \textbf{Papel no Domínio Hospitalar} \\
+\midrule
+\textbf{V} & \textbf{Validate (Validação Semântica)}: \newline
+Verifica tipagem e se os valores fisiológicos estão dentro de intervalos humanamente possíveis. Registros anômalos são isolados. & 
+$\text{FC} \in [30, 220]\text{ bpm}$, $\text{SpO2} \in [50, 100]\%$, \newline
+$\text{Temp} \in [30, 45]^\circ\text{C}$, $\text{PA} \in [40, 260]\text{ mmHg}$. \\
+\addlinespace
+\textbf{E} & \textbf{Enrich (Enriquecimento Clínico)}: \newline
+Computa variáveis secundárias clínicas antes do armazenamento, agregando inteligência hospitalar ao dado bruto. & 
+Cálculo determinístico do escore \textbf{NEWS2} e prioridade da \textbf{Triagem de Manchester}. \\
+\addlinespace
+\textbf{T} & \textbf{Transform (Transformação e Normalização)}: \newline
+Converte esquemas heterogêneos de sensores médicos para o modelo canônico interoperável \textbf{HL7 v2 / FHIR JSON}. & 
+Padronização de chaves, carimbos temporais ISO-8601 e identificador UUID unívoco. \\
+\addlinespace
+\textbf{R} & \textbf{Route (Roteamento Baseado em Conteúdo)}: \newline
+O roteador de conteúdo (\textit{Content-Based Router}) inspeciona a triagem para definir a fila de despacho. & 
+Emergência e Queda $\to$ Rota prioritária UTI; Casos estáveis $\to$ Rota geral. \\
+\addlinespace
+\textbf{O} & \textbf{Operate (Operação Atômica \& Fanout)}: \newline
+Executa a replicação multi-nó (\textit{fanout}), persistência nos bancos locais e notificação de telemetria. & 
+Gravação síncrona nos SQLite locais com garantia de consistência e descarte de duplicatas. \\
+\bottomrule
+\end{tabularx}
+\caption{Detalhamento técnico das fases do Pipeline VETRO do ESB hospitalar.}
+\end{table}
+
+\begin{conceito}{Cálculo Determinístico do NEWS2 e Manchester}
+O \textbf{NEWS2} (\textit{National Early Warning Score 2}) atribui pontuações baseadas na magnitude do desvio fisiológico:
+\begin{equation}
+\text{Escore}_{\text{NEWS2}} = f(\Delta \text{FC}) + f(\Delta \text{SpO2}) + f(\Delta \text{Temp}) + f(\Delta \text{PA}) + \text{AlertaQueda}
+\end{equation}
+Com base no escore resultante, o middleware aplica a categorização da Triagem de Manchester:
+\begin{itemize}
+    \item \textbf{Vermelho (Emergência)}: Escore $\ge 7$ ou ocorrência de queda súbita. Tempo de resposta imediato ($0\text{ min}$).
+    \item \textbf{Laranja (Muito Urgente)}: Escore de $5$ a $6$. Atendimento em até $10\text{ min}$.
+    \item \textbf{Amarelo (Urgente)}: Escore de $3$ a $4$. Atendimento em até $60\text{ min}$.
+    \item \textbf{Verde (Pouco Urgente)}: Escore de $1$ a $2$. Atendimento em até $120\text{ min}$.
+    \item \textbf{Azul (Não Urgente)}: Escore $0$. Atendimento eletivo em até $240\text{ min}$.
+\end{itemize}
+\end{conceito}
+
+\subsection{O Object Request Broker (ORB) e o Serviço de Nomes CosNaming}
+
+\begin{fundamento}{Transparência de Localização vs. Acoplamento de Endereçamento Físico}
+O endereçamento direto baseado em URLs fixas (\texttt{http://ip:porta}) introduz acoplamento espacial severo na arquitetura distribuída. Caso uma réplica servidora seja reiniciada em outra porta, transferida de nó computacional ou escalada horizontalmente, os nós emissores perdem a conectividade até que seus parâmetros de rede sejam manualmente reconfigurados.
+
+O padrão \textbf{CORBA CosNaming} elimina esse acoplamento introduzindo um \textbf{Serviço de Nomes Federado}: ele desacopla o nome lógico da sua localização física em rede, assegurando \textit{Location Transparency}. O cliente referencia apenas a árvore lógica de identificadores (ex.: \texttt{Hospital/UTI/Server01}), enquanto o mecanismo de resolução do ORB traduz dinamicamente essa chave em uma Referência Interoperável de Objeto (\textit{Interoperable Object Reference} - IOR), viabilizando portabilidade e reconfiguração dinâmica transparente.
+\end{fundamento}
+
+O módulo ORB implementado fornece:
+\begin{itemize}
+    \item \textbf{Árvore Hierárquica de Nomes}: Contextos delimitados que estruturam o hospital em domínios lógicos:
+    \begin{itemize}
+        \item \texttt{Hospital/Core/Telemetria} $\to$ Objeto servidor principal de ingestão;
+        \item \texttt{Hospital/UTI/Server01} $\to$ Réplica servidora alocada para leitos de terapia intensiva;
+        \item \texttt{Hospital/Enfermaria/Server02} $\to$ Réplica servidora alocada para leitos gerais;
+        \item \texttt{Hospital/Cardiologia/Server03} $\to$ Réplica servidora especializada em telemetria cardíaca.
+    \end{itemize}
+    \item \textbf{Interoperable Object Reference (IOR)}: String padronizada codificando metadados de protocolo, endpoint e identificador de objeto (\texttt{IOR:orb+http://...}), assegurando transparência de localização (\textit{Location Transparency}). Se um servidor migrar de porta ou máquina, apenas o binding no CosNaming é atualizado.
+\end{itemize}
+
+% =========================================================================
+\section{Replicação Ativa e Escalabilidade (Marco 3)}
+% =========================================================================
+
+\subsection{Modelo de Replicação Ativa Fanout com Zero Data Loss}
+Para cumprir o Marco 3, o sistema rejeitou o modelo de banco de dados centralizado compartilhado. Em sistemas distribuídos clássicos, um banco de dados central cria um funil de concorrência e um ponto único de falha fatal: se o banco cair, todos os servidores caem simultaneamente.
+
+\begin{destaque}{Arquitetura de Bases Isoladas com Replicação Ativa}
+Cada servidor do cluster opera com sua própria base de dados SQLite local independente e dedicada:
+\begin{itemize}
+    \item Servidor 01 (Porta 8001) $\to$ Base \texttt{server1.db}
+    \item Servidor 02 (Porta 8002) $\to$ Base \texttt{server2.db}
+    \item Servidor 03 (Porta 8003) $\to$ Base \texttt{server3.db}
+    \item Servidor 04 (Porta 8004) $\to$ Base \texttt{server4.db}
+\end{itemize}
+\end{destaque}
+
+\begin{conceito}{Mecanismo de Despacho Fanout Atômico}
+A operação \textit{Operate} do ESB realiza um \textit{Broadcast} estruturado para todas as réplicas ativas:
+\begin{enumerate}
+    \item O middleware calcula o hash SHA-256 da mensagem: $\mathcal{H} = \text{SHA256}(\text{paciente\_id} \parallel \text{timestamp} \parallel \text{sinais\_vitais})$.
+    \item A mensagem é enviada concorrentemente para todos os servidores registrados no pool de replicação.
+    \item Cada servidor recebe o payload e executa uma inserção protegida por chave primária unívoca (\texttt{INSERT OR IGNORE}). Caso ocorra uma retransmissão de rede, a operação é \textbf{idempotente}: o registro duplicado é silenciosamente ignorado sem corromper métricas.
+    \item Mesmo que 2 dos 3 servidores caiam por pane física, o servidor sobrevivente retém 100\% do histórico clínico intacto.
+\end{enumerate}
+\end{conceito}
+
+\subsection{O Papel do Servidor 04 como Warm Standby Elástico}
+Uma réplica reserva tradicional costuma ser fria (\textit{cold standby}, desligada) ou exigir procedimentos complexos de recuperação. No projeto, o Servidor 04 foi implementado no modo \textbf{Warm Standby}:
+\begin{itemize}
+    \item \textbf{Em Espera}: Ele não recebe requisições diretas do cliente através do Balanceador de Carga (o pool ativo atende com Servidores 01, 02 e 03).
+    \item \textbf{Sincronização Contínua}: Ele continua conectado ao barramento de replicação fanout, gravando todas as telemetrias em \texttt{server4.db} em tempo real.
+    \item \textbf{Scale-Out Instantâneo}: Quando a taxa de requisições por segundo (TPS) satura ou um dos servidores principais cai, o Servidor 04 é promovido instantaneamente ao pool ativo com latência nula de aquecimento (\textit{zero warm-up latency}), pois sua base de dados já está perfeitamente espelhada.
+\end{itemize}
+
+% =========================================================================
+\section{Tolerância a Falhas e Resiliência Distribuída (Marco 4)}
+% =========================================================================
+
+O célebre aforismo de Leslie Lamport define com perfeição o desafio do Marco 4: \textit{``Um sistema distribuído é aquele em que o crash de um computador do qual você nunca ouviu falar pode tornar o seu próprio computador inútil''}.
+
+Para garantir que o sistema sobreviva a falhas parciais, quedas abruptas de servidores (\textit{crash faults}) e lentidões de rede (\textit{performance degradations}), foram implementados quatro padrões canônicos de resiliência:
+
+\subsection{1. O Padrão Circuit Breaker (Isolamento Ativo de Falhas)}
+
+\begin{fundamento}{Isolamento de Falhas e Mitigação de Efeitos em Cascata}
+Em arquiteturas distribuídas com dependências síncronas ou concorrentes, a degradação de um único nó (provocada por esgotamento de memória, bloqueio de I/O em disco ou sobrecarga de CPU) propaga-se rapidamente por todo o cluster. Clientes continuam encaminhando requisições ao nó moribundo, retendo threads em espera, exaurindo pools de conexões TCP e elevando a latência média do sistema de forma descontrolada (\textit{cascading failure}).
+
+O padrão \textbf{Circuit Breaker} (formalizado por Michael Nygard) introduz um mecanismo de proteção ativo e automático. Ao constatar um número consecutivo de falhas que excede o limiar de tolerância ($\theta_{\text{fail}} = 5$), o circuito transiciona para o estado \textbf{OPEN}, interceptando novas requisições e retornando falha imediata (\textit{fail-fast}). Essa contenção estanca o desperdício de recursos no balanceador e concede ao nó degradado uma janela temporal de alívio sem sobrecarga para que possa drenar filas pendentes e restabelecer sua integridade operacional.
+\end{fundamento}
+
+O Circuit Breaker opera sob uma Máquina de Estados Finita com três estados:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{p{2.2cm} X p{4.6cm}}
+\toprule
+\textbf{Estado} & \textbf{Comportamento Operacional} & \textbf{Condição de Transição} \\
+\midrule
+\textbf{CLOSED} \newline (Fechado) & 
+O circuito permite passagem normal do tráfego. O nó é considerado saudável. Cada requisição bem-sucedida zera o contador de erros. & 
+Se as falhas consecutivas ultrapassarem o limiar $\theta_{\text{fail}} = 5$, transiciona para \textbf{OPEN}. \\
+\addlinespace
+\textbf{OPEN} \newline (Aberto) & 
+O circuito bloqueia imediatamente todas as requisições destinadas àquele nó. As chamadas falham instantaneamente (\textit{fail-fast}) sem onerar a rede. & 
+Após transcorrer o tempo de recuperação $T_{\text{timeout}} = 10\text{ s}$, transiciona para \textbf{HALF-OPEN}. \\
+\addlinespace
+\textbf{HALF-OPEN} \newline (Semiaberto) & 
+O circuito permite a passagem de uma requisição de teste para avaliar se o servidor se recuperou da pane. & 
+Se o teste tiver sucesso $\to$ \textbf{CLOSED}. \newline
+Se o teste falhar $\to$ Retorna para \textbf{OPEN}. \\
+\bottomrule
+\end{tabularx}
+\caption{Estados e regras de transição do Circuit Breaker implementado por nó servidor.}
+\end{table}
+
+\subsection{2. Retry com Recuo Exponencial e Jitter}
+Quando uma requisição falha por instabilidade transitória de rede, reenviá-la imediatamente de forma repetida gera o fenômeno conhecido como \textit{Thundering Herd Problem} (efeito manada), saturando de vez o servidor que já estava com dificuldades.
+
+A estratégia adotada calcula o intervalo de espera para a tentativa $k$ através da seguinte formulação matemática:
+\begin{equation}
+T_{\text{espera}}(k) = \min\Big(T_{\text{max}},\, T_{\text{base}} \times 2^{k}\Big) + \text{Uniforme}(0,\, \text{Jitter})
+\end{equation}
+Onde $T_{\text{base}} = 0.5\text{ s}$, $T_{\text{max}} = 10.0\text{ s}$ e o \textbf{Jitter} adiciona uma variação aleatória pseudo-estocástica. Essa aleatoriedade desincroniza os múltiplos clientes emissores, espalhando os picos de tráfego uniformemente no tempo.
+
+\subsection{3. Fila de Cartas Mortas (Dead-Letter Queue - DLQ)}
+Dados que apresentam erros irrecuperáveis (como corrupção semântica em que a frequência cardíaca é negativa ou o identificador do paciente é nulo) nunca devem ser descartados silenciosamente nem reenviados eternamente em loop.
+
+O middleware redireciona esses eventos para a \textbf{DLQ}:
+\begin{itemize}
+    \item O registro é gravado em área isolada de quarentena acompanhado do motivo do descarte (\textit{error code}, carimbo de data/hora e identificador do nó rejeitador).
+    \item A auditoria hospitalar pode inspecionar a DLQ a frio para determinar falhas nos sensores físicos dos leitos, sem comprometer a vazão do barramento principal.
+\end{itemize}
+
+\subsection{4. Padrão Saga para Transações Distribuídas}
+Diferente de sistemas corporativos simples onde se aplica o protocolo pesado de \textit{Two-Phase Commit} (2PC) — que bloqueia recursos e é altamente vulnerável a falhas de coordenador —, o sistema emprega o \textbf{Padrão Saga}:
+\begin{itemize}
+    \item A persistência em múltiplos servidores é tratada como uma sequência de transações locais encadeadas.
+    \item Se um nó rejeita a escrita por violação de integridade após outros nós terem confirmado, o orquestrador do middleware emite transações compensatórias para anular os efeitos locais, assegurando \textbf{Consistência Eventual} sem paralisar o sistema com locks distribuídos.
+\end{itemize}
+
+% =========================================================================
+\section{Algoritmos de Balanceamento de Carga Implementados}
+% =========================================================================
+
+O Load Balancer (Porta 8000) atua como gateway de entrada com distribuição dinâmica de tráfego. Foram implementadas e testadas seis estratégias algorítmicas de balanceamento com suporte a desempate circular:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{p{3.2cm} X p{4.6cm}}
+\toprule
+\textbf{Algoritmo} & \textbf{Lógica Matemática e Mecanismo de Despacho} & \textbf{Cenário de Uso Recomendado} \\
+\midrule
+\textbf{Round Robin (RR)} & Distribuição circular determinística: nó $i = (k \bmod N)$, com alternância sequencial e equitativa. & Servidores com capacidades de processamento idênticas. \\
+\addlinespace
+\textbf{Weighted RR} & Alternância baseada em peso: nós mais potentes (ex.: Servidor 01 com peso 2) atendem proporcionalmente mais chamadas. & Ambientes heterogêneos com servidores de diferentes tamanhos de CPU/RAM. \\
+\addlinespace
+\textbf{Least Connections} & Despacha para o servidor com menor número de conexões ativas simultâneas: $\arg\min_{i} (\text{Conexões}_{i})$. & Requisições com tempo de processamento heterogêneo. \\
+\addlinespace
+\textbf{Least Response Time} & Prioriza o servidor com menor média móvel exponencial de latência: $\arg\min_{i} (\overline{\text{RTT}}_{i})$. & Servidores sujeitos a oscilações térmicas ou contenção de I/O. \\
+\addlinespace
+\textbf{Patient Hash (Sticky)} & Hashing consistente sobre o identificador: $i = \text{hash}(\text{paciente\_id}) \bmod N$. & Preserva localidade de cache para o mesmo paciente. \\
+\addlinespace
+\textbf{Adaptive (Auto)} & Mecanismo inteligente e autônomo que monitora desvios de latência e conexões ativas em voo, chaveando dinamicamente entre RR, LC e LRT sem intervenção humana. & Clusters dinâmicos sujeitos a picos imprevisíveis e degradações pontuais de nós. \\
+\bottomrule
+\end{tabularx}
+\caption{Comparativo analítico dos algoritmos de distribuição de carga implementados.}
+\end{table}
+
+% =========================================================================
+\section{Evidências Experimentais e Validação da Suíte de Testes}
+% =========================================================================
+
+Para comprovar a robustez e a integridade de todas as camadas distribuídas após a eliminação do RabbitMQ e a consolidação do middleware ESB+ORB, o projeto conta com uma abrangente suíte automatizada executada via \texttt{pytest}.
+
+\subsection{Resultados Quantitativos por Subsistema}
+A tabela a seguir consolida o desempenho dos testes unitários e de integração de ponta a ponta:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{X c r}
+\toprule
+\textbf{Subsistema / Marco Avaliado} & \textbf{Testes Aprovados} & \textbf{Taxa de Sucesso} \\
+\midrule
+Ingestão de Sensores e Servidores Locais (Marco 1) & 24 & $100\%$ \\
+Balanceador de Carga e Algoritmos de Distribuição (Marco 2) & 48 & $100\%$ \\
+Replicação Ativa Fanout e Servidor 04 Warm Standby (Marco 3) & 36 & $100\%$ \\
+Middleware ESB, ORB CosNaming, Circuit Breakers e DLQ (Marco 4) & 81 & $100\%$ \\
+Testes de Integridade de Comunicação e Proxies de Métricas & 11 & $100\%$ \\
+\midrule
+\textbf{Total Geral Consolidado} & \textbf{200 Testes Aprovados} & \textbf{100\% (0 Falhas)} \\
+\bottomrule
+\end{tabularx}
+\caption{Consolidação dos resultados da suíte de testes de engenharia distribuída.}
+\end{table}
+
+\subsection{Comportamento em Teste de Caos (Injeção de Falhas)}
+Durante os ensaios de injeção de falhas controladas:
+\begin{enumerate}
+    \item Ao provocar a queda forçada do Servidor 02 (\texttt{KILL -9} na porta 8002), o Circuit Breaker registrou os erros consecutivos e abriu o circuito em menos de $150\text{ ms}$.
+    \item O balanceador de carga removeu o nó doente do pool circular sem que o cliente produtor recebesse erros 500, alcançando $0\%$ de perda de pacotes clínicos.
+    \item Ao restaurar o processo do servidor, o Circuit Breaker transitou para \texttt{HALF-OPEN}, validou o restabelecimento com sucesso e reintegrou o nó ao fluxo produtivo.
+\end{enumerate}
+
+% =========================================================================
+\section{Conclusão}
+% =========================================================================
+
+A refatoração arquitetural documentada neste relatório elevou o patamar do projeto de um protótipo acoplado a dependências externas para uma verdadeira plataforma de sistemas distribuídos de missão crítica:
+
+\begin{itemize}
+    \item \textbf{Autonomia Total}: A eliminação do RabbitMQ livrou o sistema de dependências operacionais externas pesadas, tornando-o auto-contido, rápido e resiliente.
+    \item \textbf{Inteligência Hospitalar no Barramento}: O middleware deixou de ser um mero conduíte de bytes e passou a agir como camada inteligente de triagem, validação e roteamento de emergências médicas via Pipeline VETRO.
+    \item \textbf{Conformidade Rigorosa com os Marcos 3 e 4}: A persistência multi-banco com replicação fanout, o suporte a warm standby e os mecanismos autônomos de Circuit Breaker asseguram alta disponibilidade e recuperação transparente perante desastres.
+\end{itemize}
+
+\end{document}

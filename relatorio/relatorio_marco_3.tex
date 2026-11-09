@@ -1,0 +1,577 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PACOTES FUNDAMENTAIS ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm, top=3cm, bottom=2.5cm}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{microtype}
+\usepackage{tikz}
+\usepackage{pgfgantt}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc}
+
+% --- CORES E CONFIGURAÇÕES VISUAIS ---
+\definecolor{primary}{RGB}{16, 52, 166}
+\definecolor{secondary}{RGB}{44, 62, 80}
+\definecolor{codebg}{RGB}{248, 249, 250}
+\definecolor{codeborder}{RGB}{220, 224, 230}
+\definecolor{codegreen}{RGB}{46, 125, 50}
+\definecolor{codegray}{RGB}{120, 144, 156}
+\definecolor{codepurple}{RGB}{123, 31, 162}
+\definecolor{ganttyellow}{RGB}{234, 179, 8}
+\definecolor{ganttyellowborder}{RGB}{180, 83, 9}
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=primary,
+	filecolor=primary,
+	urlcolor=primary,
+	citecolor=secondary
+}
+
+% --- CONFIGURAÇÃO DE LISTINGS (CÓDIGO) ---
+\lstset{
+	backgroundcolor=\color{codebg},
+	basicstyle=\ttfamily\footnotesize,
+	breaklines=true,
+	captionpos=b,
+	commentstyle=\color{codegray}\itshape,
+	keywordstyle=\color{primary}\bfseries,
+	stringstyle=\color{codegreen},
+	numberstyle=\tiny\color{codegray},
+	numbers=left,
+	numbersep=8pt,
+	frame=single,
+	rulecolor=\color{codeborder},
+	xleftmargin=15pt,
+	framexleftmargin=15pt,
+	tabsize=4,
+	showstringspaces=false
+}
+
+% --- CABEÇALHO E RODAPÉ ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\footnotesize \textbf{Sistemas Distribuídos} — Planejamento e Relatório de Implementação}
+\rhead{\footnotesize Marco 3}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- INÍCIO DO DOCUMENTO ---
+\begin{document}
+	\pagenumbering{alph}
+	\begin{titlepage}
+		\centering
+		\vspace*{0.8cm}
+		
+		{\scshape\Large Universidade Federal do Maranhão \par}
+		\vspace{0.3cm}
+		{\scshape\large Curso de Engenharia da Computação \par}
+		\vspace{1.5cm}
+		
+		\rule{\linewidth}{1.5pt}\vspace{0.4cm}
+		{\Huge\bfseries PLANEJAMENTO DO PROJETO\par}
+		\vspace{0.5cm}
+		{\LARGE\bfseries Sistema Distribuído para Auxílio de Dados Hospitalares\par}
+		\vspace{0.3cm}
+		{\Large\itshape Relatório de Implementação e Atualização do Cronograma: Marco 3\par}
+		\rule{\linewidth}{1.5pt}
+		
+		\vspace{1.8cm}
+		
+		\begin{minipage}{0.88\textwidth}
+			\raggedright
+			\textbf{Curso:} Engenharia da Computação \\[6pt]
+			\textbf{Disciplina:} Sistemas Distribuídos \\[6pt]
+			\textbf{Professor(a):} Luiz Henrique Neves Rodrigues \\[6pt]
+			\textbf{Grupo:} Fernando da Silva Costa; Samara Santos Viegas; Eduardo dos Santos Oliveira; Herick Vinicius Pinheiro Da Conceição; Vyktor Gabryel Costa de Souza
+		\end{minipage}
+		
+		\vfill
+		
+		{\large 14 de outubro de 2026 \par}
+	\end{titlepage}
+	
+	\newpage
+	\pagenumbering{roman}
+	\tableofcontents
+	\newpage
+	\pagenumbering{arabic}
+	
+	% =========================================================================
+	\section{Introdução e Visão Geral}
+	% =========================================================================
+	
+	Em ambientes hospitalares críticos, a telemetria contínua de sinais vitais de pacientes gera um fluxo massivo de dados em tempo real. Se esse tráfego converge para um único servidor centralizado, surgem gargalos severos de processamento, alta latência nas consultas clínicas e, fundamentalmente, a vulnerabilidade crítica de ponto único de falha (\textit{Single Point of Failure} -- SPoF). A indisponibilidade de tal sistema acarreta riscos à assistência médica.
+	
+	Com o objetivo de projetar, construir e validar uma solução robusta orientada aos conceitos de Sistemas Distribuídos, desenvolvemos o \textbf{Sistema Distribuído para Auxílio de Dados Hospitalares}. O projeto adota uma metodologia evolutiva estruturada em marcos de maturidade crescente:
+	
+	\begin{itemize}
+		\item \textbf{Marco 1 — Simulação e Servidor Base (Concluído):} Ingestão de dados reais de monitoramento biomédico (dataset clínico do Kaggle com 60.000 registros), validação formal de tipos através de modelos Pydantic na API RESTful (FastAPI) e persistência relacional local (SQLite).
+		
+		\item \textbf{Marco 2 — Balanceamento de Carga e Múltiplas Instâncias (Concluído):} Implantação de um cluster de três instâncias de aplicação independentes (:8001, :8002 e :8003) coordenadas por um Balanceador de Carga Round Robin (:8000), garantindo transparência de acesso e divisão estocasticamente uniforme do tráfego de entrada.
+		
+		\item \textbf{Marco 3 — Middleware Orientado a Mensagens (MOM), Replicação Ativa e Escalabilidade Elástica (Escopo Deste Relatório):} Evolução arquitetural com a introdução do RabbitMQ (AMQP 5672) para desacoplamento espaço-temporal, replicação de dados em broadcast \textit{Fanout} para sincronização de 100\% dos registros em todos os nós (eliminando a inconsistência e erros 404 do Marco 2), mecanismo de escalabilidade horizontal elástica (\textit{Scale-Out} e \textit{Scale-In}) com 4º nó em \textit{Warm Standby} (:8004) e interface gráfica de visualização com suporte a túnel público seguro e fallback inteligente.
+	\end{itemize}
+	
+	O projeto é integralmente implementado em Python (versão 3.10+) com tipagem estática e arquitetura modular desacoplada.
+	
+	% =========================================================================
+	\section{Diagrama de Gantt e Atualização do Cronograma}
+	\label{sec:gantt}
+	% =========================================================================
+	
+	A Figura~\ref{fig:gantt} ilustra o cronograma do projeto atualizado na data de \textbf{14 de outubro de 2026}. As barras em \textbf{verde} representam as etapas previamente finalizadas e homologadas (Planejamento, Ambiente e os Marcos 1 e 2). A barra em \textbf{amarelo} evidencia o \textbf{Marco 3 (Middleware, Replicação e Escalabilidade)}, objeto da presente entrega e em fase de consolidação. As barras em \textbf{cinza} delineiam as etapas futuras previstas para o Marco 4, baterias de injeção de falhas e encerramento.
+	
+	\begin{figure}[H]
+		\centering
+		\resizebox{\textwidth}{!}{ % Ajusta o tamanho para caber perfeitamente na folha
+			\begin{ganttchart}[
+				x unit=0.15cm,
+				y unit title=0.5cm,
+				y unit chart=0.62cm,
+				time slot format=isodate,
+				title/.style={draw=black, fill=gray!20},
+				title label font=\bfseries\footnotesize,
+				bar/.style={fill=green!70!black}, % Padrão (Concluídos em Verde)
+				bar label font=\footnotesize,
+				group/.style={draw=black, fill=black!80},
+				group label font=\bfseries\footnotesize,
+				vgrid,
+				hgrid
+				]{2026-08-15}{2026-12-10}
+				\gantttitle{Ago}{17}
+				\gantttitle{Set}{30}
+				\gantttitle{Out}{31}
+				\gantttitle{Nov}{30}
+				\gantttitle{Dez}{10} \\
+				\ganttbar{1. Termo de Abertura}{2026-08-18}{2026-08-20} \\
+				\ganttbar{2. Arquitetura e Escopo}{2026-08-20}{2026-08-23} \\
+				\ganttbar{3. Configuração do Ambiente}{2026-08-24}{2026-08-27} \\
+				\ganttbar{4. Marco 1: Servidor Base}{2026-08-28}{2026-09-10} \\
+				\ganttbar{5. Marco 2: Balanceamento}{2026-09-17}{2026-09-28} \\
+				\ganttbar[bar/.append style={fill=ganttyellow, draw=ganttyellowborder, line width=1.1pt}]{6. Marco 3: Replicação e Escalabilidade}{2026-09-30}{2026-10-22} \\
+				\ganttbar[bar/.append style={fill=gray!45}]{7. Marco 4: Tolerância a Falhas}{2026-10-23}{2026-11-16} \\
+				\ganttbar[bar/.append style={fill=gray!45}]{8. Testes de Queda e Falhas}{2026-11-17}{2026-11-23} \\
+				\ganttbar[bar/.append style={fill=gray!45}]{9. Validação e Ajustes}{2026-11-24}{2026-11-28} \\
+				\ganttbar[bar/.append style={fill=gray!45}]{10. Documentação e Encerramento}{2026-11-29}{2026-12-01}
+				\ganttvrule[vrule/.append style={red, thick}]{Hoje}{2026-10-14}
+			\end{ganttchart}
+		}
+		\caption{Diagrama de Gantt atualizado em 14/10/2026. Destaque em \textbf{amarelo} para a entrega do Marco 3.}
+		\label{fig:gantt}
+	\end{figure}
+	
+	Síntese da evolução cronológica:
+	\begin{itemize}
+		\item \textbf{Fases Concluídas (Verde):} Termo de abertura, levantamento de requisitos, arquitetura de rede, Marco 1 (API e SQLite) e Marco 2 (Load Balancer e cluster de 3 nós).
+		\item \textbf{Fase Atual em Destaque (Amarelo):} \textbf{Marco 3}, contemplando a introdução do Middleware RabbitMQ, a replicação Fanout entre todos os nós, o 4º servidor reserva em \textit{Warm Standby} e o suporte a acesso público via túnel reverso.
+		\item \textbf{Fases Subsequentes (Cinza):} O Marco 4 focará no endurecimento da tolerância a falhas ativas, chaveamento automático de falhas (failover sem intervenção humana) e encerramento documental.
+	\end{itemize}
+	
+	% =========================================================================
+	\section{Análise e Modelagem do Dataset Hospitalar}
+	% =========================================================================
+	
+	\subsection{Origem e Caracterização dos Dados}
+	Os dados de telemetria derivam do dataset público do Kaggle:
+	\begin{center}
+		\texttt{Synthetic\_patient-HealthCare-Monitoring\_dataset.csv}
+	\end{center}
+	A opção pelo uso de um repositório volumoso pré-existente viabiliza simulações fidedignas a cenários médicos reais. As principais características métricas são:
+	\begin{itemize}
+		\item \textbf{Volume:} 60.000 amostras clínicas ordenadas (60.001 linhas com o cabeçalho).
+		\item \textbf{Integridade:} 0\% de dados nulos ou registros ausentes em todas as variáveis.
+		\item \textbf{Temporalidade:} O dataset não possui carimbo de tempo intrínseco. Assim, a camada de ingestão atribui o \textit{timestamp} de alta precisão (ISO 8601) no momento da recepção em rede.
+	\end{itemize}
+	
+	\subsection{Mapeamento Semântico para a API}
+	A Tabela~\ref{tab:schema_map} detalha o mapeamento semântico implementado no modelo Pydantic (\texttt{server/models.py}), convertendo colunas em inglês com caracteres especiais para tipos fortemente tipados.
+	
+	\begin{table}[H]
+		\centering
+		\footnotesize
+		\caption{Mapeamento dos Atributos do CSV para o Esquema da API e Banco de Dados}
+		\label{tab:schema_map}
+		\begin{tabularx}{\textwidth}{p{4.2cm} p{4.2cm} p{1.2cm} X}
+			\toprule
+			\textbf{Coluna Original (CSV)} & \textbf{Campo na API/DB} & \textbf{Tipo} & \textbf{Descrição Semântica} \\
+			\midrule
+			\texttt{Patient Number} & \texttt{paciente\_id} & \texttt{int} & Identificador unívoco do paciente \\
+			\texttt{Heart Rate (bpm)} & \texttt{frequencia\_cardiaca} & \texttt{int} & Frequência cardíaca (bpm) \\
+			\texttt{SpO2 Level (\%)} & \texttt{spo2} & \texttt{int} & Saturação de oxigênio periférico \\
+			\texttt{Systolic Blood Pressure} & \texttt{pressao\_sistolica} & \texttt{int} & Pressão arterial sistólica (mmHg) \\
+			\texttt{Diastolic Blood Pressure} & \texttt{pressao\_diastolica} & \texttt{int} & Pressão arterial diastólica (mmHg) \\
+			\texttt{Body Temperature (°C)} & \texttt{temperatura} & \texttt{float} & Temperatura corpórea (°C) \\
+			\texttt{Fall Detection} & \texttt{deteccao\_queda} & \texttt{str} & Sensor de queda (Yes/No) \\
+			\texttt{Predicted Disease} & \texttt{doenca\_prevista} & \texttt{str} & Diagnóstico clínico correlacionado \\
+			\texttt{Data Accuracy (\%)} & \texttt{precisao\_dados} & \texttt{int} & Índice de confiabilidade do sensor \\
+			\texttt{Heart Rate Alert} & \texttt{alerta\_freq\_cardiaca} & \texttt{str} & Alerta de FC (NORMAL/ABNORMAL) \\
+			\texttt{SpO2 Level Alert} & \texttt{alerta\_spo2} & \texttt{str} & Alerta clínico de hipóxia \\
+			\texttt{Blood Pressure Alert} & \texttt{alerta\_pressao} & \texttt{str} & Alerta de hipertensão/hipotensão \\
+			\texttt{Temperature Alert} & \texttt{alerta\_temperatura} & \texttt{str} & Alerta térmico (hipo/hipertermia) \\
+			\bottomrule
+		\end{tabularx}
+	\end{table}
+	
+	% =========================================================================
+	\section{Recapitulação dos Marcos 1 e 2}
+	% =========================================================================
+	
+	\subsection{Marco 1: Servidor Base e Ingestão de Dados}
+	No Marco 1, consolidou-se o fluxo unitário de transmissão e armazenamento de telemetria médica. O componente leitor (\texttt{client/csv\_sender.py}) lê o dataset, converte as linhas para payloads JSON estruturados e os submete via requisições HTTP \texttt{POST /dados} a um servidor base FastAPI rodando na porta 8001. O servidor valida os dados através do schema Pydantic, injeta metadados (timestamp e identificador \texttt{server-01}) e persiste o registro no banco relacional local SQLite (\texttt{server1.db}), conforme esquematizado na Figura~\ref{fig:fluxo_marco1}.
+	
+	\begin{figure}[H]
+		\centering
+		\resizebox{0.92\textwidth}{!}{%
+			\begin{tikzpicture}[
+				block/.style={rectangle, draw=primary, fill=codebg, thick, rounded corners, minimum height=1.1cm, minimum width=2.8cm, align=center},
+				arrow/.style={-Latex, thick, primary}
+				]
+				\node[block] (csv) {\textbf{Arquivo CSV}\\[2pt]\footnotesize 60.000 Registros};
+				\node[block, right=2.0cm of csv] (sender) {\textbf{Leitor Telemetria}\\[2pt]\footnotesize \texttt{csv\_sender.py}};
+				\node[block, right=2.8cm of sender] (server) {\textbf{Servidor Base}\\[2pt]\footnotesize FastAPI (:8001)};
+				\node[block, right=2.2cm of server] (db) {\textbf{SQLite Local}\\[2pt]\footnotesize \texttt{server1.db}};
+				
+				\draw[arrow] (csv) -- node[above=2pt, font=\footnotesize\bfseries, color=primary]{Leitura} (sender);
+				\draw[arrow] (sender) -- node[above=2pt, font=\footnotesize\bfseries, color=primary]{HTTP POST} node[below=2pt, font=\footnotesize\ttfamily, color=primary]{/dados} (server);
+				\draw[arrow] (server) -- node[above=2pt, font=\footnotesize\bfseries, color=primary]{INSERT} (db);
+			\end{tikzpicture}%
+		}
+		\caption{Arquitetura do Marco 1: Ingestão direta e persistência mononó.}
+		\label{fig:fluxo_marco1}
+	\end{figure}
+	
+	\subsection{Marco 2: Cluster com Balanceador de Carga Round Robin}
+	No Marco 2, o sistema escalou para uma topologia com três instâncias idênticas e isoladas da aplicação executando nas portas 8001, 8002 e 8003. Para distribuir o tráfego de maneira transparente, foi introduzido o Balanceador de Carga (\texttt{load\_balancer/balancer.py}) na porta 8000, implementando o algoritmo Round Robin clássico sobre o conjunto $\mathcal{S} = \{s_0, s_1, s_2\}$:
+	\begin{equation}
+		\text{Servidor Alvo}(r) = s_{r \pmod 3}
+	\end{equation}
+	
+	A Figura~\ref{fig:topologia_marco2} ilustra a topologia do Marco 2. Cada servidor gravava exclusivamente no seu respectivo banco SQLite local (\texttt{server1.db}, \texttt{server2.db} ou \texttt{server3.db}).
+	
+	\begin{figure}[H]
+		\centering
+		\resizebox{0.90\textwidth}{!}{%
+			\begin{tikzpicture}[
+				node distance=1.2cm and 2.0cm,
+				block/.style={rectangle, draw=primary, fill=codebg, thick, rounded corners, minimum height=1.1cm, minimum width=2.9cm, align=center},
+				servernode/.style={rectangle, draw=secondary, fill=codebg, thick, rounded corners, minimum height=0.95cm, minimum width=2.6cm, align=center},
+				dbnode/.style={cylinder, draw=primary, shape border rotate=90, aspect=0.25, fill=codebg, thick, minimum height=0.85cm, minimum width=2cm, align=center},
+				arrow/.style={-Latex, thick, primary}
+				]
+				\node[block] (sender) {\textbf{Leitor de Dados}\\[2pt]\footnotesize \texttt{csv\_sender.py}};
+				\node[block, right=2.8cm of sender] (lb) {\textbf{Balanceador}\\[2pt]\footnotesize Porta 8000};
+				
+				\node[servernode, above right=0.3cm and 2.0cm of lb] (s1) {\textbf{Server 1}\\[1pt]\footnotesize :8001};
+				\node[servernode, right=2.0cm of lb] (s2) {\textbf{Server 2}\\[1pt]\footnotesize :8002};
+				\node[servernode, below right=0.3cm and 2.0cm of lb] (s3) {\textbf{Server 3}\\[1pt]\footnotesize :8003};
+				
+				\node[dbnode, right=1.2cm of s1] (db1) {\footnotesize \texttt{server1.db}};
+				\node[dbnode, right=1.2cm of s2] (db2) {\footnotesize \texttt{server2.db}};
+				\node[dbnode, right=1.2cm of s3] (db3) {\footnotesize \texttt{server3.db}};
+				
+				\draw[arrow] (sender) -- node[above=2pt, font=\footnotesize\bfseries, color=primary]{HTTP POST} (lb);
+				\draw[arrow] (lb) -- (s1);
+				\draw[arrow] (lb) -- (s2);
+				\draw[arrow] (lb) -- (s3);
+				
+				\draw[arrow] (s1) -- (db1);
+				\draw[arrow] (s2) -- (db2);
+				\draw[arrow] (s3) -- (db3);
+			\end{tikzpicture}%
+		}
+		\caption{Topologia do Marco 2: Balanceamento Round Robin entre 3 nós independentes.}
+		\label{fig:topologia_marco2}
+	\end{figure}
+	
+	\subsection{O Problema Identificado no Marco 2 (Motivação do Marco 3)}
+	Embora o Marco 2 tenha resolvido a divisão homogênea da carga de escrita, ele revelou uma limitação crítica de consistência em sistemas distribuídos: \textbf{o isolamento estrito dos bancos de dados locais}.
+	
+	Como cada servidor operava como uma ilha de dados, ao enviar 12 requisições, cada banco retinha apenas 4 registros intercalados. Consequentemente:
+	\begin{enumerate}
+		\item \textbf{Inconsistência de Leitura e Erros 404:} Uma requisição clínica \texttt{GET /dados/\{paciente\_id\}} direcionada pelo balanceador para o Servidor 02 retornava \texttt{HTTP 404 Not Found} caso a medição daquele paciente tivesse sido processada pelo Servidor 01 ou 03.
+		\item \textbf{Falta de Desacoplamento Temporal:} O emissor dependia da disponibilidade síncrona dos servidores HTTP. Se o cluster estivesse temporariamente saturado, medições de pacientes eram descartadas.
+		\item \textbf{Rigidez Operacional:} O cluster não previa adição dinâmica de capacidade computacional sem reinicialização do balanceador.
+	\end{enumerate}
+	Essas deficiências fundamentaram o escopo de inovações desenvolvidas no \textbf{Marco 3}.
+	
+	% =========================================================================
+	\section{Marco 3 — Middleware MOM, Replicação e Escalabilidade}
+	% =========================================================================
+	
+	O Marco 3 transforma a arquitetura em um sistema distribuído empresarial com suporte a replicação broadcast em tempo real, tolerância a picos de tráfego e escalabilidade elástica sob demanda.
+	
+	\subsection{Nova Topologia Integrada do Sistema Distribuído}
+	A Figura~\ref{fig:topologia_marco3} apresenta a topologia arquitetural completa implementada no Marco 3. O pipeline divide-se em: camada produtora, middleware de mensageria AMQP, consumidores concorrentes de replicação, cluster quádruplo de servidores e balanceador com gestão dinâmica de nós.
+	
+	\begin{figure}[H]
+		\centering
+		\resizebox{\textwidth}{!}{%
+			\begin{tikzpicture}[
+				node distance=1.0cm and 1.6cm,
+				block/.style={rectangle, draw=primary, fill=codebg, thick, rounded corners, minimum height=1.0cm, minimum width=2.4cm, align=center},
+				mwblock/.style={rectangle, draw=orange!80!black, fill=orange!10, thick, rounded corners, minimum height=1.3cm, minimum width=3.2cm, align=center},
+				queueblock/.style={rectangle, draw=orange!80!black, fill=white, dashed, thick, minimum height=0.6cm, minimum width=2.2cm, align=center, font=\scriptsize},
+				servernode/.style={rectangle, draw=secondary, fill=codebg, thick, rounded corners, minimum height=0.8cm, minimum width=2.4cm, align=center, font=\footnotesize},
+				standbynode/.style={rectangle, draw=primary, fill=primary!15, thick, rounded corners, minimum height=0.8cm, minimum width=2.4cm, align=center, font=\footnotesize},
+				dbnode/.style={cylinder, draw=primary, shape border rotate=90, aspect=0.25, fill=codebg, thick, minimum height=0.7cm, minimum width=1.8cm, align=center, font=\scriptsize},
+				arrow/.style={-Latex, thick, primary},
+				amqparrow/.style={-Latex, thick, orange!80!black}
+				]
+				
+				% Entrada
+				\node[block] (sender) {\textbf{Produtor / CSV}\\[2pt]\scriptsize \texttt{produtor.py}};
+				
+				% Middleware RabbitMQ
+				\node[mwblock, right=1.6cm of sender] (broker) {\textbf{RabbitMQ MOM}\\[2pt]\scriptsize Exchange \textit{Fanout}\\[1pt]\scriptsize \texttt{telemetria\_hospitalar}};
+				
+				% Filas AMQP
+				\node[queueblock, above right=-0.1cm and 1.6cm of broker] (q1) {\texttt{fila\_servidor\_1}};
+				\node[queueblock, below=0.25cm of q1] (q2) {\texttt{fila\_servidor\_2}};
+				\node[queueblock, below=0.25cm of q2] (q3) {\texttt{fila\_servidor\_3}};
+				\node[queueblock, below=0.25cm of q3] (q4) {\texttt{fila\_servidor\_4}};
+				
+				% Servidores
+				\node[servernode, right=1.6cm of q1] (s1) {\textbf{Server 01} (:8001)\\[1pt]\scriptsize Ativo};
+				\node[servernode, right=1.6cm of q2] (s2) {\textbf{Server 02} (:8002)\\[1pt]\scriptsize Ativo};
+				\node[servernode, right=1.6cm of q3] (s3) {\textbf{Server 03} (:8003)\\[1pt]\scriptsize Ativo};
+				\node[standbynode, right=1.6cm of q4] (s4) {\textbf{Server 04} (:8004)\\[1pt]\scriptsize \textbf{Warm Standby}};
+				
+				% Bancos SQLite
+				\node[dbnode, right=1.0cm of s1] (db1) {\texttt{server1.db}};
+				\node[dbnode, right=1.0cm of s2] (db2) {\texttt{server2.db}};
+				\node[dbnode, right=1.0cm of s3] (db3) {\texttt{server3.db}};
+				\node[dbnode, right=1.0cm of s4] (db4) {\texttt{server4.db}};
+				
+				% Load Balancer
+				\node[block, below=2.6cm of broker] (lb) {\textbf{Load Balancer (:8000)}\\[2pt]\scriptsize Round Robin Adaptativo};
+				
+				% Conexões AMQP e Replicação
+				\draw[amqparrow] (sender) -- node[above, font=\scriptsize\bfseries]{AMQP Publish} (broker);
+				\draw[amqparrow] (broker.east) -- ++(0.5,0) |- (q1.west);
+				\draw[amqparrow] (broker.east) -- ++(0.5,0) |- (q2.west);
+				\draw[amqparrow] (broker.east) -- ++(0.5,0) |- (q3.west);
+				\draw[amqparrow] (broker.east) -- ++(0.5,0) |- (q4.west);
+				
+				\draw[amqparrow] (q1) -- node[above, font=\tiny]{Consumo} (s1);
+				\draw[amqparrow] (q2) -- node[above, font=\tiny]{Consumo} (s2);
+				\draw[amqparrow] (q3) -- node[above, font=\tiny]{Consumo} (s3);
+				\draw[amqparrow] (q4) -- node[above, font=\tiny]{Consumo} (s4);
+				
+				\draw[arrow] (s1) -- (db1);
+				\draw[arrow] (s2) -- (db2);
+				\draw[arrow] (s3) -- (db3);
+				\draw[arrow] (s4) -- (db4);
+				
+				% Conexões Load Balancer
+				\draw[arrow, dashed] (lb.east) -| ++(1.0,1.2) |- (s1.south west);
+				\draw[arrow, dashed] (lb.east) -| ++(1.2,1.2) |- (s2.south west);
+				\draw[arrow, dashed] (lb.east) -| ++(1.4,0.0) |- (s3.south west);
+				\draw[arrow, dashed, draw=primary] (lb.east) -| ++(1.6,-0.8) |- (s4.south west);
+				
+			\end{tikzpicture}%
+		}
+		\caption{Topologia do Marco 3: Middleware RabbitMQ Fanout, Replicação nos 4 bancos e 4º Nó em Warm Standby.}
+		\label{fig:topologia_marco3}
+	\end{figure}
+	
+	\subsection{Middleware Orientado a Mensagens (RabbitMQ)}
+	No contexto de Sistemas Distribuídos, o middleware MOM (\textit{Message-Oriented Middleware}) atua como o mediador desacoplador entre produtores e consumidores. Seus benefícios fundamentais comprovados no projeto são:
+	\begin{itemize}
+		\item \textbf{Desacoplamento Espacial:} O produtor desconhece os endereços IP, portas ou o quantitativo de servidores em execução.
+		\item \textbf{Desacoplamento Temporal:} As mensagens são persistidas no broker. Caso os servidores estejam temporariamente desligados ou processando lotes pesados, as telemetrias aguardam nas filas sem perda de pacotes.
+		\item \textbf{Confiabilidade e Garantia de Entrega:} Configuração de mensagens persistentes (\texttt{delivery\_mode=2}) combinada com confirmações explícitas de processamento (\texttt{basic\_ack} e \texttt{basic\_nack} com \texttt{requeue=True}).
+	\end{itemize}
+	
+	O módulo \texttt{middleware/config.py} centraliza a topologia AMQP:
+	\begin{lstlisting}[language=Python, caption={Definição da Infraestrutura AMQP em middleware/config.py}]
+EXCHANGE_TELEMETRIA = "telemetria_hospitalar"
+TIPO_EXCHANGE = "fanout"
+FILAS_SERVIDORES = [
+    "fila_servidor_1",
+    "fila_servidor_2",
+    "fila_servidor_3",
+    "fila_servidor_4",
+]
+	\end{lstlisting}
+	
+	\subsection{Replicação Ativa Broadcast (Padrão Fanout)}
+	Para solucionar a inconsistência de dados do Marco 2, adotamos o padrão de \textbf{Replicação Ativa via Exchange Fanout}. Quando o produtor publica uma medição na exchange \texttt{telemetria\_hospitalar}, o RabbitMQ clona e entrega instantaneamente a mensagem para \textbf{todas as quatro filas} simultaneamente.
+	
+	O script \texttt{middleware/consumidor.py} foi implementado com modo multithread (\texttt{--multi}), instanciando quatro consumidores paralelos independentes. Cada consumidor drena sua respectiva fila e persiste a medição no banco SQLite correspondente:
+	\begin{itemize}
+		\item Consumidor 1 $\rightarrow$ \texttt{fila\_servidor\_1} $\rightarrow$ \texttt{server1.db}
+		\item Consumidor 2 $\rightarrow$ \texttt{fila\_servidor\_2} $\rightarrow$ \texttt{server2.db}
+		\item Consumidor 3 $\rightarrow$ \texttt{fila\_servidor\_3} $\rightarrow$ \texttt{server3.db}
+		\item Consumidor 4 $\rightarrow$ \texttt{fila\_servidor\_4} $\rightarrow$ \texttt{server4.db}
+	\end{itemize}
+	
+	\textbf{Impacto na Consistência:} Ao final do envio de $K$ medições, todos os quatro bancos contêm rigorosamente os mesmos $K$ registros. Assim, qualquer consulta \texttt{GET /dados/\{paciente\_id\}} direcionada pelo balanceador para qualquer servidor resulta em \texttt{HTTP 200 OK} imediato com o histórico clínico completo.
+	
+	\subsection{Escalabilidade Horizontal Elástica (Scale-Out e Scale-In)}
+	Uma das inovações do Marco 3 é o suporte à elasticidade dinâmica de recursos computacionais:
+	\begin{itemize}
+		\item \textbf{O Conceito de Warm Standby:} O Servidor 04 (:8004) opera continuamente sincronizado em segundo plano, recebendo as réplicas do middleware no banco \texttt{server4.db}. Porém, no estado inicial, ele não recebe tráfego HTTP direto de clientes.
+		\item \textbf{Scale-Out Dinâmico (Ativar Reserva):} Quando o cluster sofre picos de carga, o operador aciona a rota \texttt{POST /servidores/ativar-reserva} no balanceador. Instantaneamente, o balanceador promove o Servidor 04 para o anel ativo. Como o banco \texttt{server4.db} já estava replicado em tempo real, o nó entra em operação imediatamente, sem latência de sincronização inicial. O algoritmo Round Robin recalcula automaticamente o anel para $N=4$ servidores:
+		\begin{equation}
+			\text{Servidor Alvo}(r) = s_{r \pmod 4}
+		\end{equation}
+		A carga unitária por servidor é reduzida de 33,3\% para 25,0\%.
+		\item \textbf{Scale-In Dinâmico (Desativar Reserva):} Cessada a sobrecarga, a rota \texttt{POST /servidores/desativar-reserva} remove o Servidor 04 do anel ativo de roteamento HTTP, retornando com transparência e zero downtime para $N=3$ servidores.
+	\end{itemize}
+	
+	\subsection{Visualização em Tempo Real e Acesso Remoto Seguro}
+	Para demonstrações acadêmicas e validação operacional, o Marco 3 integrou:
+	\begin{itemize}
+		\item \textbf{Monitor Web Interativo (:5000):} Interface moderna (\texttt{visualizacao/monitor.py}) provida de animações SVG dos pacotes trafegando entre nós, métricas de distribuição em tempo real e console de eventos.
+		\item \textbf{Túnel Público Seguro via Cloudflare (\texttt{tunel.sh}):} Integração de túnel reverso criptografado HTTPS (\texttt{trycloudflare.com}), permitindo que bancas avaliadoras e dispositivos móveis externos (4G/5G) acessem a interface diretamente do PC do desenvolvedor sem necessidade de port forwarding ou abertura de portas em roteadores.
+		\item \textbf{Mecanismo de Smart Polling Fallback:} Solução de engenharia desenvolvida para superar o buffering agressivo que CDNs e operadoras móveis aplicam em conexões HTTP streaming (Server-Sent Events). Se o stream SSE for retido, a interface chaveia em 350ms para o endpoint \texttt{/api/eventos-poll}, garantindo animação contínua e sem travamentos.
+	\end{itemize}
+	
+	% =========================================================================
+	\section{Decisões de Engenharia e Desafios Superados no Marco 3}
+	% =========================================================================
+	
+	Durante o desenvolvimento do Marco 3, superamos desafios técnicos fundamentais:
+	
+	\begin{enumerate}
+		\item \textbf{Transição de Fila Ponto-a-Ponto para Fanout Broadcast:}
+		Inicialmente, a arquitetura utilizava uma única fila compartilhada concorrente. Contudo, filas ponto-a-ponto distribuem mensagens em revezamento, perpetuando o particionamento de dados. A migração para a exchange \textit{Fanout} com 4 filas dedicadas resolveu definitivamente o problema da replicação de dados.
+		
+		\item \textbf{Tratamento de Concorrência e Bloqueios no SQLite:}
+		A persistência simultânea em alta taxa expôs erros de travamento (\texttt{database is locked}). Superamos essa limitação ativando o modo \textbf{WAL (Write-Ahead Logging)}, configurando \texttt{timeout=30.0s} em todas as conexões SQLite e assegurando que cada thread de consumo AMQP utilize sua própria conexão isolada.
+		
+		\item \textbf{Contorno do Buffering de Streaming de Proxies/Cloudflare:}
+		Ao expor o monitor via túnel Cloudflare, constatou-se que o stream SSE ficava retido no buffer da CDN. Implementamos duas contramedidas: injeção de \textit{padding} de 4KB na inicialização da resposta SSE com cabeçalhos \texttt{no-transform}, e a criação do endpoint \texttt{/api/eventos-poll} com buffer circular de eventos recentes, ativado automaticamente pela interface como fallback transparente.
+		
+		\item \textbf{Resolução de Endereçamento Loopback (IPv4 vs. IPv6):}
+		Em ambientes Linux com pilha dupla, utilitários de túnel tentavam conectar-se ao backend via IPv6 \texttt{[::1]:5000}, resultando em recusas de conexão (\texttt{connection refused}). Padronizamos todas as ligações de túnel e scripts para o endereço IPv4 literal \texttt{127.0.0.1}.
+	\end{enumerate}
+	
+	% =========================================================================
+	\section{Validação e Resultados Experimentais}
+	% =========================================================================
+	
+	A validação do projeto conta com uma suíte abrangente de \textbf{51 testes automatizados} com \texttt{pytest}. A Tabela~\ref{tab:testes_marco3} sumariza a cobertura dos testes.
+	
+	\begin{table}[H]
+		\centering
+		\small
+		\caption{Sumário Completo da Suíte de Testes Automatizados (51 Testes)}
+		\label{tab:testes_marco3}
+		\begin{tabularx}{\textwidth}{l c X}
+			\toprule
+			\textbf{Módulo de Teste} & \textbf{Qtd.} & \textbf{Objetivo da Validação} \\
+			\midrule
+			\texttt{tests/test\_marco1.py} & 17 & Integridade do CSV, parsing, schema Pydantic, inserções SQLite, paginação (\texttt{limit/offset}) e consultas individuais. \\
+			\texttt{tests/test\_marco2.py} & 9 & Aritmética modular Round Robin, inicialização simultânea dos 3 servidores e roteamento HTTP transparente. \\
+			\texttt{tests/test\_marco3.py} & 7 & Replicação Fanout nos 4 bancos, eliminação de erros 404, ativação do servidor reserva (:8004), divisão uniforme com 4 nós e desativação elástica. \\
+			\texttt{tests/test\_middleware.py} & 11 & Conectividade RabbitMQ, declaração da exchange Fanout, persistência AMQP, confirmações ACK/NACK com requeue e ordenação FIFO. \\
+			\texttt{tests/test\_visualizacao.py} & 7 & Servidor monitor FastAPI, entrega da interface HTML, rotas de controle de simulação, SSE e integridade do teste de carga. \\
+			\midrule
+			\textbf{Total de Testes Aprovados} & \textbf{51/51} & \textbf{Taxa de Sucesso: 100\% (tempo de execução: 5,44s)} \\
+			\bottomrule
+		\end{tabularx}
+	\end{table}
+	
+	\subsection{Comprovação Experimental da Divisão de Carga}
+	Submeteu-se o sistema a um lote de 120 requisições consecutivas para aferição da equidade de balanceamento em ambos os regimes de operação:
+	
+	\begin{table}[H]
+		\centering
+		\small
+		\caption{Distribuição de Carga Experimental em Regime Normal e Scale-Out}
+		\label{tab:distribuicao}
+		\begin{tabularx}{\textwidth}{p{3.8cm} c c c c}
+			\toprule
+			\textbf{Cenário} & \textbf{Server 01 (:8001)} & \textbf{Server 02 (:8002)} & \textbf{Server 03 (:8003)} & \textbf{Server 04 (:8004)} \\
+			\midrule
+			\textbf{Normal ($N=3$)} & 40 (33,3\%) & 40 (33,3\%) & 40 (33,3\%) & 0 (Standby) \\
+			\textbf{Scale-Out ($N=4$)} & 30 (25,0\%) & 30 (25,0\%) & 30 (25,0\%) & 30 (25,0\%) \\
+			\bottomrule
+		\end{tabularx}
+	\end{table}
+	
+	Os dados experimentais confirmam a exata convergência do algoritmo Round Robin elástico.
+	
+	% =========================================================================
+	\section{Roteiro Prático de Demonstração e Verificação (Marco 3)}
+	\label{sec:roteiro}
+	% =========================================================================
+	
+	\subsection{Inicialização Integrada do Cluster}
+	Todo o ecossistema (RabbitMQ, 4 servidores, balanceador, consumidores Fanout e monitor) pode ser inicializado com um único comando:
+	\begin{lstlisting}[language=bash]
+		cd "Projeto SD"
+		# Modo padrao com Middleware RabbitMQ ativo:
+		./executar.sh
+		
+		# Ou inicializacao com criacao de Tunel Publico Seguro (Cloudflare HTTPS):
+		./executar.sh --tunel
+	\end{lstlisting}
+	
+	\subsection{Envio de Telemetria via Middleware AMQP}
+	Para publicar medições reais através da exchange Fanout do RabbitMQ:
+	\begin{lstlisting}[language=bash]
+		# Envio de lote com 20 registros a cada 0.3 segundos:
+		python client/csv_sender.py --via-rabbitmq --intervalo 0.3 --limite 20
+	\end{lstlisting}
+	
+	\subsection{Demonstração da Escalabilidade Elástica}
+	Para testar a adição dinâmica de capacidade (Scale-Out) e posterior redução (Scale-In):
+	\begin{lstlisting}[language=bash]
+		# 1. Ativar Servidor 04 Reserva (Scale-Out: N=3 -> N=4):
+		curl -X POST http://localhost:8000/servidores/ativar-reserva
+		
+		# 2. Enviar carga de teste e verificar a distribuicao nos 4 servidores:
+		python client/csv_sender.py --url http://localhost:8000/dados --intervalo 0.1 --limite 16
+		
+		# 3. Desativar Servidor 04 Reserva (Scale-In: N=4 -> N=3):
+		curl -X POST http://localhost:8000/servidores/desativar-reserva
+	\end{lstlisting}
+	
+	\subsection{Evidência da Replicação Consistente nos 4 Bancos}
+	Após o envio de 20 medições via RabbitMQ, execute no terminal para auditar os quatro bancos SQLite:
+	\begin{lstlisting}[language=bash]
+		for i in 1 2 3 4; do
+		    echo -n "Server $i (databases/server$i.db): "
+		    sqlite3 databases/server$i.db "SELECT COUNT(*) FROM dados_pacientes;"
+		done
+	\end{lstlisting}
+	\textbf{Resultado Obtido:}
+	\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+		Server 1 (databases/server1.db): 20
+		Server 2 (databases/server2.db): 20
+		Server 3 (databases/server3.db): 20
+		Server 4 (databases/server4.db): 20
+	\end{lstlisting}
+	O resultado comprova que a replicação broadcast Fanout eliminou o problema do particionamento, mantendo sincronia estrita entre todas as réplicas.
+	
+	% =========================================================================
+	\section{Conclusão e Próximos Passos}
+	% =========================================================================
+	
+	A conclusão do \textbf{Marco 3} marca a consolidação do projeto como um sistema distribuído robusto, consistente e elástico. A introdução do middleware RabbitMQ proporcionou o desacoplamento necessário para ingestão assíncrona de telemetria médica em alta escala, enquanto a replicação broadcast Fanout assegurou a integridade dos dados clínicos em múltiplos bancos relacionais.
+	
+	Além disso, a implementação do mecanismo de escalabilidade horizontal (\textit{Scale-Out/Scale-In}) com o quarto servidor em \textit{Warm Standby} e o suporte a acesso remoto seguro demonstram a maturidade de engenharia da solução.
+	
+	\textbf{Próximos Passos (Marco 4 — Tolerância a Falhas Avançada):}
+	\begin{itemize}
+		\item Implementação de \textit{Health Checks} ativos e passivos no Load Balancer para detecção instantânea de queda de nós.
+		\item Mecanismo automático de \textit{Failover}: redirecionamento transparente de requisições em falha para servidores saudáveis sem devolução de erro 500 ao cliente.
+		\item Fila de retenção no middleware para armazenamento de requisições caso múltiplos nós fiquem offline, com descarga automática assim que o serviço for restabelecido.
+	\end{itemize}
+	
+\end{document}

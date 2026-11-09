@@ -1,0 +1,244 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\geometry{a4paper, margin=1.8cm, top=1.8cm, bottom=1.8cm}
+\setlength{\headheight}{15pt}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{microtype}
+\usepackage[skins,breakable]{tcolorbox}
+
+% --- PALETA DE CORES INSTITUCIONAL ---
+\definecolor{azulPrimario}{RGB}{18, 52, 102}      % Azul marinho técnico
+\definecolor{azulSecundario}{RGB}{35, 85, 145}   % Azul institucional
+\definecolor{verdeSucesso}{RGB}{30, 110, 60}     % Verde sóbrio
+\definecolor{cinzaFundo}{RGB}{246, 248, 250}     % Cinza muito claro
+\definecolor{cinzaBorda}{RGB}{210, 218, 226}     % Cinza sutil
+\definecolor{azulCaixa}{RGB}{238, 244, 252}      % Azul pastel suave
+\definecolor{laranjaCaixa}{RGB}{253, 246, 237}   % Laranja suave para avisos
+\definecolor{kafkaVermelho}{RGB}{224, 35, 78}     % Vermelho símbolo do Apache Kafka
+\definecolor{roxoTecnico}{RGB}{109, 40, 217}     % Roxo para tópicos e particionamento
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=azulPrimario,
+    urlcolor=azulPrimario,
+    citecolor=azulSecundario,
+    hypertexnames=false
+}
+
+% --- ESTILOS DE CAIXAS CONCEITUAIS E ARQUITETURAIS ---
+\newtcolorbox{fundamento}[1][]{
+    enhanced,
+    colback=azulCaixa,
+    colframe=azulSecundario,
+    coltitle=white,
+    fonttitle=\bfseries\small\color{white},
+    arc=2.5mm,
+    boxrule=0.8pt,
+    left=9pt,
+    right=9pt,
+    top=7pt,
+    bottom=7pt,
+    title={Fundamento de Engenharia: #1},
+    breakable
+}
+
+\newtcolorbox{arquitetura}[1][]{
+    enhanced,
+    colback=cinzaFundo,
+    colframe=kafkaVermelho,
+    coltitle=white,
+    fonttitle=\bfseries\small\color{white},
+    arc=2.5mm,
+    boxrule=0.8pt,
+    left=9pt,
+    right=9pt,
+    top=7pt,
+    bottom=7pt,
+    title={Padrão Arquitetural Kafka: #1},
+    breakable
+}
+
+\lstset{
+    basicstyle=\ttfamily\scriptsize,
+    backgroundcolor=\color{cinzaFundo},
+    frame=single,
+    rulecolor=\color{cinzaBorda},
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\bfseries\color{azulPrimario},
+    commentstyle=\itshape\color{verdeSucesso},
+    stringstyle=\color{kafkaVermelho},
+    captionpos=b,
+    showstringspaces=false
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\footnotesize\textbf{Sistemas Distribuídos} --- Middleware Apache Kafka (MOM)}
+\rhead{\footnotesize UFMA / Engenharia da Computação}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+% =========================================================================
+% CABEÇALHO INSTITUCIONAL FORMAL
+% =========================================================================
+\begin{center}
+    {\large \textsc{Universidade Federal do Maranhão}}\\[1pt]
+    {\small Centro de Ciências Exatas e Tecnologia --- Departamento de Engenharia da Computação}\\[2pt]
+    {\small Disciplina: Sistemas Distribuídos --- Docente: Prof. Dr. Luiz Henrique Neves Rodrigues}\\[8pt]
+
+    {\Large \textbf{Relatório Técnico de Engenharia de Middleware}}\\[3pt]
+    {\large \textit{Consolidação e Migração para Arquitetura Message-Oriented Middleware com Apache Kafka: Particionamento Determinístico, Consumer Groups e Resiliência Adaptativa}}\\[6pt]
+
+    \textbf{Discentes:} Eduardo dos Santos Oliveira, Fernando da Silva Costa, Herick Vinicius Pinheiro Da Conceição, Samara Santos Viegas e Vyktor Gabryel Costa de Souza\\[6pt]
+    \rule{\linewidth}{1.2pt}
+\end{center}
+
+% =========================================================================
+\section{Contextualização e Decisão Arquitetural}
+% =========================================================================
+
+O processamento distribuído de telemetria hospitalar impõe requisitos de missão crítica: alta vazão (\textit{throughput}) para dezenas de milhares de medições por segundo, garantia estrita de ordenação temporal dos sinais vitais por paciente, tolerância a falhas em cascata e replicação paralela sem degradação do emissor.
+
+Após a análise comparativa entre diferentes paradigmas de comunicação distribuída, a equipe consolidou a substituição de todos os middlewares legados (RabbitMQ AMQP e barramentos híbridos) em favor do **Apache Kafka** como a **espinha dorsal única e definitiva** de mensageria (\textit{Message-Oriented Middleware - MOM}):
+
+\begin{enumerate}
+    \item \textbf{Ordenação Temporal Garantida por Chave de Partição:} No RabbitMQ convencional, filas FIFO distribuídas perdem a garantia de ordenação estrita quando múltiplos consumidores competem na mesma fila. No Apache Kafka, ao particionar o tópico pela chave \texttt{paciente\_id}, todas as medições de um mesmo paciente são roteadas determinística e sequencialmente para a mesma partição física, eliminando condições de corrida clínicas.
+    \item \textbf{Modo KRaft (\textit{Kafka Raft Metadata Mode}):} O broker opera no padrão moderno do Apache Kafka sem qualquer dependência legada de clusters ZooKeeper. O consenso do cluster é mantido nativamente pelo algoritmo Raft interno, reduzindo o \textit{overhead} operacional e simplificando o empacotamento em containers.
+    \item \textbf{Replicação Fanout via Consumer Groups Desacoplados:} Em vez de criar exchanges duplicadas ou intermediários pesados, a difusão simultânea dos dados para os 4 servidores backend é realizada através de \textit{Consumer Groups} independentes (\texttt{consumidor\_servidor\_1} a \texttt{consumidor\_servidor\_4}). Cada servidor lê do mesmo tópico com offset independente e velocidade própria.
+\end{enumerate}
+
+\begin{fundamento}{Log de Commit Distribuído Imutável (Jay Kreps)}
+Diferente de sistemas de filas tradicionais onde mensagens são apagadas após o consumo (\textit{destructive read}), o Apache Kafka modela os dados como um log sequencial somente de escrita (\textit{append-only commit log}). As mensagens persistem no disco e são particionadas, permitindo releitura de dados históricos para auditoria médica e consistência eventual sem sobrecarga no broker.
+\end{fundamento}
+
+% =========================================================================
+\section{Arquitetura e Implementação do Middleware Kafka}
+% =========================================================================
+
+A camada de middleware foi estruturada de forma modular no pacote \texttt{middleware/}, contendo os componentes essenciais de produção, consumo, resiliência e configuração:
+
+\begin{arquitetura}{Componentes do Middleware Kafka (\texttt{middleware/})}
+\begin{itemize}
+    \item \texttt{config.py}: Configuração centralizada com suporte a injeção via variáveis de ambiente (\texttt{KAFKA\_BOOTSTRAP\_SERVERS}, \texttt{KAFKA\_TOPIC}), especificação de $4$ partições, fator de replicação, parâmetros de buffer (\texttt{batch.size = 16KB}, \texttt{linger.ms = 5}) e mapeamento dos $4$ consumer groups de replicação.
+    \item \texttt{produtor.py}: Classe \texttt{ProdutorKafka} com serialização JSON, particionamento por hash da chave \texttt{paciente\_id}, compressão nativa (\textit{gzip}), semântica idempotente (\texttt{enable.idempotence = True}, \textit{exactly-once semantics}) e controle de vazão por \textit{Token Bucket Rate Limiting}.
+    \item \texttt{consumidor.py}: Classe \texttt{ConsumidorKafka} com commit manual de offsets (\textit{at-least-once delivery}), máquina de estados de \textit{Circuit Breaker} por nó e isolamento de erros em \textit{Dead Letter Topic (DLT)}.
+\end{itemize}
+\end{arquitetura}
+
+\subsection{Particionamento e Paralelismo de Escrita}
+O tópico mestre \texttt{telemetria\_hospitalar} é configurado com 4 partições. A atribuição de partição para cada registro de telemetria é calculada segundo a função de dispersão determinística:
+\begin{equation}
+    P_i = \text{murmur2}(\text{paciente\_id}) \pmod{N_{\text{partições}}}
+\end{equation}
+Essa distribuição garante que a telemetria do mesmo paciente seja processada em ordem estrita de chegada, ao mesmo tempo em que distribui a carga uniformemente entre os nós.
+
+\subsection{Replicação Fanout nos 4 Servidores Backend}
+Para garantir consistência e tolerância a falhas (Marco 3), cada nó do cluster hospitalar possui um banco de dados independente (\texttt{server1.db} a \texttt{server4.db}). O consumidor Kafka opera no modo \texttt{--multi}, instanciando 4 threads concorrentes:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{>{\bfseries}p{4.2cm} >{\bfseries}p{3.2cm} >{\raggedright\arraybackslash}X}
+\toprule
+Consumer Group & Destino & Papel na Arquitetura \\
+\midrule
+\texttt{consumidor\_servidor\_1} & \texttt{http://localhost:8001} & Nó Ativo Principal 1 (\texttt{server1.db}) \\
+\texttt{consumidor\_servidor\_2} & \texttt{http://localhost:8002} & Nó Ativo Principal 2 (\texttt{server2.db}) \\
+\texttt{consumidor\_servidor\_3} & \texttt{http://localhost:8003} & Nó Ativo Principal 3 (\texttt{server3.db}) \\
+\texttt{consumidor\_servidor\_4} & \texttt{http://localhost:8004} & Nó de Reserva Aquecida (\texttt{server4.db} - Warm Standby) \\
+\bottomrule
+\end{tabularx}
+\caption{Mapeamento de Consumer Groups do Kafka para a replicação ativa nos shards de banco de dados.}
+\label{tab:consumer_groups}
+\end{table}
+
+% =========================================================================
+\section{Tolerância a Falhas e Mecanismos de Proteção}
+% =========================================================================
+
+\subsection{Circuit Breaker Integrado}
+Para evitar que a indisponibilidade transitória de um dos servidores sature o consumidor com retentativas infinitas, cada consumidor possui um \textbf{Circuit Breaker} com três estados:
+\begin{itemize}
+    \item \textbf{CLOSED (Fechado):} Operação nominal. Requisições POST são despachadas normalmente ao servidor backend.
+    \item \textbf{OPEN (Aberto):} Após 5 falhas consecutivas de conexão (ou timeout HTTP), o circuito desarma imediatamente por 10 segundos, retendo o offset da mensagem sem commit e evitando sobrecarga.
+    \item \textbf{HALF-OPEN (Semi-aberto):} Transcorrido o período de resfriamento, o circuito permite requisições de teste. Se duas consecutivas obtiverem sucesso (HTTP 200), o circuito retorna a \textbf{CLOSED}.
+\end{itemize}
+
+\subsection{Dead Letter Topic (DLT) com Exponential Backoff}
+Mensagens com dados corrompidos ou que esgotem o limite de tentativas ($N=3$) são encaminhadas para o tópico de quarentena \texttt{telemetria\_hospitalar\_dlt}:
+\begin{equation}
+    t_{\text{backoff}} = \min(t_{\text{máx}}, t_{\text{base}} \times 2^{\text{tentativa}})
+\end{equation}
+Esse mecanismo assegura que dados inválidos não bloqueiem a leitura contínua das mensagens sadias dos demais leitos hospitalares.
+
+\subsection{Failover Crítico On-Demand e Auto-Scaling Dinâmico (Servidor 04)}
+Durante experimentos de \textit{Engenharia do Caos} na interface gráfica, simulou-se o cenário extremo em que os $3$ servidores principais (\texttt{server-01}, \texttt{server-02} e \texttt{server-03}) foram derrubados simultaneamente, restando apenas o nó de reserva (\texttt{server-04}) em \textit{Warm Standby}.
+
+Para garantir alta disponibilidade imediata e transparência operacional, foram implementadas as seguintes soluções arquiteturais:
+\begin{enumerate}
+    \item \textbf{Detecção Instantânea de Queda de Processo:} O \textit{Health Checker} do balanceador foi otimizado para que erros de conexão recusada (\texttt{httpx.ConnectError}) marquem imediatamente o nó como \texttt{UNHEALTHY} logo na primeira sondagem, eliminando a latência de espera de $9$ segundos (três ciclos convencionais de timeout).
+    \item \textbf{Ativação On-Demand em Roteamento de Requisição:} Se uma requisição HTTP (\texttt{POST /dados} ou \texttt{GET /dados}) chega ao balanceador e todos os nós principais falharam, o balanceador invoca imediatamente \texttt{ativar\_reserva()} sob demanda, roteia a requisição diretamente para o Servidor 04 (:8004) e retorna sucesso (\texttt{HTTP 200 OK} com \texttt{X-Failover: true}), sem devolver erros \texttt{502 Bad Gateway}.
+    \item \textbf{Notificação Reativa e Sincronização Instantânea com o Monitor:} O balanceador despacha uma notificação assíncrona para o endpoint \texttt{POST /api/evento-escala-externo} do monitor de visualização. O monitor valida o processo do nó 4 e emite imediatamente os eventos SSE \texttt{auto\_scale\_event} e \texttt{escala\_alterada} para o navegador.
+    \item \textbf{Transição Visual Automática na Interface Web:} No frontend, o nó 4 transita instantaneamente de \texttt{STANDBY} para \texttt{ONLINE / ATIVO (25\%)}, o botão comuta para \textit{Desativar Reserva (Scale-In)}, o SVG da arquitetura ilumina a rota física do Servidor 04 e a rotação do Round Robin passa a incluir o quarto nó.
+\end{enumerate}
+
+% =========================================================================
+\section{Resultados dos Testes Automatizados}
+% =========================================================================
+
+A consolidação da arquitetura Kafka e dos mecanismos de escalabilidade foi acompanhada da criação e expansão de baterias de testes unitários e de integração em \texttt{tests/}:
+\begin{itemize}
+    \item Validação de carregamento e sobrescrita de configurações do Kafka via variáveis de ambiente.
+    \item Algoritmo Token Bucket para controle de vazão (admissão de rajadas e estrangulamento).
+    \item Transições completas de estado do Circuit Breaker (\texttt{CLOSED} $\to$ \texttt{OPEN} $\to$ \texttt{HALF-OPEN} $\to$ \texttt{CLOSED}).
+    \item Conversão e sanitização do modelo canônico de dados hospitalares com Pydantic.
+    \item Failover de emergência do auto-scaler quando todos os nós caem e ativação sob demanda.
+    \item Notificação reativa e endpoints de eventos de escala externa no monitor de visualização.
+\end{itemize}
+
+O resultado consolidado da execução da suíte de testes com \texttt{pytest} atesta a estabilidade rigorosa do sistema:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{>{\bfseries}p{5.5cm} >{\centering\arraybackslash}p{2.5cm} >{\raggedright\arraybackslash}X}
+\toprule
+Módulo de Teste & Testes Executados & Status e Cobertura \\
+\midrule
+\texttt{tests/test\_kafka\_middleware.py} & 11 & \textbf{100\% Aprovados} (10 unitários + 1 integração) \\
+\texttt{tests/test\_marco1.py} & 16 & \textbf{100\% Aprovados} (Dataset, Pydantic, SQLite) \\
+\texttt{tests/test\_marco2.py} & 9 & \textbf{100\% Aprovados} (Balanceador, Round Robin) \\
+\texttt{tests/test\_marco3.py} & 7 & \textbf{100\% Aprovados} (Replicação Fanout, Escalabilidade) \\
+\texttt{tests/test\_escalabilidade.py} & 35 & \textbf{100\% Aprovados} (Algoritmos e Auto-scaling) \\
+\texttt{tests/test\_visualizacao.py} & 20 & \textbf{100\% Aprovados} (SSE, SSE Web, Métricas Kafka, Escala Externa) \\
+\midrule
+\textbf{Total Consolidado} & \textbf{98 Testes} & \textbf{100\% Aprovados (Zero Falhas)} \\
+\bottomrule
+\end{tabularx}
+\caption{Resultados da suíte automatizada de testes após a migração para o Apache Kafka e aprimoramento do failover.}
+\label{tab:testes_kafka}
+\end{table}
+
+% =========================================================================
+\section{Conclusão}
+% =========================================================================
+
+A consolidação do **Apache Kafka** como middleware exclusivo, combinada com o **Balanceador Enterprise com Failover On-Demand e Auto-Scaling Dinâmico**, conferiu ao Sistema Distribuído Hospitalar um patamar industrial de estabilidade, desempenho e transparência. A combinação de particionamento estrito por paciente, semântica idempotente de envio, replicação paralela via Consumer Groups, tolerância a falhas via Circuit Breakers e recuperação imediata do Servidor Reserva garante que o sistema atenda integralmente a todos os requisitos acadêmicos e funcionais da disciplina de Sistemas Distribuídos da UFMA.
+
+\end{document}

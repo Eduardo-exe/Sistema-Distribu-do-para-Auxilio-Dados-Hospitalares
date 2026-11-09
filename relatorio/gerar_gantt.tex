@@ -1,0 +1,54 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{pgfgantt}
+
+\definecolor{ganttgreen}{RGB}{46, 125, 50}
+\definecolor{ganttgreenborder}{RGB}{27, 94, 32}
+\definecolor{ganttyellow}{RGB}{234, 179, 8}
+\definecolor{ganttyellowborder}{RGB}{180, 83, 9}
+\definecolor{ganttblue}{RGB}{26, 86, 219}
+\definecolor{ganttblueborder}{RGB}{30, 66, 159}
+\definecolor{ganttgray}{RGB}{209, 213, 219}
+\definecolor{ganttgrayborder}{RGB}{156, 163, 175}
+
+\begin{document}
+\begin{ganttchart}[
+    vgrid={*6{draw=none}, *1{dotted, gray!60}},
+    hgrid,
+    time slot format=isodate,
+    time slot unit=day,
+    x unit=1.45mm,
+    y unit chart=0.65cm,
+    title/.append style={draw=none, fill=ganttblue!15},
+    title label font=\bfseries\footnotesize,
+    title height=1,
+    bar/.append style={fill=ganttgreen, draw=ganttgreenborder, rounded corners=2pt},
+    bar height=0.55,
+    bar label font=\footnotesize,
+    group right shift=0,
+    group top shift=0.7,
+    group height=.3,
+    group peaks width={0.2},
+    milestone/.append style={fill=red, rounded corners=2pt}
+]{2026-08-18}{2026-12-01}
+    \gantttitle{Ago}{14}
+    \gantttitle{Set}{30}
+    \gantttitle{Out}{31}
+    \gantttitle{Nov}{30}
+    \gantttitle{Dez}{1} \\
+    \ganttbar{1. Termo de Abertura}{2026-08-18}{2026-08-20} \\
+    \ganttbar{2. Arquitetura e Escopo}{2026-08-20}{2026-08-23} \\
+    \ganttbar{3. Configuração do Ambiente}{2026-08-24}{2026-08-27} \\
+    \ganttbar{4. Marco 1: Servidor Base e Ingestão}{2026-08-28}{2026-09-10} \\
+    \ganttbar{5. Marco 2: Balanceamento e Sharding}{2026-09-17}{2026-09-28} \\
+    \ganttbar{6. Marco 3: Middleware Kafka e Fanout}{2026-09-30}{2026-10-22} \\
+    \ganttbar{7. Marco 4: Tolerância a Falhas e Caos}{2026-10-23}{2026-11-03} \\
+    \ganttbar{8. Testes de Carga e Benchmark}{2026-11-01}{2026-11-08} \\
+    \ganttbar[bar/.append style={fill=ganttyellow, draw=ganttyellowborder, line width=1pt}]{9. Validação e Ajustes Finais}{2026-11-08}{2026-11-15} \\
+    \ganttbar[bar/.append style={fill=ganttgray, draw=ganttgrayborder}]{10. Documentação e Encerramento}{2026-11-16}{2026-12-01}
+    \ganttvrule[vrule/.append style={red!80!black, ultra thick, dashed}]{Hoje (08/11)}{2026-11-08}
+\end{ganttchart}
+\end{document}
+

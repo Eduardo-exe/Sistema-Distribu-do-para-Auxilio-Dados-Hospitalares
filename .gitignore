@@ -18,8 +18,12 @@ htmlcov/
 databases/*.db
 !databases/.gitkeep
 
-# Pasta de relatórios (não versionar no git)
-relatorio/
+# Arquivos temporários de compilação LaTeX
+relatorio/*.aux
+relatorio/*.log
+relatorio/*.out
+relatorio/*.toc
+relatorio/*.synctex.gz
 
 # Arquivos compactados de backup
 *.zip
