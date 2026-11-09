@@ -230,3 +230,4 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, _sig)
 
     iniciar_servidor_mom(args.porta)
+

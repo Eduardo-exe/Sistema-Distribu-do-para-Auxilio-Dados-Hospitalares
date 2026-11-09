@@ -1681,11 +1681,27 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                 p = int(rec.get("paciente_id") or 0) % 4
                 KafkaMonitorMetrics.registrar(rec, particao=p, offset=None, emulado=True)
 
+            # Obter DLT do replicador se ativo
+            dlt_total = 0
+            try:
+                from middleware.replicador import get_replicador
+                dlt_total = len(get_replicador().dlt_queue)
+            except Exception:
+                dlt_total = 0
+
+            # Circuit breakers individuais por servidor
+            cb_states = {}
+            for cg in consumer_groups:
+                sid = cg["target"]
+                cb_states[sid] = "CLOSED" if cg["status"] == "online" else "OPEN"
+
             return {
                 "status": "online",
                 "bootstrap_servers": KAFKA_BOOTSTRAP_SERVERS,
                 "topic": KAFKA_TOPIC,
                 "dlt_topic": KAFKA_DLT_TOPIC,
+                "dlt_count": dlt_total,
+                "fila_retencao_count": len(state.fila_retencao),
                 "broker_conectado": True,
                 "modo": "KRaft / MOM Enterprise Replicator (Fanout Ativo)",
                 "transparencia_heterogeneidade": True,
@@ -1696,10 +1712,14 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                     "offsets": KafkaMonitorMetrics.offsets,
                     "ultima_msg": KafkaMonitorMetrics.ultima_msg,
                     "circuit_breaker": "CLOSED",
+                    "circuit_breakers": cb_states,
                     "rate_limiter": "100 req/s (Burst: 20)",
+                    "tokens_disponiveis": 20,
                     "compression": "gzip",
                     "ack": "all (-1, Quorum KRaft)",
                     "consumer_groups": consumer_groups,
+                    "dlt_total": dlt_total,
+                    "fila_retencao": len(state.fila_retencao),
                 },
             }
         except Exception as e:

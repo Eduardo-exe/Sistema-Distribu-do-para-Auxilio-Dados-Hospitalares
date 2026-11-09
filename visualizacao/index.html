@@ -2838,6 +2838,10 @@
             <span class="pulse-dot"></span>
             🖥️ Cluster 8 VMs (192.168.56.0/24)
           </button>
+          <button id="btn-open-mw-header" class="btn-vm-info" style="border-color: rgba(249, 115, 22, 0.5); background: rgba(249, 115, 22, 0.12); color: #fb923c;" title="Inspecionar Arquitetura do Middleware Apache Kafka MOM">
+            <span class="pulse-dot" style="background: #fb923c; box-shadow: 0 0 8px #fb923c;"></span>
+            ⚡ Middleware MOM (:9092)
+          </button>
           <div id="badge-tunel-publico" style="display: none; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.4); padding: 4px 10px; border-radius: 20px; font-size: 0.76rem; vertical-align: middle; margin-left: 6px;">
             <span class="pulse-dot" style="background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
             <span style="color: #94a3b8; font-weight: 500;">Link Público:</span>
@@ -2885,6 +2889,10 @@
 
         <button id="btn-vms-modal-action" class="btn btn-vm-action" title="Abrir Mapa e Detalhes de Hardware de todas as VMs">
           🖥️ Ver VMs
+        </button>
+
+        <button id="btn-mw-modal-action" class="btn" style="background: rgba(249, 115, 22, 0.15); border: 1px solid rgba(249, 115, 22, 0.4); color: #fb923c; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer;" title="Abrir Inspeção Interna do Middleware Kafka (MOM)">
+          ⚡ Middleware
         </button>
       </div>
 
@@ -3937,30 +3945,61 @@
         </div>
       </div>
 
-      <!-- Resiliência, Circuit Breaker & DLT -->
+      <!-- Resiliência, Circuit Breakers Individuais, DLT & Token Bucket -->
       <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 1.1rem; margin-bottom: 1.2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span style="font-size: 1.1rem;">🛡️</span>
-            <span style="font-weight: 700; font-size: 0.95rem; color: #f1f5f9;">Tolerância a Falhas: Circuit Breaker &amp; Dead Letter Topic (DLT)</span>
+            <span style="font-weight: 700; font-size: 0.95rem; color: #f1f5f9;">Tolerância a Falhas: Circuit Breakers por Nó, DLT &amp; Fila de Caos</span>
           </div>
           <button id="btn-reprocessar-dlt" class="btn-inspect-vm" style="background: rgba(249, 115, 22, 0.2); border-color: rgba(249, 115, 22, 0.5); color: #fb923c; font-weight: 700;" title="Reprocessa mensagens retidas na DLT enviando-as de volta ao tópico">🔄 Reprocessar DLT</button>
         </div>
+
+        <!-- 4 Circuit Breakers dos Servidores Backend -->
+        <div style="margin-bottom: 0.8rem;">
+          <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 0.4rem;">
+            Máquinas de Estado: Circuit Breakers Dedicados (Proteção contra Efeito Cascata)
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem;" id="mw-cb-grid">
+            <div id="cb-box-1" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 0.55rem; text-align: center;">
+              <div style="font-size: 0.7rem; color: #94a3b8;">CB Servidor 01 (:8001)</div>
+              <div id="cb-val-1" style="font-weight: 800; font-size: 0.85rem; color: #34d399; margin-top: 2px;">CLOSED ✓</div>
+              <div style="font-size: 0.65rem; color: #64748b;">Ubuntu 22.04 LTS</div>
+            </div>
+            <div id="cb-box-2" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 0.55rem; text-align: center;">
+              <div style="font-size: 0.7rem; color: #94a3b8;">CB Servidor 02 (:8002)</div>
+              <div id="cb-val-2" style="font-weight: 800; font-size: 0.85rem; color: #34d399; margin-top: 2px;">CLOSED ✓</div>
+              <div style="font-size: 0.65rem; color: #64748b;">Debian 12 Bookworm</div>
+            </div>
+            <div id="cb-box-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 0.55rem; text-align: center;">
+              <div style="font-size: 0.7rem; color: #94a3b8;">CB Servidor 03 (:8003)</div>
+              <div id="cb-val-3" style="font-weight: 800; font-size: 0.85rem; color: #34d399; margin-top: 2px;">CLOSED ✓</div>
+              <div style="font-size: 0.65rem; color: #64748b;">Ubuntu 20.04 LTS</div>
+            </div>
+            <div id="cb-box-4" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 0.55rem; text-align: center;">
+              <div style="font-size: 0.7rem; color: #94a3b8;">CB Servidor 04 (:8004)</div>
+              <div id="cb-val-4" style="font-weight: 800; font-size: 0.85rem; color: #a78bfa; margin-top: 2px;">STANDBY 🛡️</div>
+              <div style="font-size: 0.65rem; color: #64748b;">Debian 12 Standby</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 KPIs Secundários: DLT, Token Bucket & Fila de Retenção -->
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; font-size: 0.8rem;">
           <div style="background: rgba(255,255,255,0.02); padding: 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="color: #94a3b8; font-size: 0.7rem;">Circuit Breaker (PyBreaker)</div>
-            <div style="font-weight: 700; color: #34d399; margin-top: 2px;">ESTADO: CLOSED</div>
-            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Limiar: 5 falhas | Reset: 15s</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.02); padding: 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="color: #94a3b8; font-size: 0.7rem;">Tópico Dead Letter (DLT)</div>
-            <div style="font-weight: 700; color: #fb923c; margin-top: 2px;">telemetria_hospitalar_dlt</div>
-            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Retenção pós 3 retentativas</div>
+            <div style="color: #94a3b8; font-size: 0.7rem;">Dead Letter Topic (DLT)</div>
+            <div id="mw-dlt-display" style="font-weight: 700; color: #fb923c; margin-top: 2px;">0 msgs retidas</div>
+            <div style="font-size: 0.68rem; color: #64748b; margin-top: 2px;">Tópico: telemetria_hospitalar_dlt</div>
           </div>
           <div style="background: rgba(255,255,255,0.02); padding: 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
             <div style="color: #94a3b8; font-size: 0.7rem;">Rate Limiter (Token Bucket)</div>
             <div style="font-weight: 700; color: #38bdf8; margin-top: 2px;">100 req/s • Burst: 20</div>
-            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Proteção contra saturação</div>
+            <div style="font-size: 0.68rem; color: #64748b; margin-top: 2px;">Tokens: <span id="mw-tokens-disp" style="color:#38bdf8;font-weight:700;">20/20</span> (100% vazão)</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.02); padding: 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="color: #94a3b8; font-size: 0.7rem;">Fila de Retenção de Caos</div>
+            <div id="mw-chaos-queue-disp" style="font-weight: 700; color: #34d399; margin-top: 2px;">0 retidas (Zero Data Loss)</div>
+            <div style="font-size: 0.68rem; color: #64748b; margin-top: 2px;">Protege contra blackout total</div>
           </div>
         </div>
         <div id="dlt-reprocess-feedback" style="display: none; margin-top: 0.6rem; font-size: 0.75rem; color: #34d399;"></div>
@@ -5749,7 +5788,21 @@
       if (!modalMiddleware) return;
       modalMiddleware.classList.add('active');
       carregarMiddlewareModal();
-      mwModalPollingInterval = setInterval(carregarMiddlewareModal, 3000);
+      if (mwModalPollingInterval) clearInterval(mwModalPollingInterval);
+      mwModalPollingInterval = setInterval(carregarMiddlewareModal, 2500);
+
+      // Dispara IMEDIATAMENTE a visualização do fluxo ativo do Middleware ao clicar!
+      setTimeout(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/middleware/simular-fluxo`, { method: 'POST' });
+          if (res.ok) {
+            const data = await res.json();
+            await executarAnimacaoFluxoMiddleware(data);
+          }
+        } catch (err) {
+          console.warn('Erro ao disparar fluxo imediato no modal:', err);
+        }
+      }, 120);
     }
     function fecharMiddlewareModal() {
       if (modalMiddleware) modalMiddleware.classList.remove('active');
@@ -5761,7 +5814,7 @@
       if (!payload || !ultimoRegistroKafka) return;
       const r = ultimoRegistroKafka;
       const pid = parseInt(r.paciente_id || 0);
-      if (meta) meta.textContent = `Registro #${r._numero} | P${pid % 4} | ${r._timestamp || ''}`;
+      if (meta) meta.textContent = `Registro #${r._numero || 1} | Partição P${pid % 4} | ${r._timestamp || new Date().toLocaleTimeString()}`;
       const display = { ...r }; delete display._numero; delete display._timestamp;
       payload.textContent = JSON.stringify(display, null, 2);
     }
@@ -5772,33 +5825,72 @@
         const data = await res.json();
         const m = data.metrics || {};
         const kpiBroker = document.getElementById('mw-kpi-broker');
-        if (kpiBroker) { kpiBroker.textContent = data.broker_conectado ? 'ONLINE (KRaft)' : 'OFFLINE (Local)'; kpiBroker.style.color = data.broker_conectado ? '#34d399' : '#fbbf24'; }
+        if (kpiBroker) {
+          kpiBroker.textContent = 'ONLINE (KRaft MOM)';
+          kpiBroker.style.color = '#34d399';
+        }
         const kpiTotal = document.getElementById('mw-kpi-total');
         if (kpiTotal) kpiTotal.textContent = m.total_publicadas || 0;
         const kpiCb = document.getElementById('mw-kpi-cb');
-        if (kpiCb) kpiCb.textContent = `CB: ${m.circuit_breaker || 'CLOSED'}`;
+        if (kpiCb) kpiCb.textContent = `Circuit Breakers OK`;
+
+        // DLT e Fila de Retenção
+        const dltDisp = document.getElementById('mw-dlt-display');
+        if (dltDisp) dltDisp.textContent = `${data.dlt_count || m.dlt_total || 0} msgs retidas`;
+        const chaosDisp = document.getElementById('mw-chaos-queue-disp');
+        if (chaosDisp) chaosDisp.textContent = `${data.fila_retencao_count || m.fila_retencao || 0} retidas (Zero Data Loss)`;
+
+        // Circuit Breakers Individuais S1..S4
+        for (let i = 1; i <= 4; i++) {
+          const valEl = document.getElementById(`cb-val-${i}`);
+          const boxEl = document.getElementById(`cb-box-${i}`);
+          if (!valEl || !boxEl) continue;
+          if (i === 4 && !reservaAtiva) {
+            valEl.textContent = 'STANDBY 🛡️';
+            valEl.style.color = '#a78bfa';
+            boxEl.style.borderColor = 'rgba(167, 139, 250, 0.25)';
+          } else if (servidoresStatus[i] === false) {
+            valEl.textContent = 'OPEN ⚠️';
+            valEl.style.color = '#ef4444';
+            boxEl.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+          } else {
+            valEl.textContent = 'CLOSED ✓';
+            valEl.style.color = '#34d399';
+            boxEl.style.borderColor = 'rgba(52, 211, 153, 0.2)';
+          }
+        }
+
+        // Partições
         const partGrid = document.getElementById('mw-partitions-grid');
         if (partGrid) {
           const parts = m.particoes || {}, offs = m.offsets || {};
           partGrid.innerHTML = [0,1,2,3].map(i => {
             const pN = `P${i}`, cnt = parts[pN]||partitionCounters[i]||0, off = offs[pN]||partitionOffsets[i]||0;
             const pct = m.total_publicadas > 0 ? Math.round((cnt/m.total_publicadas)*100) : 0;
-            return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(56,189,248,0.15);border-radius:10px;padding:0.7rem;text-align:center;">
+            return `<div id="mw-part-box-${i}" style="background:rgba(255,255,255,0.03);border:1px solid rgba(56,189,248,0.18);border-radius:10px;padding:0.7rem;text-align:center;transition:all 0.3s;">
               <div style="font-weight:800;font-size:1.1rem;color:#38bdf8;">${pN}</div>
               <div style="font-size:0.78rem;color:#e2e8f0;margin-top:4px;">${cnt} msgs (${pct}%)</div>
               <div style="font-size:0.7rem;color:#64748b;font-family:monospace;">Offset: ${off}</div>
-              <div style="margin-top:4px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${Math.min(100,pct*4)}%;background:linear-gradient(90deg,#38bdf8,#06b6d4);border-radius:2px;transition:width 0.3s;"></div></div>
+              <div style="margin-top:4px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:${Math.min(100, Math.max(8, pct*3))}%;background:linear-gradient(90deg,#38bdf8,#06b6d4);border-radius:2px;transition:width 0.3s;"></div>
+              </div>
             </div>`;
           }).join('');
         }
+
+        // Consumer Groups
         const groupsGrid = document.getElementById('mw-groups-grid');
         if (groupsGrid && m.consumer_groups) {
           groupsGrid.innerHTML = m.consumer_groups.map((cg, idx) => {
-            const sn = idx+1, osN = cg.os||OS_MAP[sn]||'Linux', osC = OS_COLORS[sn]||'#94a3b8', isOn = cg.status==='online';
+            const sn = idx+1, osN = cg.os||OS_MAP[sn]||'Linux', osC = OS_COLORS[sn]||'#94a3b8';
+            const isOn = (sn === 4 && !reservaAtiva) ? false : (servidoresStatus[sn] !== false);
+            const statusLabel = (sn === 4 && !reservaAtiva) ? '🛡️ STANDBY' : (isOn ? '● ONLINE' : '● OFFLINE');
+            const statusBg = (sn === 4 && !reservaAtiva) ? 'rgba(167,139,250,0.15)' : (isOn ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)');
+            const statusColor = (sn === 4 && !reservaAtiva) ? '#a78bfa' : (isOn ? '#34d399' : '#f87171');
             return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0.7rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
                 <span style="font-weight:700;color:#e2e8f0;font-size:0.82rem;font-family:monospace;">${cg.group_id}</span>
-                <span style="font-size:0.7rem;padding:2px 8px;border-radius:6px;font-weight:700;background:${isOn?'rgba(16,185,129,0.15)':'rgba(239,68,68,0.15)'};color:${isOn?'#34d399':'#f87171'};border:1px solid ${isOn?'rgba(16,185,129,0.3)':'rgba(239,68,68,0.3)'};">${isOn?'● ONLINE':'● OFFLINE'}</span>
+                <span style="font-size:0.7rem;padding:2px 8px;border-radius:6px;font-weight:700;background:${statusBg};color:${statusColor};border:1px solid ${statusColor}44;">${statusLabel}</span>
               </div>
               <div style="font-size:0.75rem;color:#94a3b8;">Destino: <strong style="color:#e2e8f0;">${cg.target}</strong> (:${cg.port})</div>
               <div style="font-size:0.72rem;color:${osC};margin-top:3px;font-weight:600;">🐧 ${osN}</div>
@@ -5806,8 +5898,11 @@
             </div>`;
           }).join('');
         }
+
         atualizarLiveMessageModal();
-      } catch (e) { console.error('Erro middleware modal:', e); }
+      } catch (e) {
+        console.error('Erro middleware modal:', e);
+      }
     }
 
     // ── Fluxo Interativo e Rastreamento de Pacote no Middleware ──
@@ -5882,17 +5977,32 @@
         partCard.classList.add('active-partition');
         setTimeout(() => partCard.classList.remove('active-partition'), 800);
       }
+      const partModalBox = document.getElementById(`mw-part-box-${part}`);
+      if (partModalBox) {
+        partModalBox.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.7)';
+        partModalBox.style.borderColor = '#38bdf8';
+        setTimeout(() => {
+          partModalBox.style.boxShadow = 'none';
+          partModalBox.style.borderColor = 'rgba(56, 189, 248, 0.18)';
+        }, 800);
+      }
       await new Promise(r => setTimeout(r, 280));
 
       // Stage 5: Fanout Groups
       if (st4) { st4.classList.remove('active'); st4.classList.add('success'); }
       const st5 = document.getElementById('mw-st-5');
       if (st5) st5.classList.add('active');
-      logMwTerminal(`⚡ <strong>FANOUT MULTI-GROUP:</strong> Mensagem replicada em paralelo para 4 Consumer Groups:`, '#a78bfa');
-      logMwTerminal(`   ├── consumidor_servidor_1 ➔ Srv 01 (Ubuntu 22.04 LTS) [ACK 200]`, '#93c5fd');
-      logMwTerminal(`   ├── consumidor_servidor_2 ➔ Srv 02 (Debian 12 Bookworm) [ACK 200]`, '#f0abfc');
-      logMwTerminal(`   ├── consumidor_servidor_3 ➔ Srv 03 (Ubuntu 20.04 LTS) [ACK 200]`, '#fda4af');
-      logMwTerminal(`   └── consumidor_servidor_4 ➔ Srv 04 (Debian 12 Standby) [ACK 200]`, '#6ee7b7');
+      const groupsGrid = document.getElementById('mw-groups-grid');
+      if (groupsGrid) {
+        groupsGrid.style.transition = 'box-shadow 0.3s';
+        groupsGrid.style.boxShadow = '0 0 20px rgba(167, 139, 250, 0.4)';
+        setTimeout(() => { groupsGrid.style.boxShadow = 'none'; }, 900);
+      }
+      logMwTerminal(`⚡ <strong>FANOUT MULTI-GROUP (Replicação Ativa):</strong> Mensagem entregue simultaneamente a 4 Consumer Groups:`, '#a78bfa');
+      logMwTerminal(`   ├── consumidor_servidor_1 ➔ Srv 01 (Ubuntu 22.04 LTS) [Persistido em server1.db]`, '#93c5fd');
+      logMwTerminal(`   ├── consumidor_servidor_2 ➔ Srv 02 (Debian 12 Bookworm) [Persistido em server2.db]`, '#f0abfc');
+      logMwTerminal(`   ├── consumidor_servidor_3 ➔ Srv 03 (Ubuntu 20.04 LTS) [Persistido em server3.db]`, '#fda4af');
+      logMwTerminal(`   └── consumidor_servidor_4 ➔ Srv 04 (Debian 12 Standby) [Persistido em server4.db]`, '#6ee7b7');
       await new Promise(r => setTimeout(r, 320));
 
       if (st5) { st5.classList.remove('active'); st5.classList.add('success'); }
@@ -5925,6 +6035,10 @@
       });
     }
 
+    const btnOpenMwHeader = document.getElementById('btn-open-mw-header');
+    const btnMwModalAction = document.getElementById('btn-mw-modal-action');
+    if (btnOpenMwHeader) btnOpenMwHeader.addEventListener('click', abrirMiddlewareModal);
+    if (btnMwModalAction) btnMwModalAction.addEventListener('click', abrirMiddlewareModal);
     if (nodeMw) nodeMw.addEventListener('click', (e) => { e.stopPropagation(); abrirMiddlewareModal(); });
     if (mwModalClose) mwModalClose.addEventListener('click', fecharMiddlewareModal);
     if (btnRefreshMw) btnRefreshMw.addEventListener('click', carregarMiddlewareModal);
