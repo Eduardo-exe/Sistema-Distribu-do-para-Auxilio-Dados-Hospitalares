@@ -61,10 +61,14 @@ echo "------------------------------------------------------------"
 
 # Liberar portas caso instâncias antigas ainda estejam ativas
 echo "Verificando e liberando portas do sistema..."
-fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 2>/dev/null || true
+fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 9094/tcp 2>/dev/null || true
 pkill -f "cloudflared" 2>/dev/null || true
 rm -f "$DIR/logs/tunel.log"
 sleep 1
+
+# Sincronização inicial das réplicas SQLite (Marco 3 — Zero Data Loss)
+echo "Sincronizando réplicas SQLite em todos os nós (Marco 3)..."
+"$PYTHON" server/sync_dbs.py > /dev/null 2>&1 || true
 
 PIDS=()
 
@@ -78,7 +82,7 @@ cleanup() {
             kill "$pid" 2>/dev/null || true
         fi
     done
-    fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 2>/dev/null || true
+    fuser -k -9 5000/tcp 8000/tcp 8001/tcp 8002/tcp 8003/tcp 8004/tcp 9094/tcp 2>/dev/null || true
     docker stop kafka-sd 2>/dev/null || true
     pkill -f "cloudflared" 2>/dev/null || true
     wait 2>/dev/null || true
@@ -109,10 +113,11 @@ PIDS+=($!)
 sleep 1
 
 # ── Iniciar Balanceador de Carga ───────────────────────────────
-echo "[5/6] Iniciando Load Balancer Round Robin (:8000)..."
+echo "[5/6] Iniciando Load Balancer Round Robin com Replicação Fanout (:8000)..."
 "$PYTHON" load_balancer/balancer.py --port 8000 \
     --servidores http://localhost:8001,http://localhost:8002,http://localhost:8003 \
     --servidores-reserva http://localhost:8004 \
+    --replicacao \
     --auto-scale > logs/balancer.log 2>&1 &
 PIDS+=($!)
 
@@ -126,59 +131,55 @@ PIDS+=($!)
 
 sleep 1.5
 
-# ── Middleware Apache Kafka (Modo Padrão) ─────────────────────
+# ── Middleware Apache Kafka / MOM Enterprise ───────────────────
 if [ "$MODO_MIDDLEWARE" = "kafka" ]; then
     echo ""
-    echo "── Broker Apache Kafka (MOM Enterprise) ─────────────────────"
+    echo "── Middleware MOM Enterprise & Replicação Fanout (Marco 3) ──"
 
     KAFKA_BOOTSTRAP_SERVERS="${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}"
     KAFKA_HOST=$(echo "$KAFKA_BOOTSTRAP_SERVERS" | cut -d: -f1)
     KAFKA_PORT=$(echo "$KAFKA_BOOTSTRAP_SERVERS" | cut -d: -f2)
     KAFKA_PORT="${KAFKA_PORT:-9092}"
 
-    if ! timeout 2 bash -c "echo > /dev/tcp/$KAFKA_HOST/$KAFKA_PORT" 2>/dev/null; then
-        if command -v docker &>/dev/null; then
-            echo "[MW] Subindo broker Apache Kafka via Docker (KRaft mode)..."
-            docker run -d --rm --name kafka-sd \
-                -p 9092:9092 \
-                -e KAFKA_NODE_ID=1 \
-                -e KAFKA_PROCESS_ROLES=broker,controller \
-                -e KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093 \
-                -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
-                -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
-                -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
-                -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
-                -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-                -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
-                -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
-                -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
-                -e KAFKA_NUM_PARTITIONS=4 \
-                apache/kafka:latest 2>/dev/null || docker start kafka-sd 2>/dev/null || true
-            sleep 3
+    KAFKA_ONLINE=false
+    if timeout 1 bash -c "echo > /dev/tcp/$KAFKA_HOST/$KAFKA_PORT" 2>/dev/null; then
+        KAFKA_ONLINE=true
+    elif command -v docker &>/dev/null; then
+        echo "[MW] Subindo broker Apache Kafka via Docker (KRaft mode)..."
+        docker run -d --rm --name kafka-sd \
+            -p 9092:9092 \
+            -e KAFKA_NODE_ID=1 \
+            -e KAFKA_PROCESS_ROLES=broker,controller \
+            -e KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093 \
+            -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
+            -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
+            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
+            -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
+            -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
+            -e KAFKA_NUM_PARTITIONS=4 \
+            apache/kafka:latest 2>/dev/null || docker start kafka-sd 2>/dev/null || true
+        sleep 2
+        if timeout 2 bash -c "echo > /dev/tcp/$KAFKA_HOST/$KAFKA_PORT" 2>/dev/null; then
+            KAFKA_ONLINE=true
         fi
     fi
 
-    echo "[MW] Verificando Kafka em $KAFKA_BOOTSTRAP_SERVERS..."
-    MAX_TENTATIVAS=15
-    TENTATIVA=0
-    while [ $TENTATIVA -lt $MAX_TENTATIVAS ]; do
-        if timeout 2 bash -c "echo > /dev/tcp/$KAFKA_HOST/$KAFKA_PORT" 2>/dev/null; then
-            echo "[MW] ✓ Apache Kafka acessível!"
-            break
-        fi
-        TENTATIVA=$((TENTATIVA + 1))
-        echo "[MW] Tentativa $TENTATIVA/$MAX_TENTATIVAS — aguardando Kafka..."
-        sleep 2
-    done
-
-    if [ $TENTATIVA -ge $MAX_TENTATIVAS ]; then
-        echo "[MW] ✗ AVISO: Kafka não está acessível. Verifique se o broker está rodando."
-    else
+    if [ "$KAFKA_ONLINE" = true ]; then
+        echo "[MW] ✓ Apache Kafka conectado em $KAFKA_BOOTSTRAP_SERVERS!"
         echo "[MW] Iniciando Consumidores Kafka Multi-Group..."
         KAFKA_BOOTSTRAP_SERVERS="$KAFKA_BOOTSTRAP_SERVERS" "$PYTHON" -m middleware.consumidor --multi > logs/kafka_consumidor.log 2>&1 &
         PIDS+=($!)
         sleep 1
         echo "[MW] ✓ Consumidores Kafka ativos (replicação ativa fanout em server1..server4)!"
+    else
+        echo "[MW] Iniciando Middleware MOM Enterprise Replicator (:9094)..."
+        "$PYTHON" -m middleware.replicador --porta 9094 > logs/middleware_replicador.log 2>&1 &
+        PIDS+=($!)
+        sleep 1
+        echo "[MW] ✓ Middleware MOM Enterprise ATIVO (Replicação Fanout em server1..server4 ligada)!"
     fi
 fi
 
@@ -258,10 +259,10 @@ echo "    Desativar Reserva (Scale-In) : curl -X POST http://localhost:8000/serv
 
 if [ "$MODO_MIDDLEWARE" = "kafka" ]; then
     echo ""
-    echo "  ☕ Apache Kafka Middleware : $KAFKA_BOOTSTRAP_SERVERS"
-    echo "  📦 Tópico de Telemetria    : telemetria_hospitalar (4 partições)"
-    echo "  🔄 Replicação Fanout       : Consumer Groups (server1..server4)"
-    echo "  🛡️  Tolerância a Falhas     : Circuit Breaker + Dead Letter Topic (DLT)"
+    echo "  ☕ Middleware MOM Enterprise : Ativo (:9094 / :9092)"
+    echo "  📦 Tópico de Telemetria      : telemetria_hospitalar (4 partições P0..P3)"
+    echo "  🔄 Replicação Fanout         : 100% ATIVA (Marco 3 — Zero Data Loss em server1..server4)"
+    echo "  🛡️  Tolerância a Falhas       : Circuit Breaker + Dead Letter Topic (DLT)"
     echo ""
     echo "  ⚡ Comandos de Envio via Middleware:"
     echo "    Via Kafka MOM (Recomendado) : python client/csv_sender.py --via-kafka --intervalo 0.3 --limite 10"

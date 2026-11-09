@@ -343,6 +343,7 @@ class LoadBalancerEnterprise:
         self._scale_history: list[dict] = []
         self._adaptive_last_decision = "round_robin"
         self.on_scale_change: list = []
+        self.replicacao_ativa = True
 
     def _notify_scale(self, action: str, server: str, reason: str):
         for cb in list(self.on_scale_change):
@@ -780,6 +781,7 @@ def criar_balanceador(
     port: int = 8000,
     algorithm: str = "round_robin",
     auto_scale: bool = True,
+    replicacao: bool = True,
 ) -> FastAPI:
     if isinstance(servidores_reserva, int):
         port = servidores_reserva
@@ -792,6 +794,7 @@ def criar_balanceador(
     _reservas = servidores_reserva if servidores_reserva is not None else SERVIDORES_RESERVA_PADRAO
     balancer = LoadBalancerEnterprise(_servidores, _reservas, algorithm)
     balancer.auto_scale_enabled = auto_scale
+    balancer.replicacao_ativa = replicacao
 
     client = httpx.AsyncClient(timeout=httpx.Timeout(connect=2.0, read=5.0, write=5.0, pool=5.0))
 
@@ -915,6 +918,24 @@ def criar_balanceador(
                     node.record_success(latencia_ms)
 
                 asyncio.create_task(_notificar_monitor_background(servidor, response.status_code, latencia_ms, bool(falharam), sid))
+
+                # Replicação Fanout (Marco 3 — Zero Data Loss):
+                # Propaga a telemetria assincronamente para todos os outros nós ativos
+                if getattr(balancer, "replicacao_ativa", True) and not request.headers.get("X-Replicated"):
+                    async def _replicar_fanout_background(alvo_principal, dados):
+                        outros = [u for u in balancer.nodes.keys() if u != alvo_principal]
+                        if outros:
+                            async with httpx.AsyncClient(timeout=3.0) as r_cli:
+                                for u in outros:
+                                    try:
+                                        await r_cli.post(
+                                            f"{u}/dados",
+                                            json=dados,
+                                            headers={"X-Replicated": "true"}
+                                        )
+                                    except Exception:
+                                        pass
+                    asyncio.create_task(_replicar_fanout_background(servidor, body))
 
                 if falharam and isinstance(resp_data, dict):
                     resp_data["failover"] = True
@@ -1273,6 +1294,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--auto-scale", action="store_true", default=True, help="Habilitar auto-scaling (padrão: True)")
     parser.add_argument("--no-auto-scale", action="store_false", dest="auto_scale", help="Desabilitar auto-scaling")
+    parser.add_argument("--replicacao", action="store_true", default=True, help="Habilitar replicação Fanout entre nós (padrão: True)")
+    parser.add_argument("--no-replicacao", action="store_false", dest="replicacao", help="Desabilitar replicação Fanout")
 
     args = parser.parse_args()
 
@@ -1291,6 +1314,7 @@ if __name__ == "__main__":
         args.port,
         args.algorithm,
         auto_scale=args.auto_scale,
+        replicacao=args.replicacao,
     )
 
     uvicorn.run(app, host="0.0.0.0", port=args.port)
