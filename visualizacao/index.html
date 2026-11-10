@@ -486,20 +486,29 @@
       cursor: pointer;
     }
 
-    /* Main Container */
+    /* Main Container Minimalista & Responsivo */
     main {
       flex: 1;
       min-height: 0;
-      height: calc(100vh - 48px - 24px);
+      height: calc(100vh - 56px - 24px);
       padding: 0.45rem 0.75rem;
       display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(620px, 1fr);
+      grid-template-columns: minmax(0, 1.35fr) minmax(360px, 460px);
       gap: 0.65rem;
       max-width: 100%;
       width: 100%;
       margin: 0;
       box-sizing: border-box;
       overflow: hidden;
+      transition: grid-template-columns 0.3s ease;
+    }
+
+    /* Se o usuário ativar o modo split, expande a sidebar para acolher 2 colunas confortavelmente */
+    .dashboard-sidebar[data-tab="split"] {
+      min-width: 620px;
+    }
+    body:has(.dashboard-sidebar[data-tab="split"]) main {
+      grid-template-columns: minmax(0, 1fr) minmax(620px, 1.1fr);
     }
 
     body.presentation-mode main {
@@ -881,14 +890,135 @@
       to { opacity: 1; }
     }
 
-    /* Sidebar Dashboard */
+    /* Sidebar Dashboard Minimalista com Abas */
     .dashboard-sidebar {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.55rem;
+      display: flex;
+      flex-direction: column;
       height: 100%;
       min-height: 0;
       box-sizing: border-box;
+      gap: 0.4rem;
+    }
+
+    .sidebar-tabs-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 0.22rem;
+      flex-shrink: 0;
+    }
+
+    .sb-tab-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.55rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .sb-tab-btn:hover {
+      color: #f1f5f9;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .sb-tab-btn.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.35));
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2);
+    }
+
+    .sb-tab-btn.split-toggle {
+      flex: 0 0 auto;
+      padding: 0.35rem 0.55rem;
+      opacity: 0.75;
+    }
+    .sb-tab-btn.split-toggle:hover {
+      opacity: 1;
+    }
+
+    .sidebar-panels-wrapper {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      position: relative;
+      height: 100%;
+      width: 100%;
+    }
+
+    /* Controle de visibilidade das Abas */
+    /* Modo Overview (Padrão) */
+    .dashboard-sidebar[data-tab="overview"] #col-overview {
+      display: flex;
+      width: 100%;
+    }
+    .dashboard-sidebar[data-tab="overview"] #col-kafka {
+      display: none;
+    }
+
+    /* Modo Kafka MOM */
+    .dashboard-sidebar[data-tab="kafka"] #col-overview {
+      display: none;
+    }
+    .dashboard-sidebar[data-tab="kafka"] #col-kafka {
+      display: flex;
+      width: 100%;
+    }
+    .dashboard-sidebar[data-tab="kafka"] #col-kafka .ent-panel {
+      display: none;
+    }
+    .dashboard-sidebar[data-tab="kafka"] #col-kafka .kafka-panel {
+      flex: 1;
+      height: 100%;
+    }
+
+    /* Modo Escalabilidade */
+    .dashboard-sidebar[data-tab="scale"] #col-overview {
+      display: none;
+    }
+    .dashboard-sidebar[data-tab="scale"] #col-kafka {
+      display: flex;
+      width: 100%;
+    }
+    .dashboard-sidebar[data-tab="scale"] #col-kafka .kafka-panel {
+      display: none;
+    }
+    .dashboard-sidebar[data-tab="scale"] #col-kafka .ent-panel {
+      flex: 1;
+      height: 100%;
+    }
+
+    /* Modo Split (Lado a Lado) */
+    .dashboard-sidebar[data-tab="split"] .sidebar-panels-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+    }
+    .dashboard-sidebar[data-tab="split"] #col-overview {
+      display: flex;
+    }
+    .dashboard-sidebar[data-tab="split"] #col-kafka {
+      display: flex;
+    }
+    .dashboard-sidebar[data-tab="split"] #col-kafka .kafka-panel {
+      display: flex;
+    }
+    .dashboard-sidebar[data-tab="split"] #col-kafka .ent-panel {
+      display: flex;
     }
 
     .sidebar-col {
@@ -899,6 +1029,53 @@
       min-height: 0;
       overflow-y: auto;
       scrollbar-width: thin;
+      width: 100%;
+    }
+
+    /* Cards de Servidores Minimalistas */
+    .srv-card-clean {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 0.45rem 0.6rem;
+      margin-bottom: 0.35rem;
+      transition: all 0.2s ease;
+    }
+    .srv-card-clean:hover {
+      background: rgba(255, 255, 255, 0.035);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .srv-header-clean {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+    .srv-identity {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .srv-meta-clean {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.65rem;
+      color: #94a3b8;
+      margin-top: 0.25rem;
+    }
+    .srv-meta-clean .vm-pill-spec {
+      padding: 1px 5px;
+      font-size: 0.62rem;
+    }
+    .srv-meta-clean .vm-pill-db {
+      padding: 1px 5px;
+      font-size: 0.62rem;
+    }
+    .srv-meta-clean .btn-inspect-vm {
+      margin-left: auto;
+      padding: 1px 6px;
+      font-size: 0.62rem;
     }
 
     .sidebar-col::-webkit-scrollbar {
@@ -1607,8 +1784,46 @@
     }
 
     /* ============================================================
-       Responsividade para Dispositivos Móveis e Telas Menores
+       Responsividade para Notebooks, Tablets e Dispositivos Móveis
        ============================================================ */
+    @media (max-width: 1366px) {
+      main {
+        grid-template-columns: minmax(0, 1.2fr) minmax(350px, 420px);
+        padding: 0.35rem 0.5rem;
+      }
+      .brand-title p {
+        display: none; /* Reduz poluição visual em notebooks */
+      }
+    }
+
+    @media (max-width: 1100px) {
+      body {
+        height: auto;
+        min-height: 100vh;
+        max-height: none;
+        overflow-y: auto !important;
+      }
+      main {
+        height: auto;
+        overflow: visible;
+        grid-template-columns: 1fr;
+        padding: 0.6rem 0.8rem;
+        gap: 0.9rem;
+      }
+      .arch-card {
+        min-height: 440px;
+        height: auto;
+      }
+      .dashboard-sidebar {
+        height: auto;
+        min-height: 520px;
+      }
+      .sidebar-col {
+        height: auto;
+        max-height: 580px;
+      }
+    }
+
     @media (max-width: 1024px) {
       body {
         height: auto;
@@ -3387,10 +3602,31 @@
       </div>
     </section>
 
-    <!-- Right Column: Live Data & Metrics Dashboard (2 parallel columns for zero-scroll observability) -->
-    <aside class="dashboard-sidebar">
-      <!-- Sub-column 1: Sinais Vitais, Distribuição de Servidores e Log de Eventos -->
-      <div class="sidebar-col sidebar-col-1">
+    <!-- Right Column: Live Data & Metrics Dashboard -->
+    <aside class="dashboard-sidebar" id="dashboard-sidebar" data-tab="overview">
+      <!-- Minimalist Navigation Tabs (Organização Limpa & Zero Poluição) -->
+      <div class="sidebar-tabs-bar" role="tablist">
+        <button id="tab-btn-overview" class="sb-tab-btn active" onclick="selecionarSidebarTab('overview')" title="Painel de Sinais Vitais e Carga dos Servidores">
+          <span class="tab-icon">📊</span>
+          <span class="tab-lbl">Monitor &amp; Servidores</span>
+        </button>
+        <button id="tab-btn-kafka" class="sb-tab-btn" onclick="selecionarSidebarTab('kafka')" title="Apache Kafka MOM: Partições, Grupos e Replicação">
+          <span class="tab-icon">⚡</span>
+          <span class="tab-lbl">Kafka MOM &amp; Fanout</span>
+        </button>
+        <button id="tab-btn-scale" class="sb-tab-btn" onclick="selecionarSidebarTab('scale')" title="Balanceamento de Carga e Auto-Scale">
+          <span class="tab-icon">⚖️</span>
+          <span class="tab-lbl">Escalabilidade</span>
+        </button>
+        <button id="tab-btn-split" class="sb-tab-btn split-toggle" onclick="selecionarSidebarTab('split')" title="Modo Dividido: Exibe colunas lado a lado">
+          <span class="tab-icon">🗂️</span>
+          <span class="tab-lbl">Split</span>
+        </button>
+      </div>
+
+      <div class="sidebar-panels-wrapper" id="sidebar-panels-wrapper">
+        <!-- Sub-column 1: Sinais Vitais, Distribuição de Servidores e Log de Eventos -->
+        <div class="sidebar-col sidebar-col-1 active-tab-col" id="col-overview">
         <!-- 1. Patient Vital Signs Card -->
         <section class="panel">
           <div class="panel-header">
@@ -3456,17 +3692,14 @@
             </div>
           </div>
 
-          <div class="server-dist">
+          <div class="server-dist clean-dist">
             <!-- Server 1 -->
-            <div class="dist-row" id="dist-row-s1">
-              <div class="dist-header">
-                <div class="s-name-group" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+            <div class="dist-row srv-card-clean" id="dist-row-s1">
+              <div class="dist-header srv-header-clean">
+                <div class="srv-identity">
                   <span class="s-name" style="color: #60a5fa; font-weight: 700;">🖥️ vm-servidor-01</span>
                   <span class="vm-pill-ip">192.168.56.13:8001</span>
-                  <span class="vm-pill-spec">Ubuntu 22.04 LTS • 1 vCPU • 512MB</span>
-                  <span class="vm-pill-db">📁 server1.db</span>
                   <span id="badge-status-s1" class="srv-status-badge online">ONLINE</span>
-                  <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-01')" title="Inspecionar parâmetros de hardware e rede da VM">🔍 VM Info</button>
                 </div>
                 <div class="s-action-group">
                   <span id="dist-count-s1" class="s-val">0 (0%)</span>
@@ -3476,18 +3709,20 @@
               <div class="dist-track">
                 <div id="dist-bar-s1" class="dist-bar bar-s1"></div>
               </div>
+              <div class="srv-meta-clean">
+                <span class="vm-pill-spec">Ubuntu 22.04 LTS • 1 vCPU</span>
+                <span class="vm-pill-db">📁 server1.db</span>
+                <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-01')" title="Inspecionar hardware da VM">🔍 Info VM</button>
+              </div>
             </div>
 
             <!-- Server 2 -->
-            <div class="dist-row" id="dist-row-s2">
-              <div class="dist-header">
-                <div class="s-name-group" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+            <div class="dist-row srv-card-clean" id="dist-row-s2">
+              <div class="dist-header srv-header-clean">
+                <div class="srv-identity">
                   <span class="s-name" style="color: #c084fc; font-weight: 700;">🖥️ vm-servidor-02</span>
                   <span class="vm-pill-ip">192.168.56.14:8002</span>
-                  <span class="vm-pill-spec" style="color: #e879f9;">Debian 12 Bookworm • 1 vCPU • 512MB</span>
-                  <span class="vm-pill-db">📁 server2.db</span>
                   <span id="badge-status-s2" class="srv-status-badge online">ONLINE</span>
-                  <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-02')" title="Inspecionar parâmetros de hardware e rede da VM">🔍 VM Info</button>
                 </div>
                 <div class="s-action-group">
                   <span id="dist-count-s2" class="s-val">0 (0%)</span>
@@ -3497,18 +3732,20 @@
               <div class="dist-track">
                 <div id="dist-bar-s2" class="dist-bar bar-s2"></div>
               </div>
+              <div class="srv-meta-clean">
+                <span class="vm-pill-spec" style="color: #e879f9;">Debian 12 Bookworm • 1 vCPU</span>
+                <span class="vm-pill-db">📁 server2.db</span>
+                <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-02')" title="Inspecionar hardware da VM">🔍 Info VM</button>
+              </div>
             </div>
 
             <!-- Server 3 -->
-            <div class="dist-row" id="dist-row-s3">
-              <div class="dist-header">
-                <div class="s-name-group" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+            <div class="dist-row srv-card-clean" id="dist-row-s3">
+              <div class="dist-header srv-header-clean">
+                <div class="srv-identity">
                   <span class="s-name" style="color: #f472b6; font-weight: 700;">🖥️ vm-servidor-03</span>
                   <span class="vm-pill-ip">192.168.56.15:8003</span>
-                  <span class="vm-pill-spec" style="color: #fb7185;">Ubuntu 20.04 LTS • 1 vCPU • 512MB</span>
-                  <span class="vm-pill-db">📁 server3.db</span>
                   <span id="badge-status-s3" class="srv-status-badge online">ONLINE</span>
-                  <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-03')" title="Inspecionar parâmetros de hardware e rede da VM">🔍 VM Info</button>
                 </div>
                 <div class="s-action-group">
                   <span id="dist-count-s3" class="s-val">0 (0%)</span>
@@ -3518,18 +3755,20 @@
               <div class="dist-track">
                 <div id="dist-bar-s3" class="dist-bar bar-s3"></div>
               </div>
+              <div class="srv-meta-clean">
+                <span class="vm-pill-spec" style="color: #fb7185;">Ubuntu 20.04 LTS • 1 vCPU</span>
+                <span class="vm-pill-db">📁 server3.db</span>
+                <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-03')" title="Inspecionar hardware da VM">🔍 Info VM</button>
+              </div>
             </div>
 
             <!-- Server 4 (Reserva Standby) -->
-            <div class="dist-row" id="dist-row-s4">
-              <div class="dist-header">
-                <div class="s-name-group" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+            <div class="dist-row srv-card-clean" id="dist-row-s4">
+              <div class="dist-header srv-header-clean">
+                <div class="srv-identity">
                   <span class="s-name" style="color: #34d399; font-weight: 700;">🖥️ vm-servidor-04 (Reserva)</span>
                   <span class="vm-pill-ip">192.168.56.16:8004</span>
-                  <span class="vm-pill-spec" style="color: #34d399;">Debian 12 Bookworm • 1 vCPU • 512MB</span>
-                  <span class="vm-pill-db">📁 server4.db</span>
                   <span id="badge-status-s4" class="srv-status-badge standby">STANDBY</span>
-                  <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-04')" title="Inspecionar parâmetros de hardware e rede da VM">🔍 VM Info</button>
                 </div>
                 <div class="s-action-group">
                   <span id="dist-count-s4" class="s-val">0 (0%)</span>
@@ -3538,6 +3777,11 @@
               </div>
               <div class="dist-track">
                 <div id="dist-bar-s4" class="dist-bar bar-s4"></div>
+              </div>
+              <div class="srv-meta-clean">
+                <span class="vm-pill-spec" style="color: #34d399;">Debian 12 Bookworm • Standby</span>
+                <span class="vm-pill-db">📁 server4.db</span>
+                <button class="btn-inspect-vm" onclick="abrirModalVM('vm-servidor-04')" title="Inspecionar hardware da VM">🔍 Info VM</button>
               </div>
             </div>
           </div>
@@ -3562,7 +3806,7 @@
       </div>
 
       <!-- Sub-column 2: Apache Kafka MOM & Enterprise Scalability -->
-      <div class="sidebar-col sidebar-col-2">
+      <div class="sidebar-col sidebar-col-2" id="col-kafka">
         <!-- 4. Apache Kafka MOM Panel -->
         <section class="kafka-panel esb-panel" id="kafka-panel">
           <div class="kafka-header">
@@ -3752,6 +3996,7 @@
           <div id="ent-scale-history" class="ent-scale-history"></div>
         </section>
       </div>
+      </div> <!-- fecha sidebar-panels-wrapper -->
     </aside>
   </main>
 
@@ -4096,6 +4341,62 @@
           </div>
         </div>
         <div id="dlt-reprocess-feedback" style="display: none; margin-top: 0.6rem; font-size: 0.75rem; color: #34d399;"></div>
+      </div>
+
+      <!-- 🔄 REPLICAÇÃO FANOUT NOS 4 BANCOS SQLITE (MARCO 3 - PERSISTÊNCIA DENTRO DO MIDDLEWARE) -->
+      <div class="mw-section mw-rep-box" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 1.1rem; margin-bottom: 1.2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.9rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span style="font-size: 1.25rem;">🔄</span>
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: #f1f5f9; display: flex; align-items: center; gap: 0.5rem;">
+                Replicação Fanout Multi-Nó • Persistência nos 4 Bancos SQLite
+                <span class="badge-milestone badge-m3" style="font-size: 0.65rem;">Marco 3</span>
+              </div>
+              <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 1px;">
+                Cada Consumer Group do Kafka grava de forma independente com ACID, WAL Mode e Quorum KRaft
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span id="mw-rep-cluster-badge" style="font-size: 0.75rem; color: #34d399; background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); padding: 3px 10px; border-radius: 20px; font-weight: 700;">
+              ● 100% Sincronizado
+            </span>
+            <button id="btn-mw-open-full-rep" class="btn-inspect-vm" style="font-size: 0.72rem; padding: 4px 10px; border-color: rgba(16, 185, 129, 0.5); color: #34d399; cursor: pointer;" onclick="abrirModalReplicacao()" title="Abrir Tabela Detalhada com Arquivos e Hashes">
+              📊 Ver Detalhes
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid dos 4 Bancos de Dados SQLite -->
+        <div id="mw-rep-dbs-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+          <!-- Preenchido dinamicamente via /api/replicacao/status -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; padding: 0.75rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: #94a3b8;">server1.db</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #34d399;">25.088 reg</div>
+            <div style="font-size: 0.68rem; color: #60a5fa;">Ubuntu 22.04 LTS (:8001)</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; padding: 0.75rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: #94a3b8;">server2.db</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #34d399;">25.088 reg</div>
+            <div style="font-size: 0.68rem; color: #c084fc;">Debian 12 (:8002)</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; padding: 0.75rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: #94a3b8;">server3.db</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #34d399;">25.088 reg</div>
+            <div style="font-size: 0.68rem; color: #f472b6;">Ubuntu 20.04 LTS (:8003)</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; padding: 0.75rem; text-align: center;">
+            <div style="font-size: 0.8rem; color: #94a3b8;">server4.db</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #34d399;">25.088 reg</div>
+            <div style="font-size: 0.68rem; color: #34d399;">Debian 12 Standby (:8004)</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 0.8rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.6rem;">
+          <span>🛡️ <strong>Zero Data Loss Ativo:</strong> 4 réplicas idênticas mantidas simultaneamente pelos Consumer Groups do Kafka.</span>
+          <span style="color: #6ee7b7; font-family: monospace;">Quorum KRaft (-1) • WAL Mode Ativo</span>
+        </div>
       </div>
 
       <!-- Live Message Inspector -->
@@ -6166,6 +6467,51 @@
         }
 
         atualizarLiveMessageModal();
+
+        // Replicação Fanout nos 4 Bancos SQLite dentro do Modal do Middleware
+        try {
+          const repRes = await fetch(`${API_BASE}/api/replicacao/status`);
+          if (repRes.ok) {
+            const repData = await repRes.json();
+            const repBadge = document.getElementById('mw-rep-cluster-badge');
+            if (repBadge) {
+              const isSync = repData.consistencia_cluster && repData.consistencia_cluster.includes('100%');
+              repBadge.textContent = isSync ? '● 100% Sincronizado' : '⚠️ Sincronizando...';
+              repBadge.style.color = isSync ? '#34d399' : '#fbbf24';
+              repBadge.style.borderColor = isSync ? 'rgba(52, 211, 153, 0.4)' : 'rgba(251, 191, 36, 0.4)';
+              repBadge.style.background = isSync ? 'rgba(52, 211, 153, 0.12)' : 'rgba(251, 191, 36, 0.12)';
+            }
+            const repGrid = document.getElementById('mw-rep-dbs-grid');
+            if (repGrid && repData.databases) {
+              const OS_LABEL = { 1: 'Ubuntu 22.04 LTS', 2: 'Debian 12 Bookworm', 3: 'Ubuntu 20.04 LTS', 4: 'Debian 12 (Standby)' };
+              const OS_COLOR = { 1: '#60a5fa', 2: '#c084fc', 3: '#f472b6', 4: '#34d399' };
+              repGrid.innerHTML = repData.databases.map(db => `
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.75rem; text-align: center; transition: all 0.2s;" onmouseover="this.style.borderColor='rgba(16,185,129,0.5)'" onmouseout="this.style.borderColor='rgba(16,185,129,0.25)'">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; margin-bottom: 4px;">
+                    <span style="font-size: 1.05rem;">💾</span>
+                    <strong style="color: #f1f5f9; font-size: 0.84rem; font-family: monospace;">${db.arquivo}</strong>
+                  </div>
+                  <div style="font-size: 1.15rem; font-weight: 800; color: #34d399; margin: 3px 0;">
+                    ${db.registros.toLocaleString('pt-BR')} <span style="font-size: 0.68rem; font-weight: 500; color: #94a3b8;">reg</span>
+                  </div>
+                  <div style="font-size: 0.72rem; color: ${OS_COLOR[db.numero] || '#94a3b8'}; font-weight: 700;">
+                    ${db.servidor} (:${db.porta})
+                  </div>
+                  <div style="font-size: 0.66rem; color: #64748b; margin-top: 2px;">
+                    ${OS_LABEL[db.numero] || 'Linux'} • ${db.tamanho_kb.toLocaleString('pt-BR')} KB
+                  </div>
+                  <div style="margin-top: 6px;">
+                    <span style="font-size: 0.65rem; padding: 2px 7px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">
+                      ✓ WAL Sincronizado
+                    </span>
+                  </div>
+                </div>
+              `).join('');
+            }
+          }
+        } catch (repErr) {
+          console.warn('Erro ao carregar replicação no middleware modal:', repErr);
+        }
       } catch (e) {
         console.error('Erro middleware modal:', e);
       }
@@ -6405,6 +6751,40 @@
         if (e.target === modalReplicacao) fecharModalReplicacao();
       });
     }
+
+    // ══════════════════════════════════════════════
+    // Navegação Minimalista de Abas na Sidebar
+    // ══════════════════════════════════════════════
+    const sidebarEl = document.getElementById('dashboard-sidebar');
+    const tabBtns = {
+      overview: document.getElementById('tab-btn-overview'),
+      kafka: document.getElementById('tab-btn-kafka'),
+      scale: document.getElementById('tab-btn-scale'),
+      split: document.getElementById('tab-btn-split'),
+    };
+
+    function selecionarSidebarTab(tabId) {
+      if (!sidebarEl) return;
+      sidebarEl.setAttribute('data-tab', tabId);
+      Object.entries(tabBtns).forEach(([k, btn]) => {
+        if (!btn) return;
+        if (k === tabId) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      try {
+        localStorage.setItem('monitor_active_tab', tabId);
+      } catch (e) {}
+    }
+
+    // Carregar aba inicial preferida (padrão: overview)
+    const savedTab = (function() {
+      try { return localStorage.getItem('monitor_active_tab') || 'overview'; }
+      catch(e) { return 'overview'; }
+    })();
+    selecionarSidebarTab(savedTab);
 
     // Inicializar contadores dos bancos no diagrama
     atualizarBadgesDb(0);
