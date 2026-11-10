@@ -30,6 +30,9 @@ fi
 # 2. Verificar modo de execução e argumentos
 MODO_MIDDLEWARE="kafka"
 MODO_TUNEL=true
+MODO_CLIENTE=true
+INTERVALO_CLIENTE=1.5
+LIMITE_CLIENTE=0
 
 for arg in "$@"; do
     if [[ "$arg" == "--no-middleware" ]] || [[ "$arg" == "--sem-middleware" ]]; then
@@ -37,6 +40,15 @@ for arg in "$@"; do
     fi
     if [[ "$arg" == "--no-tunel" ]] || [[ "$arg" == "--sem-tunel" ]]; then
         MODO_TUNEL=false
+    fi
+    if [[ "$arg" == "--no-cliente" ]] || [[ "$arg" == "--sem-cliente" ]] || [[ "$arg" == "--manual" ]]; then
+        MODO_CLIENTE=false
+    fi
+    if [[ "$arg" =~ ^--intervalo=([0-9.]+)$ ]]; then
+        INTERVALO_CLIENTE="${BASH_REMATCH[1]}"
+    fi
+    if [[ "$arg" =~ ^--limite=([0-9]+)$ ]]; then
+        LIMITE_CLIENTE="${BASH_REMATCH[1]}"
     fi
 done
 
@@ -56,6 +68,11 @@ if [ "$MODO_MIDDLEWARE" = "kafka" ]; then
     echo "  🛡️  Tolerância a Falhas : Circuit Breaker + Dead Letter Topic (DLT)"
 else
     echo "Modo: HTTP direto (sem middleware)"
+fi
+if [ "$MODO_CLIENTE" = true ]; then
+    echo "  🩺 Cliente Multi-Médicos: ATIVO (Dr. Carlos [UTI], Dra. Beatriz [Emergência], Dr. Lucas [Enfermaria] + Consultas)"
+else
+    echo "  🩺 Cliente Multi-Médicos: DESATIVADO (Modo Manual)"
 fi
 echo "------------------------------------------------------------"
 
@@ -280,6 +297,34 @@ fi
 echo ""
 echo "  Pressione [Ctrl+C] a qualquer momento para desligar todos os nós."
 echo "============================================================"
+
+# ── Iniciar Cliente Integrado Multi-Médicos (CLI + Consultas) ─────
+if [ "$MODO_CLIENTE" = true ]; then
+    echo ""
+    echo "============================================================"
+    echo "  🩺 INICIANDO CLIENTE INTEGRADO MULTI-MÉDICOS (CLI + READ PATH)"
+    echo "============================================================"
+    echo "  • Dr. Carlos (UTI)           ➔ dataset_medico_1_uti.csv"
+    echo "  • Dra. Beatriz (Emergência)  ➔ dataset_medico_2_emergencia.csv"
+    echo "  • Dr. Lucas (Enfermaria)     ➔ dataset_medico_3_enfermaria.csv"
+    echo "  • Consultas de Prontuários   ➔ Ativas em paralelo (Leitura Balanceada)"
+    echo "  • Cadência de Envio          ➔ ${INTERVALO_CLIENTE}s por médico"
+    echo "------------------------------------------------------------"
+    echo "  Telemetria e consultas ativas em tempo real no terminal..."
+    echo ""
+
+    ARGS_CLIENTE=(--intervalo "$INTERVALO_CLIENTE" --com-consultas --intervalo-consulta 3.0)
+    if [ "$LIMITE_CLIENTE" -gt 0 ]; then
+        ARGS_CLIENTE+=(--limite "$LIMITE_CLIENTE")
+    fi
+    if [ "$MODO_MIDDLEWARE" = "kafka" ]; then
+        ARGS_CLIENTE+=(--via-kafka)
+    fi
+
+    "$PYTHON" client/multi_medicos.py "${ARGS_CLIENTE[@]}" &
+    PID_CLIENTE=$!
+    PIDS+=("$PID_CLIENTE")
+fi
 
 # Manter o script ativo até Ctrl+C ser pressionado
 while true; do

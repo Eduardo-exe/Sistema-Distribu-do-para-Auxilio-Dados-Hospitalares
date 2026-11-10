@@ -25,7 +25,9 @@ import argparse
 import os
 import random
 import sys
+import threading
 import time
+from typing import Optional
 from datetime import datetime
 import requests
 
@@ -46,20 +48,35 @@ MEDICOS_CONSULTANTES = [
 ]
 
 
-def consultar_paciente(paciente_id: int, url_base: str = "http://localhost:8000") -> bool:
-    """Realiza uma consulta de prontuário e imprime os dados detalhados."""
+def consultar_paciente(
+    paciente_id: int,
+    url_base: str = "http://localhost:8000",
+    lock_print: Optional[threading.Lock] = None,
+) -> bool:
+    """Realiza uma consulta de prontuário e imprime os dados detalhados de forma thread-safe."""
     medico, setor = random.choice(MEDICOS_CONSULTANTES)
-    url = f"{url_base}/dados/{paciente_id}"
+    # Garantir que a URL aponte para a base sem /dados no final
+    url_limpa = url_base.rstrip("/")
+    if url_limpa.endswith("/dados"):
+        url_limpa = url_limpa[:-6]
+    url = f"{url_limpa}/dados/{paciente_id}"
+
+    def _safe_print(msg: str):
+        if lock_print:
+            with lock_print:
+                print(msg)
+        else:
+            print(msg)
 
     t0 = time.time()
     try:
         resp = requests.get(url, timeout=4.0)
         latencia_ms = (time.time() - t0) * 1000
     except requests.exceptions.ConnectionError:
-        print(f"{RED}✗ [{medico} - {setor}] Não foi possível conectar ao Load Balancer ({url_base}){RESET}")
+        _safe_print(f"{RED}✗ [{medico} - {setor}] Não foi possível conectar ao Load Balancer ({url_limpa}){RESET}")
         return False
     except Exception as e:
-        print(f"{RED}✗ [{medico} - {setor}] Erro na requisição: {e}{RESET}")
+        _safe_print(f"{RED}✗ [{medico} - {setor}] Erro na requisição: {e}{RESET}")
         return False
 
     is_failover = resp.headers.get("X-Failover") == "true"
@@ -73,27 +90,26 @@ def consultar_paciente(paciente_id: int, url_base: str = "http://localhost:8000"
         # Servidor que atendeu a consulta
         sid = ultimo.get("server_id", "cluster")
 
-        print(
+        msg = (
             f"{CYAN}🔍 [{medico} - {setor}]{RESET} consultou {BOLD}Paciente #{paciente_id}{RESET} "
-            f"➔ Atendido por {GREEN}{sid}{RESET} em {latencia_ms:.1f}ms{failover_badge}"
-        )
-        print(
+            f"➔ Atendido por {GREEN}{sid}{RESET} em {latencia_ms:.1f}ms{failover_badge}\n"
             f"   Histórico: {total_reg} medições salvas | "
             f"FC: {ultimo.get('frequencia_cardiaca')} bpm | "
             f"SpO2: {ultimo.get('spo2')}% | "
             f"PA: {ultimo.get('pressao_sistolica')}/{ultimo.get('pressao_diastolica')} mmHg | "
             f"Temp: {ultimo.get('temperatura')}°C | "
-            f"Diagnóstico: {BOLD}{ultimo.get('doenca_prevista', 'Normal')}{RESET}"
+            f"Diagnóstico: {BOLD}{ultimo.get('doenca_prevista', 'Normal')}{RESET}\n"
+            f"   " + "-" * 62
         )
-        print("   " + "-" * 62)
+        _safe_print(msg)
         return True
     elif resp.status_code == 404:
-        print(
+        _safe_print(
             f"{YELLOW}ℹ️  [{medico} - {setor}] Paciente #{paciente_id} não possui registros no banco ainda (404). ({latencia_ms:.1f}ms){RESET}"
         )
         return False
     else:
-        print(
+        _safe_print(
             f"{RED}✗ [{medico} - {setor}] Erro HTTP {resp.status_code} na consulta do Paciente #{paciente_id}{RESET}"
         )
         return False

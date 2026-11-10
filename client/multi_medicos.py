@@ -1,31 +1,33 @@
 # client/multi_medicos.py
 """
-Emissor Multi-Médicos de Telemetria Hospitalar (Marco 1, 2 e 3).
+Emissor Multi-Médicos de Telemetria Hospitalar com Consulta Integrada (Marco 1, 2 e 3).
 
 Simula múltiplos médicos / setores hospitalares enviando dados de pacientes
 simultaneamente para o cluster:
   - Médico 1: Dr. Carlos (UTI / Terapia Intensiva)
   - Médico 2: Dra. Beatriz (Pronto-Socorro / Emergência)
   - Médico 3: Dr. Lucas (Enfermaria Geral / Clínica)
+  - Consultas Periódicas de Prontuários (Read Path) em paralelo (--com-consultas)
 
 Suporta dois canais de envio:
   - HTTP direto (padrão): envia requisições POST para o Load Balancer (:8000)
   - Middleware Apache Kafka (--via-kafka): publica no tópico do Kafka MOM (:9092)
 
 Uso:
-    # Simular os 3 médicos em paralelo (10 registros cada, intervalo 0.8s):
-    python client/multi_medicos.py --limite 10 --intervalo 0.8
+    # Executar equipe médica completa (envio e consultas em paralelo):
+    python client/multi_medicos.py --intervalo 1.2 --com-consultas
 
-    # Simular apenas a Dra. Beatriz (Emergência):
-    python client/multi_medicos.py --medico 2 --limite 15
+    # Limitar a 10 envios por médico com intervalo rápido:
+    python client/multi_medicos.py --limite 10 --intervalo 0.5
 
-    # Simular os 3 médicos publicando direto no Middleware Kafka:
-    python client/multi_medicos.py --via-kafka --limite 20 --intervalo 0.5
+    # Enviar diretamente via Middleware Kafka:
+    python client/multi_medicos.py --via-kafka --intervalo 0.8 --com-consultas
 """
 
 import argparse
 import csv
 import os
+import random
 import sys
 import threading
 import time
@@ -36,6 +38,7 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from server.models import converter_registro_csv
+from client.medico_consulta import consultar_paciente
 
 # Diretório base de datasets
 PROJETO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -77,6 +80,8 @@ def enviar_fluxo_medico(
     limite: int = 0,
     via_kafka: bool = False,
     lock_print: Optional[threading.Lock] = None,
+    pids_enviados: Optional[List[int]] = None,
+    stop_event: Optional[threading.Event] = None,
 ):
     """Executa o loop de envio de um médico específico."""
     cfg = MEDICOS_CONFIG[medico_key]
@@ -87,11 +92,11 @@ def enviar_fluxo_medico(
     cor = cfg["cor"]
 
     if not os.path.exists(csv_path):
+        msg = f"[ERRO] Dataset não encontrado para {nome}: {csv_path}"
         if lock_print:
-            with lock_print:
-                print(f"[ERRO] Dataset não encontrado para {nome}: {csv_path}")
+            with lock_print: print(msg)
         else:
-            print(f"[ERRO] Dataset não encontrado para {nome}: {csv_path}")
+            print(msg)
         return
 
     enviados = 0
@@ -102,22 +107,31 @@ def enviar_fluxo_medico(
     if via_kafka:
         try:
             from middleware.produtor import obter_produtor
-            from middleware.config import KAFKA_TOPIC
             kafka_producer = obter_produtor()
         except Exception as e:
+            msg = f"[{nome}] Falha ao conectar no Kafka: {e}. Usando fallback HTTP."
             if lock_print:
-                with lock_print:
-                    print(f"[{nome}] Falha ao conectar no Kafka: {e}. Usando fallback HTTP.")
+                with lock_print: print(msg)
+            else:
+                print(msg)
             via_kafka = False
 
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
 
         for row in reader:
+            if stop_event and stop_event.is_set():
+                break
             if limite > 0 and enviados >= limite:
                 break
 
             dados = converter_registro_csv(row)
+            pid = int(dados.get("paciente_id") or 0)
+            if pids_enviados is not None and pid not in pids_enviados:
+                pids_enviados.append(pid)
+                if len(pids_enviados) > 50:
+                    pids_enviados.pop(0)
+
             # Metadados do médico
             dados["medico_responsavel"] = f"{nome} ({setor})"
             dados["setor_hospitalar"] = setor
@@ -127,7 +141,6 @@ def enviar_fluxo_medico(
                 try:
                     import json
                     from middleware.config import KAFKA_TOPIC
-                    pid = dados["paciente_id"]
                     key_bytes = str(pid).encode("utf-8")
                     val_bytes = json.dumps(dados).encode("utf-8")
                     headers = [
@@ -180,14 +193,39 @@ def enviar_fluxo_medico(
             print(f"{cor}  ✓ {nome} ({setor}) finalizou: {enviados} enviados ({erros} erros){RESET_COR}")
 
 
+def thread_consultas_prontuario(
+    url_base: str,
+    intervalo: float,
+    lock_print: threading.Lock,
+    pids_enviados: List[int],
+    stop_event: threading.Event,
+):
+    """Thread em segundo plano que simula médicos consultando prontuários periodicamente."""
+    # Aguarda o primeiro envio acontecer
+    time.sleep(1.5)
+    while not stop_event.is_set():
+        if pids_enviados:
+            pid = random.choice(pids_enviados)
+        else:
+            pid = random.randint(1, 10)
+
+        consultar_paciente(pid, url_base=url_base, lock_print=lock_print)
+
+        # Esperar com checagem do stop_event
+        for _ in range(int(intervalo * 10)):
+            if stop_event.is_set():
+                break
+            time.sleep(0.1)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Emissor Multi-Médicos de Telemetria Hospitalar")
+    parser = argparse.ArgumentParser(description="Emissor Multi-Médicos com Consulta Integrada")
     parser.add_argument(
         "--medico",
         type=str,
         default="todos",
         choices=["1", "2", "3", "todos"],
-        help="Médico a executar: 1 (Dr. Carlos - UTI), 2 (Dra. Beatriz - Emergência), 3 (Dr. Lucas - Enfermaria) ou todos",
+        help="Médico a executar: 1 (UTI), 2 (Emergência), 3 (Enfermaria) ou todos",
     )
     parser.add_argument(
         "--url",
@@ -198,13 +236,13 @@ def main():
     parser.add_argument(
         "--intervalo",
         type=float,
-        default=0.8,
-        help="Intervalo entre envios por médico em segundos (padrão: 0.8)",
+        default=1.2,
+        help="Intervalo entre envios por médico em segundos (padrão: 1.2)",
     )
     parser.add_argument(
         "--limite",
         type=int,
-        default=10,
+        default=0,
         help="Limite de registros por médico (0 = todos os 20.000)",
     )
     parser.add_argument(
@@ -213,15 +251,28 @@ def main():
         default=False,
         help="Publicar diretamente no tópico do Apache Kafka MOM",
     )
+    parser.add_argument(
+        "--com-consultas",
+        action="store_true",
+        default=False,
+        help="Executar thread de consultas de prontuário em paralelo (Read Path)",
+    )
+    parser.add_argument(
+        "--intervalo-consulta",
+        type=float,
+        default=3.0,
+        help="Intervalo em segundos entre consultas médicas (padrão: 3.0)",
+    )
 
     args = parser.parse_args()
 
     print("=" * 68)
-    print("  EQUIPE MÉDICA HOSPITALAR — EMISSOR DE TELEMETRIA MULTI-CLIENTE")
+    print("  EQUIPE MÉDICA HOSPITALAR — TELEMETRIA & CONSULTA DISTRIBUÍDA")
     print("=" * 68)
     print(f"  Canal de Ingestão: {'APACHE KAFKA MOM (:9092)' if args.via_kafka else 'LOAD BALANCER (' + args.url + ')'}")
-    print(f"  Intervalo:        {args.intervalo}s por médico")
+    print(f"  Intervalo Envio:   {args.intervalo}s por médico")
     print(f"  Limite por Médico: {'Todos (20.000)' if args.limite == 0 else args.limite}")
+    print(f"  Consultas Médicas: {'ATIVAS em paralelo (Read Path a cada ' + str(args.intervalo_consulta) + 's)' if args.com_consultas else 'Desativadas'}")
     print("  Médicos Ativos:")
     if args.medico == "todos":
         for k, v in MEDICOS_CONFIG.items():
@@ -233,28 +284,48 @@ def main():
     print()
 
     lock_print = threading.Lock()
+    stop_event = threading.Event()
+    pids_enviados: List[int] = []
 
-    if args.medico == "todos":
-        threads = []
-        for k in ["1", "2", "3"]:
-            t = threading.Thread(
-                target=enviar_fluxo_medico,
-                args=(k, args.url, args.intervalo, args.limite, args.via_kafka, lock_print),
-                daemon=True,
-            )
-            threads.append(t)
-            t.start()
-
-        for t in threads:
-            t.join()
-    else:
-        enviar_fluxo_medico(
-            args.medico, args.url, args.intervalo, args.limite, args.via_kafka, lock_print
+    # Iniciar thread de consultas se solicitado
+    t_consulta = None
+    if args.com_consultas:
+        lb_base = args.url.replace("/dados", "")
+        t_consulta = threading.Thread(
+            target=thread_consultas_prontuario,
+            args=(lb_base, args.intervalo_consulta, lock_print, pids_enviados, stop_event),
+            daemon=True,
         )
+        t_consulta.start()
+
+    try:
+        if args.medico == "todos":
+            threads = []
+            for k in ["1", "2", "3"]:
+                t = threading.Thread(
+                    target=enviar_fluxo_medico,
+                    args=(k, args.url, args.intervalo, args.limite, args.via_kafka, lock_print, pids_enviados, stop_event),
+                    daemon=True,
+                )
+                threads.append(t)
+                t.start()
+
+            for t in threads:
+                t.join()
+        else:
+            enviar_fluxo_medico(
+                args.medico, args.url, args.intervalo, args.limite, args.via_kafka, lock_print, pids_enviados, stop_event
+            )
+    except KeyboardInterrupt:
+        print("\n[INFO] Encerramento solicitado pelo usuário...")
+    finally:
+        stop_event.set()
+        if t_consulta and t_consulta.is_alive():
+            t_consulta.join(timeout=1.0)
 
     print()
     print("=" * 68)
-    print("  ✓ Todos os envios da equipe médica foram concluídos!")
+    print("  ✓ Sessão da equipe médica foi concluída!")
     print("=" * 68)
 
 

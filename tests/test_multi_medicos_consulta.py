@@ -99,3 +99,4 @@ class TestMonitorMultiMedicosEConsulta:
         assert "Dr. Carlos" in html
         assert "Dra. Beatriz" in html
         assert "Dr. Lucas" in html
+
