@@ -67,15 +67,15 @@
       flex-direction: column;
     }
 
-    /* Header */
+    /* Header Compacto & Limpo */
     header.app-header {
-      padding: 0.35rem 1.25rem 0.35rem 1.25rem;
+      padding: 0.3rem 1rem 0.35rem 1rem;
       border-bottom: 1px solid var(--border-color);
-      background: rgba(10, 14, 23, 0.95);
+      background: rgba(10, 14, 23, 0.96);
       backdrop-filter: blur(16px);
       display: flex;
       flex-direction: column;
-      gap: 0.32rem;
+      gap: 0.28rem;
       flex-shrink: 0;
       z-index: 100;
     }
@@ -85,7 +85,8 @@
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      min-height: 28px;
     }
 
     .brand {
@@ -149,16 +150,39 @@
       flex-wrap: wrap;
     }
 
-    /* Controls Bar in Row 2 */
+    /* Controls Bar in Row 2 - LINHA ÚNICA SEM OVERFLOW */
     .header-controls-row {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 9px;
-      padding: 0.25rem 0.65rem;
-      flex-wrap: wrap;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 0.22rem 0.55rem;
+      width: 100%;
+      box-sizing: border-box;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .header-controls-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .controls-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 0.6rem;
+      flex-wrap: nowrap;
+      min-width: min-content;
+    }
+
+    .ctrl-separator {
+      width: 1px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.12);
+      flex-shrink: 0;
+      margin: 0 0.1rem;
     }
 
     .ctrl-group {
@@ -1032,50 +1056,102 @@
       width: 100%;
     }
 
-    /* Cards de Servidores Minimalistas */
+    /* Cards de Servidores Minimalistas (Zero Quebra de Palavras) */
     .srv-card-clean {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 8px;
-      padding: 0.45rem 0.6rem;
-      margin-bottom: 0.35rem;
+      padding: 0.4rem 0.55rem;
+      margin-bottom: 0.3rem;
       transition: all 0.2s ease;
     }
     .srv-card-clean:hover {
-      background: rgba(255, 255, 255, 0.035);
-      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.14);
     }
     .srv-header-clean {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.25rem;
+      gap: 0.4rem;
+      margin-bottom: 0.2rem;
+      flex-wrap: nowrap;
     }
     .srv-identity {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.35rem;
+      min-width: 0;
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+    .s-name {
+      white-space: nowrap !important;
+      font-weight: 700 !important;
+      font-size: 0.78rem !important;
+      flex-shrink: 0;
+    }
+    .vm-pill-ip {
+      white-space: nowrap !important;
+      font-size: 0.64rem !important;
+      padding: 1px 5px !important;
+      flex-shrink: 0;
+    }
+    .srv-status-badge {
+      white-space: nowrap !important;
+      font-size: 0.6rem !important;
+      padding: 1px 5px !important;
+      flex-shrink: 0;
+    }
+    .s-action-group {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+    .s-val {
+      font-size: 0.72rem !important;
+      font-weight: 700 !important;
+      white-space: nowrap !important;
+      flex-shrink: 0;
+    }
+    .btn-srv-toggle {
+      white-space: nowrap !important;
+      font-size: 0.66rem !important;
+      padding: 0.2rem 0.45rem !important;
+      flex-shrink: 0;
     }
     .srv-meta-clean {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-      font-size: 0.65rem;
+      justify-content: space-between;
+      gap: 0.3rem;
+      font-size: 0.62rem;
       color: #94a3b8;
-      margin-top: 0.25rem;
+      margin-top: 0.2rem;
+      flex-wrap: nowrap;
+      overflow: hidden;
     }
     .srv-meta-clean .vm-pill-spec {
-      padding: 1px 5px;
-      font-size: 0.62rem;
+      white-space: nowrap !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+      font-size: 0.6rem !important;
+      padding: 1px 4px !important;
     }
     .srv-meta-clean .vm-pill-db {
-      padding: 1px 5px;
-      font-size: 0.62rem;
+      white-space: nowrap !important;
+      flex-shrink: 0;
+      font-size: 0.6rem !important;
+      padding: 1px 4px !important;
     }
     .srv-meta-clean .btn-inspect-vm {
+      white-space: nowrap !important;
+      flex-shrink: 0;
       margin-left: auto;
-      padding: 1px 6px;
-      font-size: 0.62rem;
+      padding: 1px 5px !important;
+      font-size: 0.6rem !important;
     }
 
     .sidebar-col::-webkit-scrollbar {
@@ -1116,36 +1192,49 @@
       gap: 0.35rem;
     }
 
-    /* Telemetry / Patient Card */
+    /* Telemetry / Patient Card Compacto (Fixado no Topo da Sidebar) */
+    .vital-panel {
+      flex-shrink: 0;
+      padding: 0.35rem 0.6rem !important;
+    }
+
+    .vital-panel .panel-header {
+      margin-bottom: 0.25rem !important;
+      padding-bottom: 0.15rem !important;
+    }
+
     .patient-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.35rem;
+      gap: 0.25rem;
     }
 
     .vital-item {
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: var(--radius-sm);
-      padding: 0.3rem 0.45rem;
+      padding: 0.22rem 0.4rem;
       display: flex;
       flex-direction: column;
-      gap: 0.1rem;
+      gap: 0.05rem;
     }
 
     .vital-label {
-      font-size: 0.6rem;
+      font-size: 0.58rem;
       color: var(--text-dim);
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
     }
 
     .vital-value {
-      font-size: 0.88rem;
+      font-size: 0.84rem;
       font-weight: 700;
       color: var(--text-main);
       font-family: 'JetBrains Mono', monospace;
+      line-height: 1.1;
     }
 
     .vital-value.heart {
@@ -3138,96 +3227,98 @@
       </div>
     </div>
 
-    <!-- Linha 2: Controles de Simulação -->
+    <!-- Linha 2: Controles de Simulação (Barra Unificada em Linha Única) -->
     <div class="header-controls-row">
-        <div class="controls-wrapper">
-      <!-- 1. Controles Principais de Simulação -->
-      <div class="ctrl-group ctrl-sim">
-        <div class="btn-group">
-          <button id="btn-start" class="btn btn-primary" title="Iniciar simulação automática">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span class="btn-lbl">Iniciar</span>
-          </button>
-          <button id="btn-step" class="btn btn-step" title="Processar apenas a próxima requisição">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-            <span class="btn-lbl">Próximo</span>
-          </button>
-          <button id="btn-pause" class="btn btn-pause" title="Pausar simulação">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-            <span class="btn-lbl">Pausar</span>
-          </button>
-          <button id="btn-reset" class="btn btn-reset" title="Reiniciar contadores e posição">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-            <span class="btn-lbl">Reiniciar</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- 2. Ações Estratégicas (Scale-Out & Benchmark & VMs) -->
-      <div class="ctrl-group ctrl-actions">
-        <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
-          <span id="reserva-icon">⚡</span>
-          <span id="reserva-label">Ativar Reserva (Scale-Out)</span>
-        </button>
-
-        <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
-          ⚡ Teste de Carga
-        </button>
-
-        <button id="btn-vms-modal-action" class="btn btn-vm-action" title="Abrir Mapa e Detalhes de Hardware de todas as VMs">
-          🖥️ Ver VMs
-        </button>
-
-        <button id="btn-mw-modal-action" class="btn" style="background: rgba(249, 115, 22, 0.15); border: 1px solid rgba(249, 115, 22, 0.4); color: #fb923c; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer;" title="Abrir Inspeção Interna do Middleware Kafka (MOM)">
-          ⚡ Middleware
-        </button>
-      </div>
-
-      <!-- 3. Resiliência & Chaos Testing -->
-      <div class="ctrl-group ctrl-chaos">
-        <div class="chaos-group" title="Simulação de Resiliência: Escolha qual servidor você quer derrubar">
-          <span class="chaos-title"><span class="chaos-pulse"></span>Resiliência:</span>
-          <select id="sel-server-crash" class="sel-chaos" title="Selecione o servidor que deseja derrubar ou religar">
-            <option value="1">Servidor 01 (:8001)</option>
-            <option value="2" selected>Servidor 02 (:8002)</option>
-            <option value="3">Servidor 03 (:8003)</option>
-            <option value="4">Servidor 04 (:8004)</option>
-          </select>
-          <button id="btn-crash-selected" class="btn btn-crash btn-crash-danger" title="Derrubar ou religar o servidor selecionado">
-            <span id="crash-icon">💥</span>
-            <span id="crash-label">Derrubar Servidor</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- 4. Ajustes e Modo Foco -->
-      <div class="ctrl-group ctrl-settings">
-        <div class="control-setting">
-          <span>Qtd:</span>
-          <select id="sel-limit">
-            <option value="6">6 registros</option>
-            <option value="12" selected>12 registros</option>
-            <option value="24">24 registros</option>
-            <option value="60">60 registros</option>
-            <option value="0">Todos</option>
-          </select>
+      <div class="controls-wrapper">
+        <!-- 1. Controles Principais de Simulação -->
+        <div class="ctrl-group ctrl-sim">
+          <div class="btn-group">
+            <button id="btn-start" class="btn btn-primary" title="Iniciar simulação automática">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span class="btn-lbl">Iniciar</span>
+            </button>
+            <button id="btn-step" class="btn btn-step" title="Processar apenas a próxima requisição">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+              <span class="btn-lbl">Próximo</span>
+            </button>
+            <button id="btn-pause" class="btn btn-pause" title="Pausar simulação">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              <span class="btn-lbl">Pausar</span>
+            </button>
+            <button id="btn-reset" class="btn btn-reset" title="Reiniciar contadores e posição">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <span class="btn-lbl">Reset</span>
+            </button>
+          </div>
         </div>
 
-        <div class="control-setting">
-          <span>Velocidade:</span>
-          <select id="sel-speed">
-            <option value="0.5">Lenta (0.5x)</option>
-            <option value="1.0" selected>Normal (1.0x)</option>
-            <option value="2.0">Rápida (2.0x)</option>
-          </select>
+        <div class="ctrl-separator"></div>
+
+        <!-- 2. Ações Estratégicas (Scale-Out & Benchmark) -->
+        <div class="ctrl-group ctrl-actions">
+          <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
+            <span id="reserva-icon">⚡</span>
+            <span id="reserva-label">Ativar Reserva</span>
+          </button>
+
+          <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
+            ⚡ Teste de Carga
+          </button>
+
+          <!-- Botões redundantes mantidos no DOM ocultos para integridade do JS -->
+          <button id="btn-vms-modal-action" style="display: none;"></button>
+          <button id="btn-mw-modal-action" style="display: none;"></button>
         </div>
 
-        <label class="toggle-presentation">
-          <input type="checkbox" id="chk-presentation">
-          <span>Modo Foco</span>
-        </label>
+        <div class="ctrl-separator"></div>
+
+        <!-- 3. Resiliência & Chaos Testing -->
+        <div class="ctrl-group ctrl-chaos">
+          <div class="chaos-group" title="Simulação de Resiliência: Derrubar ou religar servidores">
+            <span class="chaos-title"><span class="chaos-pulse"></span>Resiliência:</span>
+            <select id="sel-server-crash" class="sel-chaos" title="Selecione o servidor">
+              <option value="1">S1 (:8001)</option>
+              <option value="2" selected>S2 (:8002)</option>
+              <option value="3">S3 (:8003)</option>
+              <option value="4">S4 (:8004)</option>
+            </select>
+            <button id="btn-crash-selected" class="btn btn-crash btn-crash-danger" title="Derrubar ou religar o servidor selecionado">
+              <span id="crash-icon">💥</span>
+              <span id="crash-label">Derrubar</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="ctrl-separator"></div>
+
+        <!-- 4. Ajustes e Modo Foco -->
+        <div class="ctrl-group ctrl-settings">
+          <div class="control-setting">
+            <span>Qtd:</span>
+            <select id="sel-limit">
+              <option value="6">6</option>
+              <option value="12" selected>12</option>
+              <option value="24">24</option>
+              <option value="60">60</option>
+              <option value="0">Todos</option>
+            </select>
+          </div>
+
+          <div class="control-setting">
+            <span>Vel:</span>
+            <select id="sel-speed">
+              <option value="0.5">0.5x</option>
+              <option value="1.0" selected>1.0x</option>
+              <option value="2.0">2.0x</option>
+            </select>
+          </div>
+
+          <label class="toggle-presentation" title="Ocultar painéis laterais e focar na topologia">
+            <input type="checkbox" id="chk-presentation">
+            <span>Foco</span>
+          </label>
+        </div>
       </div>
-    </div>
     </div>
   </header>
 
@@ -3462,11 +3553,10 @@
             <rect x="0" y="0" width="6" height="78" rx="3" fill="url(#grad-mw)" />
             <circle cx="35" cy="38" r="18" fill="rgba(249, 115, 22, 0.15)" />
             <text x="35" y="44" font-size="18" text-anchor="middle">⚡</text>
-            <text x="64" y="22" font-size="13" font-weight="700" fill="#f3f4f6">Apache Kafka (KRaft)</text>
-            <text x="64" y="37" font-size="9.5" fill="#f97316" font-weight="600">MOM Enterprise • 4 Partições • Multi-Group</text>
-            <text x="64" y="50" font-size="8.5" fill="#9ca3af">Tópico: telemetria_hospitalar (Gzip, Rate Limit)</text>
-            <text id="badge-mw-queue" x="64" y="61" font-size="8" fill="#fb923c">Fanout Grupos: consumidor_servidor_1..4</text>
-            <text x="64" y="72" font-size="8" fill="#38bdf8" font-weight="700">🔍 Clique p/ Inspecionar Internamente</text>
+            <text x="64" y="24" font-size="13" font-weight="700" fill="#f3f4f6">Apache Kafka (KRaft :9092)</text>
+            <text x="64" y="40" font-size="9.5" fill="#f97316" font-weight="600">MOM Enterprise • 4 Partições Físicas</text>
+            <text id="badge-mw-queue" x="64" y="54" font-size="8.5" fill="#34d399" font-weight="600">🔄 Replicação Fanout ➔ 4 Bancos SQLite</text>
+            <text x="64" y="68" font-size="8" fill="#38bdf8" font-weight="700">🔍 Clique p/ Inspecionar Internamente</text>
           </g>
 
           <!-- 3. LOAD BALANCER NODE -->
@@ -3608,15 +3698,15 @@
       <div class="sidebar-tabs-bar" role="tablist">
         <button id="tab-btn-overview" class="sb-tab-btn active" onclick="selecionarSidebarTab('overview')" title="Painel de Sinais Vitais e Carga dos Servidores">
           <span class="tab-icon">📊</span>
-          <span class="tab-lbl">Monitor &amp; Servidores</span>
+          <span class="tab-lbl">Monitor</span>
         </button>
         <button id="tab-btn-kafka" class="sb-tab-btn" onclick="selecionarSidebarTab('kafka')" title="Apache Kafka MOM: Partições, Grupos e Replicação">
           <span class="tab-icon">⚡</span>
-          <span class="tab-lbl">Kafka MOM &amp; Fanout</span>
+          <span class="tab-lbl">Kafka MOM</span>
         </button>
         <button id="tab-btn-scale" class="sb-tab-btn" onclick="selecionarSidebarTab('scale')" title="Balanceamento de Carga e Auto-Scale">
           <span class="tab-icon">⚖️</span>
-          <span class="tab-lbl">Escalabilidade</span>
+          <span class="tab-lbl">Escala</span>
         </button>
         <button id="tab-btn-split" class="sb-tab-btn split-toggle" onclick="selecionarSidebarTab('split')" title="Modo Dividido: Exibe colunas lado a lado">
           <span class="tab-icon">🗂️</span>
@@ -3627,8 +3717,8 @@
       <div class="sidebar-panels-wrapper" id="sidebar-panels-wrapper">
         <!-- Sub-column 1: Sinais Vitais, Distribuição de Servidores e Log de Eventos -->
         <div class="sidebar-col sidebar-col-1 active-tab-col" id="col-overview">
-        <!-- 1. Patient Vital Signs Card -->
-        <section class="panel">
+        <!-- 1. Patient Vital Signs Card (Sempre Visível & Compacto) -->
+        <section class="panel vital-panel">
           <div class="panel-header">
             <div class="panel-title">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
