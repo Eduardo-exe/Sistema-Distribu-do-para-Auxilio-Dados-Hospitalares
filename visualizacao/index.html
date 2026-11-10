@@ -1518,6 +1518,42 @@
        Teste de Carga Modal
        ═══════════════════════════════════════════════════════════ */
 
+    .btn-consulta {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(14, 165, 233, 0.32));
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.2);
+      padding: 0.5rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-consulta:hover {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(14, 165, 233, 0.45));
+      border-color: #38bdf8;
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.4);
+      transform: translateY(-1px);
+    }
+    .ctrl-medicos select {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: #f1f5f9;
+      font-size: 0.76rem;
+      padding: 0.35rem 0.6rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .ctrl-medicos select:focus {
+      border-color: #38bdf8;
+    }
+
     .btn-benchmark {
       background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(234, 88, 12, 0.3));
       color: #fb923c;
@@ -3344,7 +3380,7 @@
 
         <div class="ctrl-separator"></div>
 
-        <!-- 2. Ações Estratégicas (Scale-Out & Benchmark) -->
+        <!-- 2. Ações Estratégicas (Scale-Out, Benchmark & Consulta de Prontuário) -->
         <div class="ctrl-group ctrl-actions">
           <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
             <span id="reserva-icon">⚡</span>
@@ -3353,6 +3389,10 @@
 
           <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
             ⚡ Teste de Carga
+          </button>
+
+          <button id="btn-consulta-prontuario" class="btn btn-consulta" onclick="abrirModalConsulta()" title="Consultar Prontuário Médico (Read Path com Balanceamento)">
+            🔍 Consultar
           </button>
 
           <!-- Botões redundantes mantidos no DOM ocultos para integridade do JS -->
@@ -3381,8 +3421,17 @@
 
         <div class="ctrl-separator"></div>
 
-        <!-- 4. Ajustes e Modo Foco -->
+        <!-- 4. Ajustes, Médico Ativo e Modo Foco -->
         <div class="ctrl-group ctrl-settings">
+          <div class="control-setting ctrl-medicos" title="Selecionar equipe médica ou médico específico com seu respectivo dataset">
+            <span>Médico:</span>
+            <select id="sel-medico" onchange="trocarMedicoAtivo(this.value)">
+              <option value="todos" selected>👥 Todos (Equipe)</option>
+              <option value="1">🩺🔴 Dr. Carlos (UTI)</option>
+              <option value="2">🩺🟠 Dra. Beatriz (Emergência)</option>
+              <option value="3">🩺🟢 Dr. Lucas (Enfermaria)</option>
+            </select>
+          </div>
           <div class="control-setting">
             <span>Qtd:</span>
             <select id="sel-limit">
@@ -3621,20 +3670,20 @@
             <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-csv)" />
             <circle cx="32" cy="35" r="16" fill="rgba(16, 185, 129, 0.15)" />
             <text x="32" y="40" font-size="16" text-anchor="middle">📄</text>
-            <text x="58" y="30" font-size="12" font-weight="700" fill="#f3f4f6">Dataset CSV</text>
-            <text x="58" y="46" font-size="9.5" fill="#9ca3af">data/dataset.csv</text>
-            <text x="58" y="58" font-size="8.5" fill="#10b981" font-weight="600">Dados Reais Kaggle</text>
+            <text id="lbl-dataset-title" x="58" y="30" font-size="12" font-weight="700" fill="#f3f4f6">Datasets Clínicos</text>
+            <text id="lbl-dataset-file" x="58" y="46" font-size="9" fill="#9ca3af">3 Datasets (60k total)</text>
+            <text id="lbl-dataset-info" x="58" y="58" font-size="8.5" fill="#10b981" font-weight="600">Dados Reais Kaggle</text>
           </g>
 
-          <!-- 2. CSV SENDER CLIENT NODE -->
+          <!-- 2. CSV SENDER CLIENT NODE (Equipe Médica Concorrente) -->
           <g id="node-client" class="node-box node-client" transform="translate(480, 35)">
             <rect class="node-bg" width="220" height="70" />
             <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-client)" />
             <circle cx="32" cy="35" r="16" fill="rgba(6, 182, 212, 0.15)" />
-            <text x="32" y="40" font-size="16" text-anchor="middle">🚀</text>
-            <text x="58" y="30" font-size="12" font-weight="700" fill="#f3f4f6">Produtor (Cliente)</text>
-            <text x="58" y="46" font-size="9.5" fill="#9ca3af">middleware/produtor.py</text>
-            <text x="58" y="58" font-size="8.5" fill="#06b6d4" font-weight="600">Publica via Apache Kafka MOM</text>
+            <text id="lbl-cliente-icon" x="32" y="40" font-size="16" text-anchor="middle">🩺</text>
+            <text id="lbl-cliente-origem" x="58" y="28" font-size="11.5" font-weight="700" fill="#f3f4f6">Equipe Médica (3 Nós)</text>
+            <text id="lbl-cliente-sub" x="58" y="43" font-size="9" fill="#38bdf8">UTI • Emergência • Enfermaria</text>
+            <text id="lbl-cliente-info" x="58" y="58" font-size="8.5" fill="#34d399" font-weight="600">Ingestão & Consulta de Dados</text>
           </g>
 
           <!-- 2.5 MIDDLEWARE APACHE KAFKA NODE (KRaft Multi-Group Fanout) -->
@@ -3994,6 +4043,7 @@
           <!-- Barra de Filtros Rápidos -->
           <div class="log-filter-chips" style="display: flex; gap: 0.3rem; margin-bottom: 0.5rem; flex-wrap: wrap; flex-shrink: 0;">
             <button class="log-filter-chip active" data-filter="all" onclick="filtrarLogs('all')">Todos</button>
+            <button class="log-filter-chip" data-filter="consultas" onclick="filtrarLogs('consultas')">🔍 Consultas</button>
             <button class="log-filter-chip" data-filter="kafka" onclick="filtrarLogs('kafka')">⚡ Kafka</button>
             <button class="log-filter-chip" data-filter="fanout" onclick="filtrarLogs('fanout')">🔄 Fanout</button>
             <button class="log-filter-chip" data-filter="servers" onclick="filtrarLogs('servers')">🖥️ Servidores</button>
@@ -4866,8 +4916,10 @@
         const cls = item.className;
         let visivel = false;
 
-        if (tipo === 'kafka') {
-          visivel = cls.includes('kafka') || txt.includes('kafka') || txt.includes('médico') || txt.includes('leito') || txt.includes('partiç') || txt.includes('broker');
+        if (tipo === 'consultas') {
+          visivel = txt.includes('consulta') || txt.includes('prontuário') || txt.includes('prontuario') || txt.includes('leitura') || txt.includes('dr.') || txt.includes('dra.');
+        } else if (tipo === 'kafka') {
+          visivel = cls.includes('kafka') || txt.includes('kafka') || txt.includes('leito') || txt.includes('partiç') || txt.includes('broker');
         } else if (tipo === 'fanout') {
           visivel = txt.includes('fanout') || txt.includes('sincroniz') || txt.includes('banco') || txt.includes('réplica') || txt.includes('replic');
         } else if (tipo === 'servers') {
@@ -5161,10 +5213,21 @@
           updateMetrics(d.contadores);
           break;
 
+        case 'query_executed':
+          addLog(d.timestamp, `[CONSULTA MÉDICA] Prontuário Paciente #${d.paciente_id} ➔ Atendido por ${d.server_id} em ${d.latencia_ms}ms (${d.total_registros} reg)`, 'complete');
+          animarConsultaNoDiagrama(d.server_id);
+          break;
+
+        case 'medico_selecionado':
+          atualizarVisualMedico(d.medico, d.nome);
+          addLog(d.timestamp || new Date().toLocaleTimeString(), d.mensagem, 'info');
+          break;
+
         case 'csv_read':
           clearActiveNodes();
           nodeCsv.classList.add('active-node');
-          setStatus(`Lendo registro #${d.numero} do CSV...`, 'busy');
+          const medLabel = d.medico ? ` [${d.medico}]` : '';
+          setStatus(`Lendo registro #${d.numero}${medLabel}...`, 'busy');
           updatePatientCard(d.dados, d.numero);
           ultimoRegistroKafka = { ...d.dados, _numero: d.numero, _timestamp: d.timestamp };
           atualizarLiveMessageModal();
@@ -7088,6 +7151,245 @@
 
     // Init: botões no estado correto
     setSimulationRunning(false);
+
+    // ══════════════════════════════════════════════
+    // Múltiplos Médicos e Consulta de Prontuários
+    // ══════════════════════════════════════════════
+    async function trocarMedicoAtivo(medicoKey) {
+      try {
+        const res = await fetch('/api/medico/selecionar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ medico: medicoKey }),
+        });
+        const data = await res.json();
+        atualizarVisualMedico(medicoKey, data.nome);
+      } catch (e) {
+        console.error('Erro ao trocar médico:', e);
+      }
+    }
+
+    function atualizarVisualMedico(medicoKey, nome) {
+      const lblOrigem = document.getElementById('lbl-cliente-origem');
+      const lblSub = document.getElementById('lbl-cliente-sub');
+      const lblIcon = document.getElementById('lbl-cliente-icon');
+      const lblDatasetFile = document.getElementById('lbl-dataset-file');
+
+      if (medicoKey === '1') {
+        if (lblIcon) lblIcon.textContent = '🔴';
+        if (lblOrigem) lblOrigem.textContent = 'Dr. Carlos (UTI)';
+        if (lblSub) lblSub.textContent = 'Setor: UTI / Terapia Intensiva';
+        if (lblDatasetFile) lblDatasetFile.textContent = 'dataset_medico_1_uti.csv';
+      } else if (medicoKey === '2') {
+        if (lblIcon) lblIcon.textContent = '🟠';
+        if (lblOrigem) lblOrigem.textContent = 'Dra. Beatriz (Emergência)';
+        if (lblSub) lblSub.textContent = 'Setor: Pronto-Socorro / Quedas';
+        if (lblDatasetFile) lblDatasetFile.textContent = 'dataset_medico_2_emergencia.csv';
+      } else if (medicoKey === '3') {
+        if (lblIcon) lblIcon.textContent = '🟢';
+        if (lblOrigem) lblOrigem.textContent = 'Dr. Lucas (Enfermaria)';
+        if (lblSub) lblSub.textContent = 'Setor: Leitos de Enfermaria';
+        if (lblDatasetFile) lblDatasetFile.textContent = 'dataset_medico_3_enfermaria.csv';
+      } else {
+        if (lblIcon) lblIcon.textContent = '👥';
+        if (lblOrigem) lblOrigem.textContent = 'Equipe Médica (3 Nós)';
+        if (lblSub) lblSub.textContent = 'UTI • Emergência • Enfermaria';
+        if (lblDatasetFile) lblDatasetFile.textContent = '3 Datasets (60k total)';
+      }
+    }
+
+    const modalConsulta = document.getElementById('modal-consulta');
+
+    function abrirModalConsulta() {
+      if (modalConsulta) {
+        modalConsulta.style.display = 'flex';
+        const inputId = document.getElementById('input-consulta-paciente');
+        if (inputId) inputId.focus();
+      }
+    }
+
+    function fecharModalConsulta() {
+      if (modalConsulta) modalConsulta.style.display = 'none';
+    }
+
+    if (modalConsulta) {
+      window.addEventListener('click', (e) => {
+        if (e.target === modalConsulta) fecharModalConsulta();
+      });
+    }
+
+    async function executarConsultaProntuario() {
+      const inputId = document.getElementById('input-consulta-paciente');
+      const pid = parseInt(inputId ? inputId.value : 1) || 1;
+      await realizarConsultaApi(`/api/consulta/paciente/${pid}`);
+    }
+
+    async function executarConsultaAleatoria() {
+      await realizarConsultaApi('/api/consulta/aleatoria');
+    }
+
+    async function realizarConsultaApi(endpoint) {
+      try {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+
+        const placeholder = document.getElementById('consulta-placeholder');
+        const container = document.getElementById('consulta-dados');
+
+        if (res.status === 200 && data.status === 'sucesso') {
+          if (placeholder) placeholder.style.display = 'none';
+          if (container) container.style.display = 'flex';
+
+          const ultimo = data.ultimo || (data.registros && data.registros[data.registros.length - 1]) || {};
+          const sid = data.server_id || 'server-01';
+
+          document.getElementById('consulta-server-badge').textContent = `🖥️ vm-${sid}`;
+          document.getElementById('consulta-latencia').textContent = `${data.latencia_ms} ms`;
+          document.getElementById('consulta-failover-badge').style.display = data.failover ? 'inline-block' : 'none';
+
+          document.getElementById('consulta-fc').textContent = `${ultimo.frequencia_cardiaca || '--'} bpm`;
+          document.getElementById('consulta-spo2').textContent = `${ultimo.spo2 || '--'}%`;
+          document.getElementById('consulta-pa').textContent = `${ultimo.pressao_sistolica || '--'}/${ultimo.pressao_diastolica || '--'}`;
+          document.getElementById('consulta-temp').textContent = `${ultimo.temperatura || '--'}°C`;
+          document.getElementById('consulta-diagnostico').textContent = ultimo.doenca_prevista || 'Normal';
+          document.getElementById('consulta-queda').textContent = ultimo.deteccao_queda === 'Yes' ? '⚠️ Queda Detectada (Yes)' : 'Normal (No)';
+          document.getElementById('consulta-total-reg').textContent = `${data.total_registros} medições no banco`;
+
+          const inputId = document.getElementById('input-consulta-paciente');
+          if (inputId) inputId.value = data.paciente_id;
+
+          animarConsultaNoDiagrama(sid);
+        } else {
+          alert(data.mensagem || 'Nenhum registro encontrado para este paciente no cluster.');
+        }
+      } catch (err) {
+        alert('Erro ao consultar prontuário no cluster: ' + err.message);
+      }
+    }
+
+    function animarConsultaNoDiagrama(server_id) {
+      if (nodeClient) nodeClient.classList.add('active-node');
+      animatePacketAlongPath(pipeClientMw, 250, () => {
+        if (nodeClient) nodeClient.classList.remove('active-node');
+        if (nodeMw) nodeMw.classList.add('active-node');
+        animatePacketAlongPath(pipeMwLb, 250, () => {
+          if (nodeMw) nodeMw.classList.remove('active-node');
+          if (nodeLb) nodeLb.classList.add('active-node');
+
+          let pipe = pipeLbS1;
+          let sNode = nodeS1;
+          if (server_id && server_id.includes('02')) { pipe = pipeLbS2; sNode = nodeS2; }
+          if (server_id && server_id.includes('03')) { pipe = pipeLbS3; sNode = nodeS3; }
+          if (server_id && server_id.includes('04')) { pipe = pipeLbS4; sNode = nodeS4; }
+
+          animatePacketAlongPath(pipe, 300, () => {
+            if (nodeLb) nodeLb.classList.remove('active-node');
+            if (sNode) sNode.classList.add('active-node');
+            setTimeout(() => {
+              if (sNode) sNode.classList.remove('active-node');
+            }, 500);
+          });
+        });
+      });
+    }
   </script>
+  <!-- Modal: Consulta de Prontuário Médico (Read Path) -->
+  <div id="modal-consulta" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 620px;">
+      <div class="modal-header">
+        <h2 style="display: flex; align-items: center; gap: 0.5rem; color: #38bdf8; font-size: 1.15rem;">
+          <span>🔍</span>
+          <span>Consulta de Prontuário Médico (Read Path)</span>
+        </h2>
+        <button class="modal-close" onclick="fecharModalConsulta()" title="Fechar">✕</button>
+      </div>
+
+      <div style="padding: 0.4rem 0 0.8rem 0; color: var(--text-dim); font-size: 0.8rem; line-height: 1.4;">
+        Demonstração da leitura balanceada: a busca é enviada ao <strong>Load Balancer (:8000)</strong>, que consulta um dos servidores ativos.
+        Como o <strong>Kafka replicou nos 4 bancos SQLite (Marco 3)</strong>, a resposta é consistente e imediata.
+      </div>
+
+      <!-- Barra de Busca -->
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; align-items: center;">
+        <div style="flex: 1; display: flex; align-items: center; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.4rem 0.8rem;">
+          <span style="color: var(--text-muted); font-size: 0.8rem; margin-right: 0.4rem;">ID Paciente:</span>
+          <input type="number" id="input-consulta-paciente" min="1" max="60000" value="1" style="background: transparent; border: none; color: #ffffff; font-size: 0.95rem; font-weight: 700; width: 100%; outline: none;" placeholder="ID...">
+        </div>
+        <button class="btn btn-primary" onclick="executarConsultaProntuario()" style="padding: 0.5rem 0.9rem; white-space: nowrap;">
+          🔍 Buscar
+        </button>
+        <button class="btn btn-secondary" onclick="executarConsultaAleatoria()" style="padding: 0.5rem 0.75rem; white-space: nowrap;" title="Sortear paciente no cluster">
+          🎲 Aleatório
+        </button>
+      </div>
+
+      <!-- Card de Resultado da Consulta -->
+      <div id="consulta-resultado-container" style="min-height: 160px; display: flex; flex-direction: column;">
+        <div id="consulta-placeholder" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed var(--border-color); border-radius: 10px; padding: 1.8rem; color: var(--text-dim); text-align: center;">
+          <span style="font-size: 2rem; margin-bottom: 0.4rem;">🩺</span>
+          <span>Insira o ID de um paciente ou clique em <strong>Aleatório</strong> para consultar seu prontuário no cluster.</span>
+        </div>
+
+        <div id="consulta-dados" style="display: none; flex-direction: column; gap: 0.65rem;">
+          <!-- Cabeçalho do Prontuário -->
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 0.5rem 0.8rem;">
+            <div>
+              <span style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Atendido Por</span>
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-top: 2px;">
+                <span id="consulta-server-badge" style="color: #38bdf8; font-weight: 700; font-size: 0.92rem;">vm-servidor-01</span>
+                <span id="consulta-failover-badge" style="display: none; background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.4); color: #facc15; font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; font-weight: 700;">⚠️ Failover</span>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Latência de Leitura</span>
+              <div id="consulta-latencia" style="font-size: 0.92rem; font-weight: 700; color: #34d399;">3.2 ms</div>
+            </div>
+          </div>
+
+          <!-- Diagnóstico e Resumo -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem;">
+            <div class="vital-item" style="padding: 0.45rem; background: rgba(255,255,255,0.03); border-radius: 6px; text-align: center;">
+              <div class="vital-label" style="font-size: 0.65rem;">Freq. Cardíaca</div>
+              <div id="consulta-fc" class="vital-value" style="font-size: 1.05rem; color: #f87171;">--</div>
+            </div>
+            <div class="vital-item" style="padding: 0.45rem; background: rgba(255,255,255,0.03); border-radius: 6px; text-align: center;">
+              <div class="vital-label" style="font-size: 0.65rem;">SpO2</div>
+              <div id="consulta-spo2" class="vital-value" style="font-size: 1.05rem; color: #38bdf8;">--</div>
+            </div>
+            <div class="vital-item" style="padding: 0.45rem; background: rgba(255,255,255,0.03); border-radius: 6px; text-align: center;">
+              <div class="vital-label" style="font-size: 0.65rem;">Pressão Art.</div>
+              <div id="consulta-pa" class="vital-value" style="font-size: 1.05rem; color: #a78bfa;">--</div>
+            </div>
+            <div class="vital-item" style="padding: 0.45rem; background: rgba(255,255,255,0.03); border-radius: 6px; text-align: center;">
+              <div class="vital-label" style="font-size: 0.65rem;">Temperatura</div>
+              <div id="consulta-temp" class="vital-value" style="font-size: 1.05rem; color: #fb923c;">--</div>
+            </div>
+          </div>
+
+          <!-- Diagnóstico e Queda -->
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.78rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <span style="color: var(--text-dim);">Diagnóstico Previsto:</span>
+              <strong id="consulta-diagnostico" style="color: #f1f5f9;">--</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <span style="color: var(--text-dim);">Detecção de Queda:</span>
+              <strong id="consulta-queda" style="color: #f1f5f9;">--</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-dim);">Consistência do Cluster:</span>
+              <span style="color: #34d399; font-weight: 700;">✓ Sincronizado (Marco 3 Fanout)</span>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: var(--text-dim);">
+            <span>Total de registros no banco: <strong id="consulta-total-reg" style="color: #38bdf8;">0</strong></span>
+            <span style="color: #94a3b8;">Endpoint: <code style="color: #38bdf8;">GET /dados/{id}</code></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

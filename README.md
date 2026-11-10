@@ -153,7 +153,9 @@ Projeto SD/
 ├── Vagrantfile                      # Topologia com 8 VMs Ubuntu 22.04 LTS (192.168.56.0/24)
 ├── docker-compose.yml               # Orquestração multi-host com rede bridge 192.168.56.0/24
 ├── client/
-│   └── csv_sender.py                # Produtor/injetor de telemetria do dataset
+│   ├── csv_sender.py                # Produtor/injetor de telemetria do dataset (suporta flag --medico)
+│   ├── multi_medicos.py             # Emissor multi-médicos concorrente (UTI, Emergência, Enfermaria)
+│   └── medico_consulta.py           # Terminal de consulta distribuída de prontuários (Read Path)
 ├── server/
 │   ├── app.py                       # Servidor de nós FastAPI (server-01 a server-04)
 │   ├── database.py                  # Camada de persistência relacional SQLite
@@ -184,7 +186,11 @@ Projeto SD/
 │   └── test_visualizacao.py         # Testes de endpoints SSE, status do monitor e VMs
 ├── databases/                       # Bancos SQLite gerados automaticamente (server1..4.db)
 ├── logs/                            # Logs de execução de cada nó do cluster
-├── data/                            # Symlink para o dataset CSV
+├── data/                            # Datasets clínicos reais (60.000 amostras particionadas)
+│   ├── dataset.csv                  # Dataset mestre completo (60.000 amostras)
+│   ├── dataset_medico_1_uti.csv     # 20.000 amostras — Dr. Carlos (UTI / Casos Críticos)
+│   ├── dataset_medico_2_emergencia.csv # 20.000 amostras — Dra. Beatriz (Emergência / Quedas)
+│   └── dataset_medico_3_enfermaria.csv # 20.000 amostras — Dr. Lucas (Enfermaria / Regular)
 ├── executar.sh                      # Script mestre de inicialização do cluster
 ├── teste_carga.sh                   # Script CLI para ensaios de estresse e carga
 ├── tunel.sh                         # Utilitário para criação de túnel Cloudflare
@@ -378,7 +384,30 @@ curl -X POST http://localhost:8000/dados \
   }'
 ```
 
-### 2. Consultar Registros Persistidos (GET /dados)
+### 2. Consultar Prontuário Médico Específico (GET /dados/{paciente_id})
+
+```bash
+# Consulta o histórico completo do paciente através do Load Balancer
+curl "http://localhost:8000/dados/101"
+```
+
+### 3. Executar Simulação Multi-Médicos e Consultas via CLI
+
+```bash
+# 1. Simular os 3 médicos enviando telemetria simultaneamente (threads concorrentes):
+python client/multi_medicos.py --limite 10 --intervalo 0.8
+
+# 2. Simular apenas a Dra. Beatriz (Emergência):
+python client/multi_medicos.py --medico 2 --limite 15
+
+# 3. Consultar prontuário de paciente específico:
+python client/medico_consulta.py --paciente 101
+
+# 4. Simular médicos consultando prontuários aleatórios em loop contínuo:
+python client/medico_consulta.py --loop --intervalo 1.5
+```
+
+### 4. Consultar Registros Persistidos Gerais (GET /dados)
 
 ```bash
 curl "http://localhost:8000/dados?limit=10&offset=0"

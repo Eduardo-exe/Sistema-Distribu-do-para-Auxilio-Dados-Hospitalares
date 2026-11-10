@@ -56,6 +56,7 @@ class MonitorState:
         self.processing: bool = False
         self.speed: float = 1.0
         self.limit: int = 12
+        self.medico_ativo: str = "todos"
         self.contadores = {
             "total": 0,
             "sucesso": 0,
@@ -72,16 +73,51 @@ class MonitorState:
         self.event_counter: int = 0
         self._load_csv()
 
+    def _get_active_csv_path(self) -> str:
+        base_dir = os.path.dirname(self.csv_path)
+        if self.medico_ativo == "1":
+            p = os.path.join(base_dir, "dataset_medico_1_uti.csv")
+            if os.path.exists(p): return p
+        elif self.medico_ativo == "2":
+            p = os.path.join(base_dir, "dataset_medico_2_emergencia.csv")
+            if os.path.exists(p): return p
+        elif self.medico_ativo == "3":
+            p = os.path.join(base_dir, "dataset_medico_3_enfermaria.csv")
+            if os.path.exists(p): return p
+        return self.csv_path
+
     def _load_csv(self):
-        """Carrega todos os registros do CSV."""
-        if not os.path.exists(self.csv_path):
-            print(f"[MONITOR] ERRO: CSV não encontrado: {self.csv_path}")
+        """Carrega os registros do CSV ativo conforme o médico selecionado."""
+        target_path = self._get_active_csv_path()
+        if not os.path.exists(target_path):
+            print(f"[MONITOR] ERRO: CSV não encontrado: {target_path}")
             return
-        with open(self.csv_path, "r", encoding="utf-8") as f:
+        self.records = []
+        with open(target_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
-            for row in reader:
-                self.records.append(converter_registro_csv(row))
-        print(f"[MONITOR] {len(self.records)} registros carregados do CSV")
+            for idx, row in enumerate(reader):
+                item = converter_registro_csv(row)
+                if self.medico_ativo == "1":
+                    item["medico"] = "Dr. Carlos (UTI)"
+                elif self.medico_ativo == "2":
+                    item["medico"] = "Dra. Beatriz (Emergência)"
+                elif self.medico_ativo == "3":
+                    item["medico"] = "Dr. Lucas (Enfermaria)"
+                else:
+                    if idx % 3 == 0:
+                        item["medico"] = "Dr. Carlos (UTI)"
+                    elif idx % 3 == 1:
+                        item["medico"] = "Dra. Beatriz (Emergência)"
+                    else:
+                        item["medico"] = "Dr. Lucas (Enfermaria)"
+                self.records.append(item)
+        print(f"[MONITOR] {len(self.records)} registros carregados de {os.path.basename(target_path)} (Médico: {self.medico_ativo})")
+
+    def set_medico(self, medico_key: str):
+        """Altera o médico / dataset ativo e recarrega os dados."""
+        self.medico_ativo = medico_key
+        self.reset()
+        self._load_csv()
 
     def reset(self):
         """Reseta o estado da simulação."""
@@ -664,6 +700,7 @@ async def process_single(state: MonitorState) -> bool:
     await state.broadcast("csv_read", {
         "numero": numero,
         "dados": record,
+        "medico": record.get("medico", "Equipe Médica"),
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
     await asyncio.sleep(delay)
@@ -673,6 +710,7 @@ async def process_single(state: MonitorState) -> bool:
     # --- Etapa 2: CSV Sender preparando ---
     await state.broadcast("sending", {
         "numero": numero,
+        "medico": record.get("medico", "Equipe Médica"),
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
     await asyncio.sleep(delay * 0.6)
@@ -1219,6 +1257,108 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                 "total_servidores": 3,
                 "distribuicao_esperada_por_no": "33.3%",
             }
+
+    # ── Múltiplos Médicos e Consulta de Prontuários (Read Path) ──
+
+    @app.post("/api/medico/selecionar")
+    async def api_selecionar_medico(request: Request):
+        """Seleciona o médico/dataset ativo na simulação."""
+        try:
+            data = await request.json()
+            medico_key = str(data.get("medico", "todos"))
+        except Exception:
+            medico_key = "todos"
+        state.set_medico(medico_key)
+        nome_map = {
+            "todos": "Equipe Completa (3 Médicos)",
+            "1": "Dr. Carlos (UTI)",
+            "2": "Dra. Beatriz (Emergência)",
+            "3": "Dr. Lucas (Enfermaria)",
+        }
+        nome_medico = nome_map.get(medico_key, "Equipe Médica")
+        await state.broadcast("medico_selecionado", {
+            "medico": medico_key,
+            "nome": nome_medico,
+            "total_registros": len(state.records),
+            "mensagem": f"🩺 Médico selecionado: {nome_medico} ({len(state.records)} registros no dataset)",
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+        })
+        return {"status": "ok", "medico": medico_key, "nome": nome_medico, "total": len(state.records)}
+
+    @app.get("/api/consulta/paciente/{paciente_id}")
+    @app.post("/api/consulta/paciente/{paciente_id}")
+    async def api_consultar_prontuario(paciente_id: int):
+        """
+        Executa busca distribuída do prontuário do paciente através do Load Balancer.
+        Demonstra o Read Path com balanceamento de leitura e tolerância a falhas.
+        """
+        t0 = time.time()
+        url = f"{state.lb_url}/dados/{paciente_id}"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(url)
+                latencia_ms = (time.time() - t0) * 1000
+
+                if resp.status_code == 200:
+                    registros = resp.json()
+                    total_reg = len(registros) if isinstance(registros, list) else 1
+                    ultimo = registros[-1] if isinstance(registros, list) and registros else registros
+                    server_id = ultimo.get("server_id", "server-01")
+                    is_failover = resp.headers.get("X-Failover") == "true"
+
+                    await state.broadcast("query_executed", {
+                        "paciente_id": paciente_id,
+                        "server_id": server_id,
+                        "latencia_ms": round(latencia_ms, 1),
+                        "total_registros": total_reg,
+                        "ultimo_registro": ultimo,
+                        "failover": is_failover,
+                        "timestamp": datetime.now().strftime("%H:%M:%S"),
+                        "mensagem": f"🔍 [CONSULTA MÉDICA] Prontuário Paciente #{paciente_id} consultado! Atendido por {server_id} em {latencia_ms:.1f}ms ({total_reg} medições encontradas no banco).",
+                    })
+
+                    return {
+                        "status": "sucesso",
+                        "paciente_id": paciente_id,
+                        "server_id": server_id,
+                        "latencia_ms": round(latencia_ms, 1),
+                        "total_registros": total_reg,
+                        "registros": registros,
+                        "ultimo": ultimo,
+                        "failover": is_failover,
+                    }
+                elif resp.status_code == 404:
+                    return JSONResponse(
+                        status_code=404,
+                        content={
+                            "status": "nao_encontrado",
+                            "paciente_id": paciente_id,
+                            "latencia_ms": round(latencia_ms, 1),
+                            "mensagem": f"Paciente #{paciente_id} ainda não possui registros no banco.",
+                        }
+                    )
+                else:
+                    return JSONResponse(
+                        status_code=resp.status_code,
+                        content={"status": "erro", "detalhe": resp.text}
+                    )
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"status": "erro", "detalhe": str(e)}
+            )
+
+    @app.get("/api/consulta/aleatoria")
+    @app.post("/api/consulta/aleatoria")
+    async def api_consultar_aleatorio():
+        """Sorteia um ID de paciente e executa a consulta."""
+        import random
+        if state.current_index > 0 and state.records:
+            idx = random.randint(0, min(state.current_index - 1, len(state.records) - 1))
+            pid = int(state.records[idx].get("paciente_id", 1))
+        else:
+            pid = random.randint(1, 20)
+        return await api_consultar_prontuario(pid)
 
     # ── Gestão de Falhas e Resiliência (Chaos Engineering) ──
 

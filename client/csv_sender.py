@@ -169,6 +169,10 @@ if __name__ == "__main__":
         help="Número máximo de registros a enviar, 0 = todos (padrão: 0)"
     )
     parser.add_argument(
+        "--medico", type=str, default=None, choices=["1", "2", "3"],
+        help="Selecionar dataset do médico: 1 (UTI - Dr. Carlos), 2 (Emergência - Dra. Beatriz), 3 (Enfermaria - Dr. Lucas)"
+    )
+    parser.add_argument(
         "--via-kafka", "--via-middleware", action="store_true", default=False,
         dest="via_kafka",
         help="Enviar via middleware Apache Kafka MOM (:9092)"
@@ -176,16 +180,26 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Mapeamento do médico para o dataset correspondente
+    csv_arquivo = args.csv
+    if args.medico:
+        mapa_medicos = {
+            "1": os.path.join(projeto_dir, "data", "dataset_medico_1_uti.csv"),
+            "2": os.path.join(projeto_dir, "data", "dataset_medico_2_emergencia.csv"),
+            "3": os.path.join(projeto_dir, "data", "dataset_medico_3_enfermaria.csv"),
+        }
+        csv_arquivo = mapa_medicos.get(args.medico, args.csv)
+
     if args.via_kafka:
         enviar_dados_via_kafka(
-            csv_path=args.csv,
+            csv_path=csv_arquivo,
             intervalo=args.intervalo,
             limite=args.limite,
         )
     else:
         enviar_dados(
             url=args.url,
-            csv_path=args.csv,
+            csv_path=csv_arquivo,
             intervalo=args.intervalo,
             limite=args.limite,
         )
