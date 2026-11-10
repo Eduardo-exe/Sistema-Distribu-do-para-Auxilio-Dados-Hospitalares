@@ -23,12 +23,8 @@ databases/backup_formatacao/
 *.db-wal
 !databases/.gitkeep
 
-# Arquivos temporários de compilação LaTeX
-relatorio/*.aux
-relatorio/*.log
-relatorio/*.out
-relatorio/*.toc
-relatorio/*.synctex.gz
+# Documentação e relatórios acadêmicos locais
+relatorio/
 
 # Arquivos compactados de backup
 *.zip
