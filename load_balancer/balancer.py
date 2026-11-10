@@ -873,6 +873,7 @@ def criar_balanceador(
                         "status_code": status_code,
                         "latencia_ms": latencia_ms,
                         "failover": failover,
+                        "replicacao": getattr(balancer, "replicacao_ativa", True),
                     }
                 )
         except Exception:
