@@ -16,6 +16,11 @@ htmlcov/
 
 # Bancos de dados gerados em runtime
 databases/*.db
+databases/*.db-shm
+databases/*.db-wal
+databases/backup_formatacao/
+*.db-shm
+*.db-wal
 !databases/.gitkeep
 
 # Arquivos temporários de compilação LaTeX

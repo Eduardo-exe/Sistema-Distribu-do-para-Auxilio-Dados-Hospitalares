@@ -39,19 +39,19 @@
 
 | Arquivo | Descrição |
 |---|---|
-| [`server/__init__.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/server/__init__.py) | Package init |
-| [`server/models.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/server/models.py) | Modelos Pydantic + mapeamento CSV→API |
-| [`server/database.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/server/database.py) | Camada de acesso SQLite |
-| [`server/app.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/server/app.py) | API FastAPI (servidor) |
-| [`client/csv_sender.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/client/csv_sender.py) | Leitor/reprodutor do CSV |
-| [`load_balancer/balancer.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/load_balancer/balancer.py) | Balanceador Round Robin |
-| [`visualizacao/monitor.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/visualizacao/monitor.py) | Servidor FastAPI + SSE para visualização didática |
-| [`visualizacao/index.html`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/visualizacao/index.html) | Interface gráfica com animação de rede SVG |
-| [`tests/test_marco1.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/tests/test_marco1.py) | 17 testes do Marco 1 |
-| [`tests/test_marco2.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/tests/test_marco2.py) | 9 testes do Marco 2 |
-| [`tests/test_visualizacao.py`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/tests/test_visualizacao.py) | 5 testes da camada de visualização |
-| [`requirements.txt`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/requirements.txt) | Dependências |
-| [`README.md`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/README.md) | Documentação completa com instruções da interface |
+| [`server/__init__.py`](server/__init__.py) | Package init |
+| [`server/models.py`](server/models.py) | Modelos Pydantic + mapeamento CSV→API |
+| [`server/database.py`](server/database.py) | Camada de acesso SQLite |
+| [`server/app.py`](server/app.py) | API FastAPI (servidor) |
+| [`client/csv_sender.py`](client/csv_sender.py) | Leitor/reprodutor do CSV |
+| [`load_balancer/balancer.py`](load_balancer/balancer.py) | Balanceador Round Robin |
+| [`visualizacao/monitor.py`](visualizacao/monitor.py) | Servidor FastAPI + SSE para visualização didática |
+| [`visualizacao/index.html`](visualizacao/index.html) | Interface gráfica com animação de rede SVG |
+| [`tests/test_marco1.py`](tests/test_marco1.py) | 17 testes do Marco 1 |
+| [`tests/test_marco2.py`](tests/test_marco2.py) | 9 testes do Marco 2 |
+| [`tests/test_visualizacao.py`](tests/test_visualizacao.py) | 5 testes da camada de visualização |
+| [`requirements.txt`](requirements.txt) | Dependências |
+| [`README.md`](README.md) | Documentação completa com instruções da interface |
 | `data/dataset.csv` | Symlink para o CSV original |
 
 ---

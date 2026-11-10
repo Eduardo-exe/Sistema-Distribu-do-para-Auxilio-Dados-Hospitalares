@@ -4,3 +4,4 @@ requests
 httpx
 pytest
 kafka-python-ng
+pydantic

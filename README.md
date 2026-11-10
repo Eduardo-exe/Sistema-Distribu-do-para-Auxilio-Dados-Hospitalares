@@ -407,18 +407,14 @@ curl "http://localhost:8000/api/algorithm"
 
 ## Relatórios Técnicos Formais (LaTeX / PDF)
 
-A pasta [`relatorio/`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio) contém a documentação técnica e acadêmica do projeto, compilada em formato PDF com padrão editorial rigoroso:
+A pasta [`relatorio/`](relatorio/) contém a documentação técnica e acadêmica do projeto, compilada em formato PDF com padrão editorial rigoroso:
 
-* [`relatorio_completo_projeto_sd.pdf`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio/relatorio_completo_projeto_sd.pdf): Relatório Geral Consolidado Completo do Sistema (17 páginas, A======================= 99 passed, 2 warnings in 11.43s ========================
-```
- 2 warnings in 11.43s ========================
-```
-======================
-```
- camada de middleware (transição do RabbitMQ para o Middleware Híbrido ESB + CORBA/ORB, VETRO, CosNaming e resiliência).
-* [`relatorio_mudancas_arquiteturais.pdf`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio/relatorio_mudancas_arquiteturais.pdf): Relatório completo cobrindo as transformações estruturais dos Marcos 3 e 4.
-* [`relatorio_marco_3.pdf`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio/relatorio_marco_3.pdf): Análise formal de replicação de dados e consistência distribuída.
-* [`relatorio_marcos_1_e_2.pdf`](file:///home/eduardo-exe/Documentos/Sistemas%20Distribuidos/Projeto%20SD/relatorio/relatorio_marcos_1_e_2.pdf): Fundamentação do balanceamento de carga e ingestão de telemetria.
+* [`relatorio_completo_projeto_sd.pdf`](relatorio/relatorio_completo_projeto_sd.pdf): Relatório Geral Consolidado Completo do Sistema (17 páginas, ABNT/IEEE).
+* [`relatorio_sistema_distribuido_hospitalar.pdf`](relatorio/relatorio_sistema_distribuido_hospitalar.pdf): Relatório do Sistema Distribuído Hospitalar com cronograma e gráficos Gantt.
+* [`relatorio_mudancas_middleware.pdf`](relatorio/relatorio_mudancas_middleware.pdf): Relatório aprofundado da arquitetura do Middleware Apache Kafka MOM.
+* [`relatorio_mudancas_arquiteturais.pdf`](relatorio/relatorio_mudancas_arquiteturais.pdf): Relatório completo cobrindo as transformações estruturais dos Marcos 3 e 4.
+* [`relatorio_marco_3.pdf`](relatorio/relatorio_marco_3.pdf): Análise formal de replicação de dados e consistência distribuída.
+* [`relatorio_marcos_1_e_2.pdf`](relatorio/relatorio_marcos_1_e_2.pdf): Fundamentação do balanceamento de carga e ingestão de telemetria.
 
 ---
 
