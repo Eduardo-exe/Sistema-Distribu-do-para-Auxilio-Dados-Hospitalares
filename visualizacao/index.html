@@ -1005,17 +1005,35 @@
     }
 
     /* Controle de visibilidade das Abas */
-    /* Modo Overview (Padrão) */
+    /* Ocultar col-logs por padrão em qualquer aba que não seja logs */
+    .dashboard-sidebar:not([data-tab="logs"]) #col-logs {
+      display: none;
+    }
+
+    /* Modo 1: Overview (Monitor & Servidores) */
     .dashboard-sidebar[data-tab="overview"] #col-overview {
       display: flex;
       width: 100%;
     }
-    .dashboard-sidebar[data-tab="overview"] #col-kafka {
+    .dashboard-sidebar[data-tab="overview"] #col-kafka,
+    .dashboard-sidebar[data-tab="overview"] #col-logs {
       display: none;
     }
 
-    /* Modo Kafka MOM */
-    .dashboard-sidebar[data-tab="kafka"] #col-overview {
+    /* Modo 2: Logs (Aba Dedicada Exclusiva de Terminal de Logs) */
+    .dashboard-sidebar[data-tab="logs"] #col-overview,
+    .dashboard-sidebar[data-tab="logs"] #col-kafka {
+      display: none;
+    }
+    .dashboard-sidebar[data-tab="logs"] #col-logs {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Modo 3: Kafka MOM */
+    .dashboard-sidebar[data-tab="kafka"] #col-overview,
+    .dashboard-sidebar[data-tab="kafka"] #col-logs {
       display: none;
     }
     .dashboard-sidebar[data-tab="kafka"] #col-kafka {
@@ -1030,8 +1048,9 @@
       height: 100%;
     }
 
-    /* Modo Escalabilidade */
-    .dashboard-sidebar[data-tab="scale"] #col-overview {
+    /* Modo 4: Escalabilidade */
+    .dashboard-sidebar[data-tab="scale"] #col-overview,
+    .dashboard-sidebar[data-tab="scale"] #col-logs {
       display: none;
     }
     .dashboard-sidebar[data-tab="scale"] #col-kafka {
@@ -1046,7 +1065,7 @@
       height: 100%;
     }
 
-    /* Modo Split (Lado a Lado) */
+    /* Modo 5: Split (Lado a Lado) */
     .dashboard-sidebar[data-tab="split"] .sidebar-panels-wrapper {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1058,11 +1077,62 @@
     .dashboard-sidebar[data-tab="split"] #col-kafka {
       display: flex;
     }
+    .dashboard-sidebar[data-tab="split"] #col-logs {
+      display: none;
+    }
     .dashboard-sidebar[data-tab="split"] #col-kafka .kafka-panel {
       display: flex;
     }
     .dashboard-sidebar[data-tab="split"] #col-kafka .ent-panel {
       display: flex;
+    }
+
+    /* Estilos Especiais da Aba de Logs Dedicada */
+    .logs-full-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+    .events-log-full {
+      font-size: 0.73rem !important;
+      line-height: 1.4 !important;
+    }
+    .btn-clear-log-styled {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-clear-log-styled:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      color: #ffffff;
+    }
+    .log-filter-chip {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .log-filter-chip:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: #f1f5f9;
+    }
+    .log-filter-chip.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
     }
 
     .sidebar-col {
@@ -3714,15 +3784,19 @@
 
     <!-- Right Column: Live Data & Metrics Dashboard -->
     <aside class="dashboard-sidebar" id="dashboard-sidebar" data-tab="overview">
-      <!-- Minimalist Navigation Tabs (Organização Limpa & Zero Poluição) -->
+      <!-- Minimalist Navigation Tabs (Com Aba Exclusiva para Logs) -->
       <div class="sidebar-tabs-bar" role="tablist">
         <button id="tab-btn-overview" class="sb-tab-btn active" onclick="selecionarSidebarTab('overview')" title="Painel de Sinais Vitais e Carga dos Servidores">
           <span class="tab-icon">📊</span>
           <span class="tab-lbl">Monitor</span>
         </button>
+        <button id="tab-btn-logs" class="sb-tab-btn" onclick="selecionarSidebarTab('logs')" title="Aba Exclusiva: Terminal de Logs em Tempo Real">
+          <span class="tab-icon">📜</span>
+          <span class="tab-lbl">Logs</span>
+        </button>
         <button id="tab-btn-kafka" class="sb-tab-btn" onclick="selecionarSidebarTab('kafka')" title="Apache Kafka MOM: Partições, Grupos e Replicação">
           <span class="tab-icon">⚡</span>
-          <span class="tab-lbl">Kafka MOM</span>
+          <span class="tab-lbl">Kafka</span>
         </button>
         <button id="tab-btn-scale" class="sb-tab-btn" onclick="selecionarSidebarTab('scale')" title="Balanceamento de Carga e Auto-Scale">
           <span class="tab-icon">⚖️</span>
@@ -3897,16 +3971,36 @@
           </div>
         </section>
 
-        <!-- 3. Live Events Log -->
-        <section class="panel" style="flex: 1; min-height: 100px; display: flex; flex-direction: column;">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.2"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
-              Log de Eventos em Tempo Real
+      </div>
+
+      <!-- Sub-column Dedicada: Terminal Exclusivo de Logs -->
+      <div class="sidebar-col sidebar-col-logs" id="col-logs">
+        <section class="panel logs-full-panel" style="flex: 1; height: 100%; display: flex; flex-direction: column; padding: 0.7rem;">
+          <div class="panel-header" style="flex-shrink: 0; padding-bottom: 0.45rem; margin-bottom: 0.45rem;">
+            <div class="panel-title" style="color: #38bdf8;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+              <span>Terminal de Logs do Sistema</span>
             </div>
-            <button id="btn-clear-log" style="background: none; border: none; font-size: 0.72rem; color: var(--text-dim); cursor: pointer;">Limpar</button>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span id="log-count-badge" style="font-size: 0.68rem; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 7px; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
+                0 eventos
+              </span>
+              <button id="btn-clear-log" class="btn-clear-log-styled" title="Limpar todo o histórico de logs">
+                🗑️ Limpar
+              </button>
+            </div>
           </div>
-          <div id="events-log" class="events-log">
+
+          <!-- Barra de Filtros Rápidos -->
+          <div class="log-filter-chips" style="display: flex; gap: 0.3rem; margin-bottom: 0.5rem; flex-wrap: wrap; flex-shrink: 0;">
+            <button class="log-filter-chip active" data-filter="all" onclick="filtrarLogs('all')">Todos</button>
+            <button class="log-filter-chip" data-filter="kafka" onclick="filtrarLogs('kafka')">⚡ Kafka</button>
+            <button class="log-filter-chip" data-filter="fanout" onclick="filtrarLogs('fanout')">🔄 Fanout</button>
+            <button class="log-filter-chip" data-filter="servers" onclick="filtrarLogs('servers')">🖥️ Servidores</button>
+            <button class="log-filter-chip" data-filter="chaos" onclick="filtrarLogs('chaos')">💥 Caos</button>
+          </div>
+
+          <div id="events-log" class="events-log events-log-full" style="flex: 1; height: 100%; min-height: 250px; overflow-y: auto;">
             <div class="log-item">
               <span class="log-time">--:--:--</span>
               <span>Aguardando início da demonstração...</span>
@@ -4740,24 +4834,87 @@
       }
     });
 
-    // Clear log
+    // Clear log & Contagem de Eventos
+    let totalLogCount = 0;
+    const logCountBadge = document.getElementById('log-count-badge');
+    let logFiltroAtual = 'all';
+
     btnClearLog.addEventListener('click', () => {
       eventsLog.innerHTML = '';
+      totalLogCount = 0;
+      if (logCountBadge) logCountBadge.textContent = '0 eventos';
     });
 
-    // Logging helper
+    // Filtros Rápidos do Terminal de Logs
+    function filtrarLogs(tipo) {
+      logFiltroAtual = tipo;
+      document.querySelectorAll('.log-filter-chip').forEach(btn => {
+        if (btn.getAttribute('data-filter') === tipo) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      const items = eventsLog.querySelectorAll('.log-item');
+      items.forEach(item => {
+        if (tipo === 'all') {
+          item.style.display = '';
+          return;
+        }
+        const txt = item.textContent.toLowerCase();
+        const cls = item.className;
+        let visivel = false;
+
+        if (tipo === 'kafka') {
+          visivel = cls.includes('kafka') || txt.includes('kafka') || txt.includes('médico') || txt.includes('leito') || txt.includes('partiç') || txt.includes('broker');
+        } else if (tipo === 'fanout') {
+          visivel = txt.includes('fanout') || txt.includes('sincroniz') || txt.includes('banco') || txt.includes('réplica') || txt.includes('replic');
+        } else if (tipo === 'servers') {
+          visivel = cls.includes('log-s1') || cls.includes('log-s2') || cls.includes('log-s3') || cls.includes('log-s4') || cls.includes('log-lb') || txt.includes('servidor') || txt.includes('server-') || txt.includes('round robin');
+        } else if (tipo === 'chaos') {
+          visivel = cls.includes('error') || txt.includes('derrub') || txt.includes('falha') || txt.includes('offline') || txt.includes('reserva') || txt.includes('standby') || txt.includes('timeout') || txt.includes('recuperado');
+        }
+
+        item.style.display = visivel ? '' : 'none';
+      });
+    }
+
+    // Logging helper com suporte à aba dedicada e contagem de eventos
     function addLog(time, text, type = 'info') {
       if (text === undefined || (typeof text === 'string' && (text.startsWith('#') || text.startsWith('rgb') || ['info', 'error', 'complete', 'lb', 's1', 's2', 's3', 's4'].includes(text)))) {
         type = typeof text === 'string' && (text.startsWith('#') || text.startsWith('rgb')) ? 'info' : (text || 'info');
         text = time;
         time = new Date().toLocaleTimeString();
       }
-      while (eventsLog.children.length >= 50) {
+      while (eventsLog.children.length >= 150) {
         eventsLog.removeChild(eventsLog.lastChild);
+      }
+      totalLogCount++;
+      if (logCountBadge) {
+        logCountBadge.textContent = `${totalLogCount} evento${totalLogCount === 1 ? '' : 's'}`;
       }
       const item = document.createElement('div');
       item.className = `log-item log-${type}`;
       item.innerHTML = `<span class="log-time">${time}</span><span>${text}</span>`;
+
+      // Aplicar filtro ativo se não for 'all'
+      if (logFiltroAtual !== 'all') {
+        const txt = (time + ' ' + text).toLowerCase();
+        const cls = item.className;
+        let visivel = false;
+        if (logFiltroAtual === 'kafka') {
+          visivel = cls.includes('kafka') || txt.includes('kafka') || txt.includes('médico') || txt.includes('leito') || txt.includes('partiç') || txt.includes('broker');
+        } else if (logFiltroAtual === 'fanout') {
+          visivel = txt.includes('fanout') || txt.includes('sincroniz') || txt.includes('banco') || txt.includes('réplica') || txt.includes('replic');
+        } else if (logFiltroAtual === 'servers') {
+          visivel = cls.includes('log-s1') || cls.includes('log-s2') || cls.includes('log-s3') || cls.includes('log-s4') || cls.includes('log-lb') || txt.includes('servidor') || txt.includes('server-') || txt.includes('round robin');
+        } else if (logFiltroAtual === 'chaos') {
+          visivel = cls.includes('error') || txt.includes('derrub') || txt.includes('falha') || txt.includes('offline') || txt.includes('reserva') || txt.includes('standby') || txt.includes('timeout') || txt.includes('recuperado');
+        }
+        if (!visivel) item.style.display = 'none';
+      }
+
       eventsLog.prepend(item);
     }
 
@@ -6897,6 +7054,7 @@
     const sidebarEl = document.getElementById('dashboard-sidebar');
     const tabBtns = {
       overview: document.getElementById('tab-btn-overview'),
+      logs: document.getElementById('tab-btn-logs'),
       kafka: document.getElementById('tab-btn-kafka'),
       scale: document.getElementById('tab-btn-scale'),
       split: document.getElementById('tab-btn-split'),
