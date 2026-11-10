@@ -816,6 +816,26 @@
       animation: pipeFlow 0.5s linear infinite !important;
     }
 
+    /* Estilo de Bloqueio de Replicação quando o Servidor está Derrubado */
+    .node-box.replication-blocked .node-bg {
+      stroke: #ef4444 !important;
+      color: #ef4444 !important;
+      stroke-width: 2.8px !important;
+      stroke-dasharray: 6 3 !important;
+      filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.95)) !important;
+    }
+    .pipe.replication-blocked {
+      stroke: #ef4444 !important;
+      stroke-width: 3.5px !important;
+      stroke-dasharray: 4 4 !important;
+      filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.85)) !important;
+      animation: pipeBlockedGlow 0.6s ease-in-out infinite alternate !important;
+    }
+    @keyframes pipeBlockedGlow {
+      from { opacity: 0.45; }
+      to { opacity: 1; }
+    }
+
     .pulse-rep {
       animation: pulseBadgeRep 0.9s ease-in-out infinite alternate;
     }
@@ -4763,12 +4783,14 @@
         if (n) {
           n.classList.remove('active-node');
           n.classList.remove('active-replication');
+          n.classList.remove('replication-blocked');
         }
       });
       [pipeCsvClient, pipeClientMw, pipeMwLb, pipeLbS1, pipeLbS2, pipeLbS3, pipeLbS4, pipeS1Db, pipeS2Db, pipeS3Db, pipeS4Db].forEach(p => {
         if (p) {
           p.classList.remove('active-flow');
           p.classList.remove('active-replication');
+          p.classList.remove('replication-blocked');
         }
       });
       const repBus = document.getElementById('pipe-rep-bus');
@@ -4796,18 +4818,30 @@
       const repStatus = document.getElementById('badge-rep-status');
       if (repStatus) repStatus.classList.add('pulse-rep');
 
-      const dbs = [nodeDb1, nodeDb2, nodeDb3, reservaAtiva ? nodeDb4 : null].filter(Boolean);
-      const pipes = [pipeS1Db, pipeS2Db, pipeS3Db, reservaAtiva ? pipeS4Db : null].filter(Boolean);
+      for (let i = 1; i <= 4; i++) {
+        if (i === 4 && !reservaAtiva) continue;
+        const isOnline = servidoresStatus[i] !== false;
+        const dbN = i === 1 ? nodeDb1 : i === 2 ? nodeDb2 : i === 3 ? nodeDb3 : nodeDb4;
+        const pipeN = i === 1 ? pipeS1Db : i === 2 ? pipeS2Db : i === 3 ? pipeS3Db : pipeS4Db;
+        const sNode = i === 1 ? nodeS1 : i === 2 ? nodeS2 : i === 3 ? nodeS3 : nodeS4;
 
-      dbs.forEach(d => d.classList.add('active-replication'));
-      pipes.forEach(p => p.classList.add('active-replication'));
+        if (isOnline) {
+          if (dbN) dbN.classList.add('active-replication');
+          if (pipeN) pipeN.classList.add('active-replication');
+        } else {
+          // Servidor derrubado: bloqueado! Não recebe a réplica
+          if (sNode) sNode.classList.add('replication-blocked');
+          if (pipeN) pipeN.classList.add('replication-blocked');
+        }
+      }
 
       setTimeout(() => {
-        dbs.forEach(d => d.classList.remove('active-replication'));
-        pipes.forEach(p => p.classList.remove('active-replication'));
+        [nodeDb1, nodeDb2, nodeDb3, nodeDb4].forEach(d => { if (d) d.classList.remove('active-replication'); });
+        [pipeS1Db, pipeS2Db, pipeS3Db, pipeS4Db].forEach(p => { if (p) p.classList.remove('active-replication', 'replication-blocked'); });
+        [nodeS1, nodeS2, nodeS3, nodeS4].forEach(s => { if (s) s.classList.remove('replication-blocked'); });
         if (repBus) repBus.classList.remove('active-replication');
         if (repStatus) repStatus.classList.remove('pulse-rep');
-      }, 400);
+      }, 450);
     }
 
     // Animate packet smoothly along an SVG path
@@ -5051,34 +5085,49 @@
           const primNode = primSnum === 1 ? nodeS1 : primSnum === 2 ? nodeS2 : primSnum === 3 ? nodeS3 : nodeS4;
           if (primNode) primNode.classList.add('active-node');
 
-          // Iluminar simultaneamente todos os servidores e bancos participantes da replicação
-          const replicas = d.servidores || ['server-01', 'server-02', 'server-03'];
-          replicas.forEach(s => {
-            const num = parseInt(s.split('-')[1]);
-            const sNode = num === 1 ? nodeS1 : num === 2 ? nodeS2 : num === 3 ? nodeS3 : nodeS4;
-            const dbN = num === 1 ? nodeDb1 : num === 2 ? nodeDb2 : num === 3 ? nodeDb3 : nodeDb4;
-            const pipeDbN = num === 1 ? pipeS1Db : num === 2 ? pipeS2Db : num === 3 ? pipeS3Db : pipeS4Db;
-            if (sNode) sNode.classList.add('active-replication');
-            if (dbN) dbN.classList.add('active-replication');
-            if (pipeDbN) pipeDbN.classList.add('active-replication');
-          });
-
           // Iluminar barramento de replicação
           const repBus = document.getElementById('pipe-rep-bus');
           if (repBus) repBus.classList.add('active-replication');
           const repStatus = document.getElementById('badge-rep-status');
           if (repStatus) repStatus.classList.add('pulse-rep');
 
-          // Animar pulsos nos canais de persistência
-          [pipeS1Db, pipeS2Db, pipeS3Db, (reservaAtiva ? pipeS4Db : null)].filter(Boolean).forEach(p => {
-            animatePacketAlongPath(p, 300);
-          });
+          // Servidores e bancos participantes da replicação
+          const replicas = d.servidores || ['server-01', 'server-02', 'server-03'];
+          const offlineServidores = d.servidores_offline || [];
+
+          for (let i = 1; i <= 4; i++) {
+            if (i === 4 && !reservaAtiva) continue;
+            const sid = `server-0${i}`;
+            const isOnline = servidoresStatus[i] !== false && !offlineServidores.includes(sid);
+            const sNode = i === 1 ? nodeS1 : i === 2 ? nodeS2 : i === 3 ? nodeS3 : nodeS4;
+            const dbN = i === 1 ? nodeDb1 : i === 2 ? nodeDb2 : i === 3 ? nodeDb3 : nodeDb4;
+            const pipeDbN = i === 1 ? pipeS1Db : i === 2 ? pipeS2Db : i === 3 ? pipeS3Db : pipeS4Db;
+
+            if (isOnline) {
+              if (sNode) sNode.classList.add('active-replication');
+              if (dbN) dbN.classList.add('active-replication');
+              if (pipeDbN) {
+                pipeDbN.classList.add('active-replication');
+                animatePacketAlongPath(pipeDbN, 280);
+              }
+            } else {
+              // SERVIDOR DERRUBADO: Destaca visualmente o bloqueio (vermelho) e NÃO grava no banco!
+              if (sNode) sNode.classList.add('replication-blocked');
+              if (pipeDbN) pipeDbN.classList.add('replication-blocked');
+            }
+          }
 
           atualizarBadgesDb(d.numero);
 
-          const dbsList = (d.dbs && d.dbs.length) ? d.dbs.join(', ') : 'todos os 4 bancos SQLite';
-          setStatus(`🔄 [REPLICAÇÃO FANOUT] Persistido identicamente em ${dbsList} (Zero Data Loss)`, 'busy');
-          addLog(d.timestamp, `[REPLICAÇÃO FANOUT] Registro #${d.numero} sincronizado em ${dbsList} ✓`, 'complete');
+          if (offlineServidores.length > 0) {
+            const offNames = offlineServidores.map(s => `Servidor 0${s.split('-')[1]}`).join(', ');
+            setStatus(`⚠️ Replicação: ${replicas.length} bancos atualizados. ${offNames} offline (retido na fila)`, 'busy');
+            addLog(d.timestamp, `[REPLICAÇÃO FANOUT] ⚠️ ${offNames} offline: replicação bloqueada e retida na fila (Zero Data Loss)`, 'error');
+          } else {
+            const dbsList = (d.dbs && d.dbs.length) ? d.dbs.join(', ') : 'todos os 4 bancos SQLite';
+            setStatus(`🔄 [REPLICAÇÃO FANOUT] Persistido identicamente em ${dbsList} (Zero Data Loss)`, 'busy');
+            addLog(d.timestamp, `[REPLICAÇÃO FANOUT] Registro #${d.numero} sincronizado em ${dbsList} ✓`, 'complete');
+          }
           break;
 
         case 'complete':

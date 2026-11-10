@@ -783,13 +783,24 @@ async def process_single(state: MonitorState) -> bool:
         await asyncio.sleep(delay * 0.4)
 
         # --- Etapa 7.5: Replicação Fanout (Marco 3 — Zero Data Loss) ---
-        pool_ativos = [1, 2, 3, 4] if getattr(state, "reserva_ativa", False) else [1, 2, 3]
-        servidores_replicados = [f"server-0{i}" for i in pool_ativos]
-        dbs_replicados = [f"server{i}.db" for i in pool_ativos]
+        pool_candidatos = [1, 2, 3, 4] if getattr(state, "reserva_ativa", False) else [1, 2, 3]
+        servidores_replicados = []
+        servidores_offline = []
+        for i in pool_candidatos:
+            porta = 8000 + i
+            is_online = await verificar_servidor_online(porta)
+            sid = f"server-0{i}"
+            if is_online:
+                servidores_replicados.append(sid)
+            else:
+                servidores_offline.append(sid)
+
+        dbs_replicados = [f"server{s.split('-')[1]}.db" for s in servidores_replicados]
         await state.broadcast("replication_fanout", {
             "numero": numero,
             "servidor_primario": server_id,
             "servidores": servidores_replicados,
+            "servidores_offline": servidores_offline,
             "dbs": dbs_replicados,
             "total_bancos": len(dbs_replicados),
             "timestamp": datetime.now().strftime("%H:%M:%S"),
