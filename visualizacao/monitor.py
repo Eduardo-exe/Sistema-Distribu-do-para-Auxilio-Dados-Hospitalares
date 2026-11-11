@@ -214,7 +214,7 @@ class MonitorState:
 
 
 class TesteCargaManager:
-    """Gerenciador do teste de carga integrado à interface."""
+    """Gerenciador do teste de carga integrado à interface (Busca dos Médicos e Ingestão)."""
 
     def __init__(self, state: MonitorState):
         self.state = state
@@ -222,45 +222,68 @@ class TesteCargaManager:
         self.task = None
         self.resultados = []
         self.contadores = {"server-01": 0, "server-02": 0, "server-03": 0, "server-04": 0}
+        self.contadores_medicos = {"1": 0, "2": 0, "3": 0}
+        self.tipo = "busca"
         self.erros = 0
         self.total_latencia = 0
         self.total_enviadas = 0
         self.total_alvo = 0
 
-    async def executar(self, total: int, concurrency: int = 5):
-        """Executa o teste de carga assíncrono com broadcasting SSE e concorrência."""
+    async def executar(self, total: int, tipo: str = "busca", concurrency: int = 6):
+        """
+        Executa o teste de carga assíncrono com broadcasting SSE e concorrência.
+        Suporta:
+          - 'busca': simula múltiplos médicos (Dr. Carlos, Dra. Beatriz, Dr. Lucas) fazendo rajadas
+                     de consultas de prontuários (GET /dados/{id}) via Load Balancer.
+          - 'envio': envio de telemetria (POST /dados).
+          - 'misto': 50% busca dos médicos + 50% envio de telemetria.
+        """
         self.running = True
+        self.tipo = tipo
         self.resultados = []
         self.contadores = {"server-01": 0, "server-02": 0, "server-03": 0, "server-04": 0}
+        self.contadores_medicos = {"1": 0, "2": 0, "3": 0}
         self.erros = 0
         self.total_latencia = 0
         self.total_enviadas = 0
         self.total_alvo = total
 
-        records = self.state.records[:total]
         lb_url = self.state.lb_url
 
         await self.state.broadcast("teste_carga_iniciado", {
             "total": total,
+            "tipo": tipo,
             "concurrency": concurrency,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
         })
 
         queue = asyncio.Queue()
-        for i, rec in enumerate(records):
-            queue.put_nowait((i + 1, rec))
+        for i in range(total):
+            # Determina o médico associado (1: Carlos, 2: Beatriz, 3: Lucas)
+            med_id = str((i % 3) + 1)
+            # Determina paciente_id para busca
+            if self.state.current_index > 0 and self.state.records:
+                idx = i % min(self.state.current_index, len(self.state.records))
+                pid = int(self.state.records[idx].get("paciente_id", (i % 50) + 1))
+            else:
+                pid = (i % 50) + 1
+
+            record = self.state.records[i % len(self.state.records)] if self.state.records else {}
+            is_busca = True if tipo == "busca" else (False if tipo == "envio" else (i % 2 == 0))
+            queue.put_nowait((i + 1, med_id, pid, record, is_busca))
 
         sem = asyncio.Semaphore(concurrency)
         counter_lock = asyncio.Lock()
 
-        async with httpx.AsyncClient(timeout=10.0, limits=httpx.Limits(max_connections=30, max_keepalive_connections=15)) as client:
+        async with httpx.AsyncClient(timeout=10.0, limits=httpx.Limits(max_connections=35, max_keepalive_connections=20)) as client:
             async def worker():
                 while self.running and not queue.empty():
                     try:
-                        num, record = queue.get_nowait()
+                        num, med_id, pid, record, is_busca = queue.get_nowait()
                     except asyncio.QueueEmpty:
                         break
 
+                    med_cfg = MEDICOS_CONFIG.get(med_id, MEDICOS_CONFIG["1"])
                     inicio = time.time()
                     server_id = "?"
                     http_code = 0
@@ -269,14 +292,31 @@ class TesteCargaManager:
 
                     async with sem:
                         try:
-                            resp = await client.post(f"{lb_url}/dados", json=record)
-                            http_code = resp.status_code
-                            strat = resp.headers.get("x-adaptive-strategy", "")
-                            if resp.status_code == 200:
-                                resp_data = resp.json()
-                                server_id = resp_data.get("server_id", "?")
+                            if is_busca:
+                                # READ PATH: Consulta de prontuário via Load Balancer
+                                resp = await client.get(f"{lb_url}/dados/{pid}")
+                                http_code = resp.status_code
+                                strat = resp.headers.get("x-adaptive-strategy", "")
+                                if resp.status_code == 200:
+                                    resp_data = resp.json()
+                                    if isinstance(resp_data, list) and resp_data:
+                                        server_id = resp_data[-1].get("server_id", "server-01")
+                                    elif isinstance(resp_data, dict):
+                                        server_id = resp_data.get("server_id", "server-01")
+                                    else:
+                                        server_id = "server-01"
+                                else:
+                                    erro = True
                             else:
-                                erro = True
+                                # WRITE PATH: Envio de telemetria
+                                resp = await client.post(f"{lb_url}/dados", json=record)
+                                http_code = resp.status_code
+                                strat = resp.headers.get("x-adaptive-strategy", "")
+                                if resp.status_code == 200:
+                                    resp_data = resp.json()
+                                    server_id = resp_data.get("server_id", "?")
+                                else:
+                                    erro = True
                         except Exception:
                             erro = True
                             http_code = 0
@@ -292,8 +332,21 @@ class TesteCargaManager:
                         else:
                             if server_id in self.contadores:
                                 self.contadores[server_id] += 1
-                            if server_id in self.state.contadores:
-                                self.state.contadores[server_id] += 1
+                            if med_id in self.contadores_medicos:
+                                self.contadores_medicos[med_id] += 1
+
+                            if is_busca:
+                                self.state.query_contadores["total"] += 1
+                                self.state.query_contadores["sucesso"] += 1
+                                self.state.query_contadores["total_latencia_ms"] += latencia_ms
+                                if server_id in self.state.query_contadores:
+                                    self.state.query_contadores[server_id] += 1
+                                self.state.query_contadores["latencia_media_ms"] = round(
+                                    self.state.query_contadores["total_latencia_ms"] / max(1, self.state.query_contadores["total"]), 1
+                                )
+                            else:
+                                if server_id in self.state.contadores:
+                                    self.state.contadores[server_id] += 1
 
                         media_ms = round(self.total_latencia / self.total_enviadas) if self.total_enviadas > 0 else 0
                         sucesso = sum(self.contadores.values())
@@ -305,6 +358,12 @@ class TesteCargaManager:
                     await self.state.broadcast("teste_carga_progresso", {
                         "numero": num,
                         "total": total,
+                        "tipo": "busca" if is_busca else "envio",
+                        "medico_id": med_id,
+                        "medico_nome": med_cfg["nome"],
+                        "medico_setor": med_cfg["setor"],
+                        "medico_icone": med_cfg["icone"],
+                        "paciente_id": pid,
                         "server_id": server_id,
                         "latencia_ms": latencia_ms,
                         "http_code": http_code,
@@ -312,13 +371,14 @@ class TesteCargaManager:
                         "media_ms": media_ms,
                         "erros": self.erros,
                         "contadores": self.contadores,
+                        "contadores_medicos": self.contadores_medicos,
                         "distribuicao": distribuicao,
                         "adaptive_strategy": strat,
                         "timestamp": datetime.now().strftime("%H:%M:%S"),
                     })
                     queue.task_done()
                     # Intervalo suave para streaming SSE e renderização fluida no navegador (60fps)
-                    await asyncio.sleep(0.035)
+                    await asyncio.sleep(0.02)
 
             workers = [asyncio.create_task(worker()) for _ in range(concurrency)]
             await asyncio.gather(*workers)
@@ -334,9 +394,11 @@ class TesteCargaManager:
         await self.state.broadcast("teste_carga_concluido", {
             "total_enviadas": self.total_enviadas,
             "total_alvo": total,
+            "tipo": tipo,
             "media_ms": media_final,
             "erros": self.erros,
             "contadores": self.contadores,
+            "contadores_medicos": self.contadores_medicos,
             "distribuicao": distribuicao_final,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
         })
@@ -1754,13 +1816,13 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
     teste_carga = TesteCargaManager(state)
 
     @app.post("/api/teste-carga/iniciar")
-    async def api_teste_carga_iniciar(total: int = 30):
-        """Inicia o teste de carga integrado com N requisições."""
+    async def api_teste_carga_iniciar(total: int = 30, tipo: str = "busca"):
+        """Inicia o teste de carga integrado com N requisições (busca multi-médicos, envio ou misto)."""
         if teste_carga.running:
             return JSONResponse(status_code=409, content={"status": "ocupado", "detail": "Teste de carga já em execução"})
-        total = max(1, min(total, len(state.records)))
-        teste_carga.task = asyncio.create_task(teste_carga.executar(total))
-        return {"status": "iniciado", "total": total}
+        total = max(1, min(total, 5000))
+        teste_carga.task = asyncio.create_task(teste_carga.executar(total, tipo=tipo))
+        return {"status": "iniciado", "total": total, "tipo": tipo}
 
     @app.post("/api/teste-carga/parar")
     async def api_teste_carga_parar():
@@ -1775,8 +1837,10 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
             "running": teste_carga.running,
             "total_enviadas": teste_carga.total_enviadas,
             "total_alvo": teste_carga.total_alvo,
+            "tipo": getattr(teste_carga, "tipo", "busca"),
             "erros": teste_carga.erros,
             "contadores": teste_carga.contadores,
+            "contadores_medicos": getattr(teste_carga, "contadores_medicos", {"1": 0, "2": 0, "3": 0}),
             "media_ms": round(teste_carga.total_latencia / teste_carga.total_enviadas) if teste_carga.total_enviadas > 0 else 0,
         }
 

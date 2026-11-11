@@ -3314,31 +3314,58 @@
        Estilos Dedicados para os 2 Fluxos Concorrentes (Write & Read)
        ============================================================ */
     .pipe-write {
-      stroke: rgba(6, 182, 212, 0.4);
-      stroke-width: 2.5;
+      stroke: rgba(6, 182, 212, 0.28);
+      stroke-width: 2.2px;
       stroke-dasharray: 6 5;
       fill: none;
-      transition: all 0.3s ease;
+      transition: all 0.35s ease;
     }
     .pipe-write.active-write-flow {
       stroke: #38bdf8 !important;
       stroke-width: 3.5px !important;
       filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.95)) !important;
       animation: pipeFlow 0.6s linear infinite !important;
+      opacity: 1 !important;
     }
 
     .pipe-read {
-      stroke: rgba(16, 185, 129, 0.4) !important;
-      stroke-width: 2.8px !important;
+      stroke: rgba(16, 185, 129, 0.28) !important;
+      stroke-width: 2.2px !important;
       stroke-dasharray: 6 4 !important;
       fill: none;
-      transition: all 0.3s ease;
+      transition: all 0.35s ease;
     }
     .pipe-read.active-read-flow {
       stroke: #34d399 !important;
-      stroke-width: 3.8px !important;
+      stroke-width: 3.6px !important;
       filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.95)) !important;
       animation: pipeFlow 0.5s linear infinite !important;
+      opacity: 1 !important;
+    }
+
+    .dimmed-flow {
+      opacity: 0.1 !important;
+      transition: opacity 0.3s ease;
+    }
+
+    .tc-mode-chip {
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      color: #94a3b8;
+      transition: all 0.2s ease;
+    }
+    .tc-mode-chip:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f1f5f9;
+    }
+    .tc-mode-chip.active {
+      background: rgba(16, 185, 129, 0.15) !important;
+      border-color: #10b981 !important;
+      color: #34d399 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
     }
 
     .node-medico-card, .node-csv-card {
@@ -3624,45 +3651,35 @@
           <!-- ============================================== -->
 
           <!-- 1. WRITE PIPES (Médicos ➔ Apache Kafka MOM :9092) -->
-          <path id="pipe-write-m1" class="pipe pipe-write" d="M 300 100 C 300 145, 500 145, 500 170" />
-          <path id="pipe-write-m2" class="pipe pipe-write" d="M 683 100 C 683 140, 590 145, 590 170" />
-          <path id="pipe-write-m3" class="pipe pipe-write" d="M 1066 100 C 1066 145, 680 145, 680 170" />
+          <!-- Rotas limpas e suaves com curvas Bézier cúbicas diretas ao topo do Kafka -->
+          <path id="pipe-write-m1" class="pipe pipe-write" d="M 300 100 C 300 135, 490 130, 490 170" />
+          <path id="pipe-write-m2" class="pipe pipe-write" d="M 683 100 C 683 135, 590 130, 590 170" />
+          <path id="pipe-write-m3" class="pipe pipe-write" d="M 1066 100 C 1066 135, 690 130, 690 170" />
 
           <!-- Aliases de compatibilidade -->
           <path id="pipe-csv-client" class="pipe pipe-common" d="M 200 67 L 220 67" style="display:none;" />
           <path id="pipe-client-mw" class="pipe pipe-mw" d="M 590 100 L 590 170" style="display:none;" />
 
           <!-- 2. READ PIPES (Médicos ➔ Load Balancer direto, bypassando Kafka) -->
-          <path id="pipe-read-m1" class="pipe pipe-read" d="M 340 100 C 340 210, 420 325, 470 325" />
-          <path id="pipe-read-m2" class="pipe pipe-read" d="M 630 100 C 630 190, 555 240, 555 290" />
-          <path id="pipe-read-m3" class="pipe pipe-read" d="M 1020 100 C 1020 210, 760 325, 710 325" />
+          <!-- Rotas laterais limpas pelos corredores desimpedidos sem cruzar o Kafka -->
+          <path id="pipe-read-m1" class="pipe pipe-read" d="M 340 100 C 340 190, 390 325, 470 325" />
+          <path id="pipe-read-m2" class="pipe pipe-read" d="M 640 100 C 640 170, 780 200, 680 290" />
+          <path id="pipe-read-m3" class="pipe pipe-read" d="M 1020 100 C 1020 190, 790 325, 710 325" />
 
           <!-- Middleware Apache Kafka -> Load Balancer (Fanout Multi-Group) -->
           <path id="pipe-mw-lb" class="pipe pipe-mw" d="M 590 248 L 590 290" />
 
-          <!-- Load Balancer -> Server 1 -->
-          <path id="pipe-lb-s1" class="pipe pipe-s1" d="M 500 345 C 380 360, 160 370, 160 420" />
+          <!-- Load Balancer -> 4 Servidores (Árvore de Leitura e Escrita Sincronizada) -->
+          <path id="pipe-lb-s1" class="pipe pipe-s1" d="M 490 360 C 490 395, 160 380, 160 420" />
+          <path id="pipe-lb-s2" class="pipe pipe-s2" d="M 550 360 C 550 395, 445 385, 445 420" />
+          <path id="pipe-lb-s3" class="pipe pipe-s3" d="M 630 360 C 630 395, 730 385, 730 420" />
+          <path id="pipe-lb-s4" class="pipe pipe-s4" d="M 690 360 C 690 395, 1017 380, 1017 420" />
 
-          <!-- Load Balancer -> Server 2 -->
-          <path id="pipe-lb-s2" class="pipe pipe-s2" d="M 540 360 C 510 380, 445 385, 445 420" />
-
-          <!-- Load Balancer -> Server 3 -->
-          <path id="pipe-lb-s3" class="pipe pipe-s3" d="M 640 360 C 670 380, 730 385, 730 420" />
-
-          <!-- Load Balancer -> Server 4 (Reserva) -->
-          <path id="pipe-lb-s4" class="pipe pipe-s4" d="M 680 345 C 800 360, 1017 370, 1017 420" />
-
-          <!-- Server 1 -> Database 1 -->
-          <path id="pipe-s1-db" class="pipe pipe-s1" d="M 160 490 L 160 560" />
-
-          <!-- Server 2 -> Database 2 -->
-          <path id="pipe-s2-db" class="pipe pipe-s2" d="M 445 490 L 445 560" />
-
-          <!-- Server 3 -> Database 3 -->
-          <path id="pipe-s3-db" class="pipe pipe-s3" d="M 730 490 L 730 560" />
-
-          <!-- Server 4 -> Database 4 -->
-          <path id="pipe-s4-db" class="pipe pipe-s4" d="M 1017 490 L 1017 560" />
+          <!-- Server -> SQLite Database -->
+          <path id="pipe-s1-db" class="pipe pipe-s1" d="M 160 492 L 160 560" />
+          <path id="pipe-s2-db" class="pipe pipe-s2" d="M 445 492 L 445 560" />
+          <path id="pipe-s3-db" class="pipe pipe-s3" d="M 730 492 L 730 560" />
+          <path id="pipe-s4-db" class="pipe pipe-s4" d="M 1017 492 L 1017 560" />
 
 
           <!-- ============================================== -->
@@ -3837,21 +3854,24 @@
           <text id="lbl-cliente-sub" style="display:none;"></text>
           <text id="lbl-cliente-info" style="display:none;"></text>
 
-          <!-- BANNER CENTRAL EXPLICATIVO DOS 2 FLUXOS (WRITE & READ PATH) -->
-          <g id="banner-fluxos" transform="translate(130, 114)">
-            <rect x="0" y="0" width="920" height="26" rx="13" fill="rgba(15, 23, 42, 0.94)" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1.2"/>
-            <!-- Fluxo 1: Envio -->
-            <circle cx="18" cy="13" r="5.5" fill="#f97316"/>
-            <text x="30" y="17" font-size="9" font-weight="700" fill="#fb923c" font-family="'JetBrains Mono', monospace">
-              📤 FLUXO 1 (WRITE PATH): Médicos ➔ Apache Kafka MOM (:9092) ➔ Load Balancer ➔ 4 Nós SQLite (Replicação Fanout)
-            </text>
-            <!-- Divisor -->
-            <line x1="560" y1="4" x2="560" y2="22" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
-            <!-- Fluxo 2: Busca -->
-            <circle cx="578" cy="13" r="5.5" fill="#10b981"/>
-            <text x="590" y="17" font-size="9" font-weight="700" fill="#34d399" font-family="'JetBrains Mono', monospace">
-              📥 FLUXO 2 (READ PATH): Médicos ➔ Load Balancer (:8000) ➔ SELECT SQLite
-            </text>
+          <!-- LEGENDA ELEGANTE E FILTROS VISUAIS DOS 2 FLUXOS (WRITE & READ) -->
+          <g id="banner-fluxos">
+            <!-- Pill Fluxo 1: Write Path (Esquerda) -->
+            <g id="badge-flx-write" transform="translate(45, 115)" style="cursor: pointer;" onclick="toggleFiltroFluxo('write')" title="Clique para focar/isolar o Fluxo de Envio (Write Path)">
+              <rect x="0" y="0" width="355" height="26" rx="13" fill="rgba(15, 23, 42, 0.94)" stroke="rgba(249, 115, 22, 0.5)" stroke-width="1.2"/>
+              <circle cx="16" cy="13" r="5" fill="#f97316"/>
+              <text x="28" y="17" font-size="9" font-weight="700" fill="#fb923c" font-family="'JetBrains Mono', monospace">
+                📤 FLUXO 1 (WRITE): Médicos ➔ Kafka ➔ SQLite
+              </text>
+            </g>
+            <!-- Pill Fluxo 2: Read Path (Direita) -->
+            <g id="badge-flx-read" transform="translate(775, 115)" style="cursor: pointer;" onclick="toggleFiltroFluxo('read')" title="Clique para focar/isolar o Fluxo de Busca (Read Path)">
+              <rect x="0" y="0" width="355" height="26" rx="13" fill="rgba(15, 23, 42, 0.94)" stroke="rgba(16, 185, 129, 0.5)" stroke-width="1.2"/>
+              <circle cx="16" cy="13" r="5" fill="#10b981"/>
+              <text x="28" y="17" font-size="9" font-weight="700" fill="#34d399" font-family="'JetBrains Mono', monospace">
+                📥 FLUXO 2 (READ): Médicos ➔ Load Balancer ➔ SQLite
+              </text>
+            </g>
           </g>
 
           <!-- 2.5 MIDDLEWARE APACHE KAFKA NODE (KRaft Multi-Group Fanout) -->
@@ -4459,6 +4479,22 @@
         ✅ Teste concluído com sucesso!
       </div>
 
+      <!-- Tipo de Carga: Busca Multi-Médicos vs Envio de Telemetria -->
+      <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.85rem; padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px;">
+        <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; white-space: nowrap;">Modo de Carga:</span>
+        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+          <button id="tc-mode-busca" class="btn btn-secondary tc-mode-chip active" onclick="setTcMode('busca')" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
+            🔍 Busca dos Médicos (Read Path)
+          </button>
+          <button id="tc-mode-envio" class="btn btn-secondary tc-mode-chip" onclick="setTcMode('envio')" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
+            📤 Envio Telemetria (Write Path)
+          </button>
+          <button id="tc-mode-misto" class="btn btn-secondary tc-mode-chip" onclick="setTcMode('misto')" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
+            🔄 Misto (Busca + Envio)
+          </button>
+        </div>
+      </div>
+
       <!-- Request Count Config -->
       <div class="tc-config">
         <span class="tc-config-label">Requisições:</span>
@@ -4535,6 +4571,32 @@
           <span class="tc-dist-label" style="color: #34d399;">Server 04</span>
           <div class="tc-dist-bar-bg"><div id="tc-bar-s4" class="tc-dist-bar-fill s4" style="width:0%"></div></div>
           <span id="tc-pct-s4" class="tc-dist-pct" style="color: #34d399;">0%</span>
+        </div>
+      </div>
+
+      <!-- Volume de Consultas por Médico (Read Path Concorrente) -->
+      <div id="tc-medicos-section" class="tc-dist-title" style="margin-top: 0.8rem;">🩺 Volume por Médico (Read Path Concorrente)</div>
+      <div id="tc-medicos-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.85rem;">
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 0.45rem 0.65rem;">
+          <div style="font-size: 0.72rem; color: #f87171; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+            <span>🩺🔴</span> Dr. Carlos (UTI)
+          </div>
+          <div id="tc-med-1-count" style="font-size: 1.15rem; font-weight: 800; color: #f87171; margin-top: 2px;">0 reqs</div>
+          <div id="tc-med-1-pct" style="font-size: 0.68rem; color: #94a3b8;">0% do total</div>
+        </div>
+        <div style="background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 8px; padding: 0.45rem 0.65rem;">
+          <div style="font-size: 0.72rem; color: #fb923c; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+            <span>🩺🟠</span> Dra. Beatriz (Emerg.)
+          </div>
+          <div id="tc-med-2-count" style="font-size: 1.15rem; font-weight: 800; color: #fb923c; margin-top: 2px;">0 reqs</div>
+          <div id="tc-med-2-pct" style="font-size: 0.68rem; color: #94a3b8;">0% do total</div>
+        </div>
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 0.45rem 0.65rem;">
+          <div style="font-size: 0.72rem; color: #34d399; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+            <span>🩺🟢</span> Dr. Lucas (Enferm.)
+          </div>
+          <div id="tc-med-3-count" style="font-size: 1.15rem; font-weight: 800; color: #34d399; margin-top: 2px;">0 reqs</div>
+          <div id="tc-med-3-pct" style="font-size: 0.68rem; color: #94a3b8;">0% do total</div>
         </div>
       </div>
 
@@ -6321,7 +6383,7 @@
         tcBenchmarkStartTime = Date.now();
 
         try {
-          const res = await fetch(`${API_BASE}/api/teste-carga/iniciar?total=${count}`, { method: 'POST' });
+          const res = await fetch(`${API_BASE}/api/teste-carga/iniciar?total=${count}&tipo=${tcCurrentMode}`, { method: 'POST' });
           const json = await res.json();
           if (json.status === 'ocupado') {
             appendTcLog(`⚠️ ${json.detail}`, '#fbbf24');
@@ -6335,6 +6397,16 @@
         }
       });
     }
+
+    // Controle de Modo do Teste de Carga (Busca Multi-Médicos vs Envio)
+    let tcCurrentMode = 'busca';
+    function setTcMode(mode) {
+      tcCurrentMode = mode;
+      document.querySelectorAll('.tc-mode-chip').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`tc-mode-${mode}`);
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+    window.setTcMode = setTcMode;
 
     // Parar teste de carga
     if (tcBtnStop) {
@@ -6356,7 +6428,8 @@
       if (tcBtnStop) tcBtnStop.disabled = false;
       if (tcConcluidoBanner) tcConcluidoBanner.classList.remove('visible');
       tcBenchmarkStartTime = Date.now();
-      appendTcLog(`[${d.timestamp}] 🚀 Benchmark iniciado com ${d.total} requisições!`, '#60a5fa');
+      const modoLabel = d.tipo === 'busca' ? '🔍 Busca Concorrente dos Médicos (Read Path)' : (d.tipo === 'envio' ? '📤 Envio Telemetria (Write Path)' : '🔄 Misto');
+      appendTcLog(`[${d.timestamp}] 🚀 Benchmark iniciado: ${modoLabel} com ${d.total} requisições!`, '#60a5fa');
       setStatus(`Teste de carga em andamento (${d.total} reqs)...`, 'busy');
     }
 
@@ -6375,14 +6448,36 @@
       );
       const statusIcon = d.erro ? '❌ ERRO' : `✅ ${d.http_code || 200}`;
       const stratLabel = d.adaptive_strategy ? ` | ⚡ [${ALGO_LABELS[d.adaptive_strategy] || d.adaptive_strategy}]` : '';
-      appendTcLog(`[#${String(d.numero).padStart(3, '0')}] ${d.timestamp} ➔ ${d.server_id} | ${d.latencia_ms}ms | ${statusIcon}${stratLabel}`, sCor);
+
+      let logText = '';
+      if (d.tipo === 'busca') {
+        const medLabel = d.medico_nome || 'Dr. Carlos';
+        const icone = d.medico_icone || '🩺';
+        logText = `[#${String(d.numero).padStart(3, '0')}] ${icone} ${medLabel} ➔ Buscou Paciente #${d.paciente_id} ➔ ${d.server_id} | ${d.latencia_ms}ms | ${statusIcon}${stratLabel}`;
+      } else {
+        logText = `[#${String(d.numero).padStart(3, '0')}] 📤 Envio Telemetria #${d.numero} ➔ ${d.server_id} | ${d.latencia_ms}ms | ${statusIcon}${stratLabel}`;
+      }
+      appendTcLog(logText, sCor);
 
       // Atualizar badge de algoritmo adaptativo em tempo real
       if (d.adaptive_strategy && entBadgeAlgo && entSelAlgo && entSelAlgo.value === 'adaptive') {
         entBadgeAlgo.textContent = `⚡ Adaptativo [${ALGO_LABELS[d.adaptive_strategy] || d.adaptive_strategy}]`;
       }
 
-      // Animar diagrama principal com throttling
+      // Animar nós no diagrama principal com pulsing suave
+      if (d.tipo === 'busca' && d.medico_id) {
+        const medNode = document.getElementById(`node-medico-${d.medico_id}`);
+        const readPipe = document.getElementById(`pipe-read-m${d.medico_id}`);
+        if (medNode) {
+          medNode.classList.add('active-node');
+          setTimeout(() => medNode.classList.remove('active-node'), 300);
+        }
+        if (readPipe) {
+          readPipe.classList.add('active-read-flow');
+          setTimeout(() => readPipe.classList.remove('active-read-flow'), 250);
+        }
+      }
+
       const sNum = parseInt((d.server_id || 'server-01').split('-')[1]);
       if (!isNaN(sNum)) {
         updateRoundRobinTurn(sNum);
@@ -6427,6 +6522,25 @@
             if (tcPctS3) tcPctS3.textContent = `${p3}% (${pData.contadores['server-03'] || 0})`;
             if (tcBarS4) tcBarS4.style.width = `${p4}%`;
             if (tcPctS4) tcPctS4.textContent = `${p4}% (${pData.contadores['server-04'] || 0})`;
+          }
+
+          if (pData.contadores_medicos) {
+            const m1 = pData.contadores_medicos['1'] || 0;
+            const m2 = pData.contadores_medicos['2'] || 0;
+            const m3 = pData.contadores_medicos['3'] || 0;
+            const totalM = m1 + m2 + m3 || 1;
+            const elM1 = document.getElementById('tc-med-1-count');
+            const elM2 = document.getElementById('tc-med-2-count');
+            const elM3 = document.getElementById('tc-med-3-count');
+            const elM1P = document.getElementById('tc-med-1-pct');
+            const elM2P = document.getElementById('tc-med-2-pct');
+            const elM3P = document.getElementById('tc-med-3-pct');
+            if (elM1) elM1.textContent = `${m1} reqs`;
+            if (elM2) elM2.textContent = `${m2} reqs`;
+            if (elM3) elM3.textContent = `${m3} reqs`;
+            if (elM1P) elM1P.textContent = `${Math.round(m1 * 100 / totalM)}% do total`;
+            if (elM2P) elM2P.textContent = `${Math.round(m2 * 100 / totalM)}% do total`;
+            if (elM3P) elM3P.textContent = `${Math.round(m3 * 100 / totalM)}% do total`;
           }
 
           if (pData.contadores) updateMetrics(pData.contadores);
@@ -7547,6 +7661,61 @@
         fecharModalConsulta();
       }
     });
+
+    // Filtro visual interativo dos fluxos (Write vs Read)
+    let filtroFluxoAtivo = 'todos'; // 'todos' | 'write' | 'read'
+    function toggleFiltroFluxo(flx) {
+      if (filtroFluxoAtivo === flx) {
+        filtroFluxoAtivo = 'todos';
+      } else {
+        filtroFluxoAtivo = flx;
+      }
+
+      const writes = document.querySelectorAll('.pipe-write');
+      const reads = document.querySelectorAll('.pipe-read');
+      const mwNode = document.getElementById('node-mw');
+      const bWrite = document.getElementById('badge-flx-write');
+      const bRead = document.getElementById('badge-flx-read');
+
+      if (filtroFluxoAtivo === 'write') {
+        writes.forEach(p => p.classList.remove('dimmed-flow'));
+        reads.forEach(p => p.classList.add('dimmed-flow'));
+        if (mwNode) mwNode.style.opacity = '1';
+        if (bWrite) {
+          const r = bWrite.querySelector('rect');
+          if (r) r.setAttribute('stroke', '#f97316');
+        }
+        if (bRead) {
+          const r = bRead.querySelector('rect');
+          if (r) r.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+        }
+      } else if (filtroFluxoAtivo === 'read') {
+        writes.forEach(p => p.classList.add('dimmed-flow'));
+        reads.forEach(p => p.classList.remove('dimmed-flow'));
+        if (mwNode) mwNode.style.opacity = '0.35';
+        if (bWrite) {
+          const r = bWrite.querySelector('rect');
+          if (r) r.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+        }
+        if (bRead) {
+          const r = bRead.querySelector('rect');
+          if (r) r.setAttribute('stroke', '#10b981');
+        }
+      } else {
+        writes.forEach(p => p.classList.remove('dimmed-flow'));
+        reads.forEach(p => p.classList.remove('dimmed-flow'));
+        if (mwNode) mwNode.style.opacity = '1';
+        if (bWrite) {
+          const r = bWrite.querySelector('rect');
+          if (r) r.setAttribute('stroke', 'rgba(249, 115, 22, 0.5)');
+        }
+        if (bRead) {
+          const r = bRead.querySelector('rect');
+          if (r) r.setAttribute('stroke', 'rgba(16, 185, 129, 0.5)');
+        }
+      }
+    }
+    window.toggleFiltroFluxo = toggleFiltroFluxo;
 
     // Vincular botões e inputs após inicialização
     window.addEventListener('DOMContentLoaded', () => {

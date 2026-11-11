@@ -158,4 +158,29 @@ class TestMonitorMultiMedicosEConsulta:
         assert "MODO_CLIENTE=false" in conteudo, "executar.sh deve ter MODO_CLIENTE=false por padrão"
         assert "--com-cliente" in conteudo, "executar.sh deve suportar flag opcional --com-cliente"
 
+    def test_teste_carga_busca_medicos_e_elementos_visuais(self, app_client):
+        """Verifica se o teste de carga suporta modo de busca multi-médicos e elementos visuais organizados."""
+        resp = app_client.get("/")
+        assert resp.status_code == 200
+        html = resp.text
+        # Badges limpos dos dois fluxos
+        assert "badge-flx-write" in html
+        assert "badge-flx-read" in html
+        assert "toggleFiltroFluxo" in html
+        # Modo de carga e métricas por médico
+        assert "tc-mode-busca" in html
+        assert "tc-mode-envio" in html
+        assert "tc-medicos-section" in html
+        assert "tc-med-1-count" in html
+        assert "tc-med-2-count" in html
+        assert "tc-med-3-count" in html
+
+        # Teste do endpoint com tipo busca
+        resp_st = app_client.get("/api/teste-carga/status")
+        assert resp_st.status_code == 200
+        data = resp_st.json()
+        assert "contadores_medicos" in data
+        assert "tipo" in data
+
+
 
