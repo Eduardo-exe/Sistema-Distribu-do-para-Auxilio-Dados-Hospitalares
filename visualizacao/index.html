@@ -5811,12 +5811,11 @@
           if (nodeMw) nodeMw.classList.add('active-node');
           const snumDesc = parseInt(d.server_id.split('-')[1]);
           const targetNode = snumDesc === 1 ? nodeS1 : snumDesc === 2 ? nodeS2 : snumDesc === 3 ? nodeS3 : nodeS4;
-          const targetPipe = snumDesc === 1 ? pipeLbS1 : snumDesc === 2 ? pipeLbS2 : snumDesc === 3 ? pipeLbS3 : pipeLbS4;
+          const targetPipe = snumDesc === 1 ? pipeMwS1 : snumDesc === 2 ? pipeMwS2 : snumDesc === 3 ? pipeMwS3 : pipeMwS4;
           const targetDb = snumDesc === 1 ? nodeDb1 : snumDesc === 2 ? nodeDb2 : snumDesc === 3 ? nodeDb3 : nodeDb4;
           const targetPipeDb = snumDesc === 1 ? pipeS1Db : snumDesc === 2 ? pipeS2Db : snumDesc === 3 ? pipeS3Db : pipeS4Db;
 
-          if (pipeMwLb) pipeMwLb.classList.add('active-flow');
-          if (targetPipe) targetPipe.classList.add('active-flow');
+          if (targetPipe) targetPipe.classList.add('active-write-flow');
           if (targetNode) targetNode.classList.add('active-node');
           if (targetPipeDb) targetPipeDb.classList.add('active-flow');
           if (targetDb) targetDb.classList.add('active-node');
@@ -6640,22 +6639,22 @@
 
       const isBusca = (tipo === 'busca');
 
-      // Destacar Load Balancer com cor do fluxo
-      if (nodeLb) {
-        if (isBusca) {
-          nodeLb.classList.add('active-node-read');
-        } else {
-          nodeLb.classList.add('active-node-write');
-        }
-        nodeLb.classList.add('active-node');
+      // O Load Balancer acende SOMENTE no fluxo de busca (Read Path).
+      // No fluxo de envio (Write Path), quem acende é o Middleware Kafka (:9092) e o Load Balancer NÃO dá nem uma piscada!
+      if (isBusca) {
+        if (nodeLb) nodeLb.classList.add('active-node', 'active-node-read');
+      } else {
+        if (nodeMw) nodeMw.classList.add('active-node');
       }
 
-      // Selecionar pipe e nó do servidor correto
+      // Selecionar pipe e nó do servidor correto:
+      // Busca: usa pipeLbS (vem do Load Balancer)
+      // Envio: usa pipeMwS (vem direto do Middleware Kafka)
       let pipe, serverNode;
-      if (serverNum === 1)      { pipe = pipeLbS1; serverNode = nodeS1; }
-      else if (serverNum === 2) { pipe = pipeLbS2; serverNode = nodeS2; }
-      else if (serverNum === 3) { pipe = pipeLbS3; serverNode = nodeS3; }
-      else if (serverNum === 4) { pipe = pipeLbS4; serverNode = nodeS4; }
+      if (serverNum === 1)      { pipe = isBusca ? pipeLbS1 : pipeMwS1; serverNode = nodeS1; }
+      else if (serverNum === 2) { pipe = isBusca ? pipeLbS2 : pipeMwS2; serverNode = nodeS2; }
+      else if (serverNum === 3) { pipe = isBusca ? pipeLbS3 : pipeMwS3; serverNode = nodeS3; }
+      else if (serverNum === 4) { pipe = isBusca ? pipeLbS4 : pipeMwS4; serverNode = nodeS4; }
 
       // Classe de fluxo colorida no pipe (laranja para write, verde para read)
       const flowClass = isBusca ? 'active-flow-read' : 'active-flow-write';
@@ -6666,8 +6665,10 @@
       setTimeout(() => {
         if (serverNode && !isError) serverNode.classList.remove('active-node');
         if (pipe) pipe.classList.remove(flowClass);
-        if (nodeLb) {
-          nodeLb.classList.remove('active-node-write', 'active-node-read');
+        if (isBusca) {
+          if (nodeLb) nodeLb.classList.remove('active-node', 'active-node-read');
+        } else {
+          if (nodeMw) nodeMw.classList.remove('active-node');
         }
       }, 220);
 
