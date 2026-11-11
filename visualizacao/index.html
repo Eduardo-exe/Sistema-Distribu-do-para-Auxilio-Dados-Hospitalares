@@ -1487,6 +1487,7 @@
     .log-item.log-s4 { border-color: var(--color-s4); }
     .log-item.log-complete { border-color: var(--color-success); background: rgba(16, 185, 129, 0.05); }
     .log-item.log-error { border-color: var(--color-danger); background: rgba(239, 68, 68, 0.08); }
+    .log-item.log-consultas { border-color: #10b981; background: rgba(16, 185, 129, 0.08); color: #34d399; }
 
     /* Footer */
     footer {
@@ -3335,7 +3336,8 @@
       fill: none;
       transition: all 0.35s ease;
     }
-    .pipe-read.active-read-flow {
+    .pipe-read.active-read-flow,
+    .pipe.active-read-flow {
       stroke: #34d399 !important;
       stroke-width: 3.6px !important;
       filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.95)) !important;
@@ -5350,6 +5352,8 @@
           visivel = cls.includes('log-s1') || cls.includes('log-s2') || cls.includes('log-s3') || cls.includes('log-s4') || cls.includes('log-lb') || txt.includes('servidor') || txt.includes('server-') || txt.includes('round robin');
         } else if (logFiltroAtual === 'chaos') {
           visivel = cls.includes('error') || txt.includes('derrub') || txt.includes('falha') || txt.includes('offline') || txt.includes('reserva') || txt.includes('standby') || txt.includes('timeout') || txt.includes('recuperado');
+        } else if (logFiltroAtual === 'consultas') {
+          visivel = cls.includes('log-consultas') || txt.includes('consulta') || txt.includes('prontuário') || txt.includes('busca');
         }
         if (!visivel) item.style.display = 'none';
       }
@@ -5609,6 +5613,7 @@
           if (metricQueries) metricQueries.textContent = d.query_contadores ? d.query_contadores.total : (parseInt(metricQueries.textContent || 0) + 1);
           if (metricQueryLat && d.latencia_ms) metricQueryLat.textContent = `${d.latencia_ms}ms`;
           animarConsultaNoDiagrama(d.medico_id || '1', d.server_id, d.paciente_id, d.latencia_ms);
+          setStatus(`🔍 [${d.medico_nome || 'Médico'}] Prontuário #${d.paciente_id} ➔ ${d.server_id} (${d.latencia_ms}ms)`, 'busy');
           break;
 
         case 'busca_iniciada':
@@ -6631,13 +6636,15 @@
 
     // Animar nós no diagrama principal quando o teste de carga ou tráfego externo envia dados
     // tipo: 'busca' = verde (read path), 'envio' = laranja (write path), default = genérico
-    let lastAnimTimestamp = 0;
+    let lastWriteAnimTimestamp = 0;
+    let lastReadAnimTimestamp = 0;
     function animarNoPainelPrincipal(serverNum, isError, tipo) {
       const now = performance.now();
-      const isHighFrequency = (now - lastAnimTimestamp) < 90;
-      lastAnimTimestamp = now;
-
       const isBusca = (tipo === 'busca');
+      const isHighFrequency = isBusca
+        ? (now - lastReadAnimTimestamp) < 90
+        : (now - lastWriteAnimTimestamp) < 90;
+      if (isBusca) { lastReadAnimTimestamp = now; } else { lastWriteAnimTimestamp = now; }
 
       // O Load Balancer acende SOMENTE no fluxo de busca (Read Path).
       // No fluxo de envio (Write Path), quem acende é o Middleware Kafka (:9092) e o Load Balancer NÃO dá nem uma piscada!
@@ -7968,12 +7975,17 @@
     }
 
     // Animação de voo do pacote de LEITURA (Read Path)
+    let readPacketAnimFrameId = null;
+    let readPacketFadeTimer = null;
     function animateReadPacketAlongPath(pathElement, duration = 300, onComplete = null) {
       const readPacket = document.getElementById('flying-packet-read');
       if (!pathElement || !readPacket) {
         if (onComplete) onComplete();
         return;
       }
+      // Cancelar animação anterior para evitar colisão de opacity
+      if (readPacketAnimFrameId) { cancelAnimationFrame(readPacketAnimFrameId); readPacketAnimFrameId = null; }
+      if (readPacketFadeTimer) { clearTimeout(readPacketFadeTimer); readPacketFadeTimer = null; }
       const length = pathElement.getTotalLength();
       const startTime = performance.now();
       readPacket.style.opacity = '1';
@@ -7985,15 +7997,17 @@
         readPacket.setAttribute('transform', `translate(${point.x}, ${point.y})`);
 
         if (progress < 1) {
-          requestAnimationFrame(step);
+          readPacketAnimFrameId = requestAnimationFrame(step);
         } else {
-          setTimeout(() => {
+          readPacketAnimFrameId = null;
+          readPacketFadeTimer = setTimeout(() => {
             readPacket.style.opacity = '0';
+            readPacketFadeTimer = null;
             if (onComplete) onComplete();
           }, 40);
         }
       }
-      requestAnimationFrame(step);
+      readPacketAnimFrameId = requestAnimationFrame(step);
     }
 
     // Animar Consulta no Diagrama com Médicos Individuais e Read Path
