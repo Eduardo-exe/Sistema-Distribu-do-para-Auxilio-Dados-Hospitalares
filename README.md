@@ -334,10 +334,13 @@ Cada nó possui uma máquina de estados finitos isolada:
 
 A interface web (`visualizacao/index.html`) acessível na porta `5000` é uma ferramenta completa de demonstração técnica e acadêmica:
 
-1. **Topologia Animada em SVG:** Ilustra a jornada física do pacote (Cliente $\to$ Apache Kafka $\to$ Load Balancer $\to$ Servidor Selecionado $\to$ Shard SQLite). Possui contêineres tracejados interativos de cada uma das 8 Máquinas Virtuais (VMs).
-2. **Painel Clínico Dinâmico:** Batimento cardíaco pulsante, gráficos de saturação, temperatura e avisos de gravidade com código de cores Manchester.
-3. **Modal de Inspeção de Cluster de VMs:** Visualização em tempo real das especificações de virtualização (vCPU, RAM, MAC address, interface `enp0s8`, latência de ping e integridade dos shards).
-4. **Modal de Benchmark / Teste de Carga Integrado:**
+1. **Topologia Animada em SVG com 3 Médicos e 3 Datasets Explícitos:** Exibe individualmente cada um dos 3 médicos especialistas e seus respectivos datasets clínicos (Dr. Carlos / UTI, Dra. Beatriz / Emergência, Dr. Lucas / Enfermaria). Ilustra os **dois fluxos concorrentes**:
+   * 📤 **Fluxo 1 — Envio de Telemetria (Write Path):** Médico $\to$ Apache Kafka MOM (:9092) $\to$ Load Balancer $\to$ Servidor Backend $\to$ Shards SQLite com Replicação Ativa Fanout.
+   * 📥 **Fluxo 2 — Consulta de Prontuários (Read Path):** Médico $\to$ Load Balancer (:8000) $\to$ Shards SQLite com retorno imediato da medição e sinais vitais.
+2. **Controles Concorrentes Independentes:** Botões separados na barra superior (`▶️ Iniciar Envio` e `🔍 Iniciar Busca`) que podem operar simultaneamente ou de forma isolada, demonstrando concorrência real entre ingestão de telemetria e leitura de prontuários.
+3. **Painel Clínico Dinâmico:** Batimento cardíaco pulsante, gráficos de saturação, temperatura e avisos de gravidade com código de cores Manchester.
+4. **Modal de Inspeção de Cluster de VMs:** Visualização em tempo real das especificações de virtualização (vCPU, RAM, MAC address, interface `enp0s8`, latência de ping e integridade dos shards).
+5. **Modal de Benchmark / Teste de Carga Integrado:**
    * Permite disparar testes de 50 a 1.000 requisições simultâneas direto pela interface.
    * Seleção em tempo real de qualquer um dos 6 algoritmos de balanceamento.
    * Visualização gráfica de taxa de transferência (req/s), latência média, P95, P99 e taxa de sucesso.
