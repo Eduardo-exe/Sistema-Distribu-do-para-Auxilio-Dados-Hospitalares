@@ -136,4 +136,26 @@ class TestMonitorMultiMedicosEConsulta:
         assert resp_pause.status_code == 200
         assert resp_pause.json()["status"] == "pausado"
 
+    def test_modal_consulta_posicionado_antes_do_script(self, app_client):
+        """Verifica se o modal-consulta está no DOM antes do script para permitir manipulação correta."""
+        resp = app_client.get("/")
+        assert resp.status_code == 200
+        html = resp.text
+        pos_modal = html.find('id="modal-consulta"')
+        pos_script = html.find('<script>')
+        assert pos_modal != -1, "modal-consulta não encontrado no HTML"
+        assert pos_script != -1, "tag <script> não encontrada no HTML"
+        assert pos_modal < pos_script, "modal-consulta deve estar antes de <script> no DOM"
+        assert "abrirModalConsulta" in html
+        assert "fecharModalConsulta" in html
+        assert "classList.add('active')" in html
+
+    def test_executar_sh_modo_cliente_padrao_desativado(self):
+        """Garante que executar.sh inicia em modo manual com zero tráfego automático."""
+        caminho_sh = os.path.join(PROJETO_DIR, "executar.sh")
+        with open(caminho_sh, "r", encoding="utf-8") as f:
+            conteudo = f.read()
+        assert "MODO_CLIENTE=false" in conteudo, "executar.sh deve ter MODO_CLIENTE=false por padrão"
+        assert "--com-cliente" in conteudo, "executar.sh deve suportar flag opcional --com-cliente"
+
 

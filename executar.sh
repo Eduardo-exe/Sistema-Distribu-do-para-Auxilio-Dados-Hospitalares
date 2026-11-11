@@ -30,7 +30,7 @@ fi
 # 2. Verificar modo de execução e argumentos
 MODO_MIDDLEWARE="kafka"
 MODO_TUNEL=true
-MODO_CLIENTE=true
+MODO_CLIENTE=false
 INTERVALO_CLIENTE=1.5
 LIMITE_CLIENTE=0
 
@@ -40,6 +40,9 @@ for arg in "$@"; do
     fi
     if [[ "$arg" == "--no-tunel" ]] || [[ "$arg" == "--sem-tunel" ]]; then
         MODO_TUNEL=false
+    fi
+    if [[ "$arg" == "--com-cliente" ]] || [[ "$arg" == "--cliente" ]] || [[ "$arg" == "--auto" ]]; then
+        MODO_CLIENTE=true
     fi
     if [[ "$arg" == "--no-cliente" ]] || [[ "$arg" == "--sem-cliente" ]] || [[ "$arg" == "--manual" ]]; then
         MODO_CLIENTE=false
@@ -298,7 +301,7 @@ echo ""
 echo "  Pressione [Ctrl+C] a qualquer momento para desligar todos os nós."
 echo "============================================================"
 
-# ── Iniciar Cliente Integrado Multi-Médicos (CLI + Consultas) ─────
+# ── Iniciar Cliente Integrado Multi-Médicos (Opcional via --com-cliente) ─────
 if [ "$MODO_CLIENTE" = true ]; then
     echo ""
     echo "============================================================"
@@ -324,6 +327,13 @@ if [ "$MODO_CLIENTE" = true ]; then
     "$PYTHON" client/multi_medicos.py "${ARGS_CLIENTE[@]}" &
     PID_CLIENTE=$!
     PIDS+=("$PID_CLIENTE")
+else
+    echo ""
+    echo "  🟢 CLUSTER PRONTO E EM ESPERA (Modo Manual - Zero tráfego automático)."
+    echo "  👉 Abra o painel web em: http://localhost:$PORTA_MONITOR"
+    echo "  👉 Clique em [▶️ Iniciar Envio] no painel para disparar a telemetria."
+    echo "  👉 Clique em [🔍 Iniciar Busca] no painel para disparar as consultas."
+    echo ""
 fi
 
 # Manter o script ativo até Ctrl+C ser pressionado
