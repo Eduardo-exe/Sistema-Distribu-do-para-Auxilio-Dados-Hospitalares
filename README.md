@@ -191,7 +191,10 @@ Projeto SD/
 │   ├── dataset_medico_1_uti.csv     # 20.000 amostras — Dr. Carlos (UTI / Casos Críticos)
 │   ├── dataset_medico_2_emergencia.csv # 20.000 amostras — Dra. Beatriz (Emergência / Quedas)
 │   └── dataset_medico_3_enfermaria.csv # 20.000 amostras — Dr. Lucas (Enfermaria / Regular)
-├── executar.sh                      # Script mestre de inicialização do cluster
+├── executar.sh                      # Script mestre de inicialização do cluster (Linux/macOS)
+├── executar.py                      # Orquestrador multiplataforma leve (Windows, Linux, macOS)
+├── executar.bat                     # Inicializador rápido em 1 clique para Windows
+├── instalar_windows.bat             # Assistente de instalação de dependências para Windows
 ├── teste_carga.sh                   # Script CLI para ensaios de estresse e carga
 ├── tunel.sh                         # Utilitário para criação de túnel Cloudflare
 └── requirements.txt                 # Dependências do projeto
@@ -234,20 +237,44 @@ ln -sf "../Synthetic_patient-HealthCare-Monitoring_dataset.csv" data/dataset.csv
 
 ## Guia de Execução Rápida
 
-### Execução Automática em 1 Comando (Recomendado)
+### 🪟 No Windows (Modo Leve — Menos de 180 MB RAM — 2 Cliques)
 
-O script `executar.sh` orquestra automaticamente todos os nós do cluster, libera portas ocupadas e inicia o middleware híbrido nativo:
+Projetado especificamente para rodar com **máxima facilidade no Windows**, inclusive em computadores com recursos limitados (ex.: **1 GB de RAM disponível**):
+
+1. **Execução Direta (Recomendado):**
+   * Dê **dois cliques** no arquivo **`executar.bat`** (ou abra o Prompt de Comando/PowerShell e digite `executar.bat`).
+   * O script detecta automaticamente se o Python está instalado, cria o ambiente virtual isolado (`venv`), instala as dependências leves se necessário, sincroniza as réplicas SQLite, sobe todos os servidores em background e **abre o navegador automaticamente** em **`http://localhost:5000`**.
+   * **Por que é ultra-leve?** Não requer Docker Desktop nem Java/JVM (que consomem de 2 a 4 GB sozinhos). O cluster opera com processos FastAPI em Python nativo e o Replicador MOM Fanout integrado, totalizando apenas **~150 MB de RAM**.
+
+2. **Instalação Prévia (Opcional):**
+   * Se preferir preparar o ambiente antes, dê dois cliques em **`instalar_windows.bat`**.
+
+3. **Para Encerrar no Windows:**
+   * Basta pressionar `Ctrl + C` na janela do terminal do `executar.bat`. Todos os serviços são finalizados de forma limpa.
+
+---
+
+### 🐧 No Linux / macOS
+
+#### Modo Automático Completo (1 Comando):
+O script `executar.sh` orquestra automaticamente todos os nós do cluster, libera portas ocupadas e inicia o cluster:
 
 ```bash
 # Inicia Servidores 01, 02, 03, 04 + Load Balancer (:8000) + Monitor (:5000)
 ./executar.sh
 ```
 
+#### Modo Multiplataforma Leve (Python Puro):
+Também é possível usar o novo orquestrador universal em qualquer sistema:
+```bash
+python executar.py
+```
+
 Acesse a interface no navegador:
 👉 **`http://localhost:5000`**
 
-Para encerrar com segurança todos os processos em segundo plano:
-Pressione `Ctrl + C` no terminal onde o `./executar.sh` foi iniciado.
+Para encerrar com segurança todos os processos:
+Pressione `Ctrl + C` no terminal onde o script foi iniciado.
 
 ---
 
