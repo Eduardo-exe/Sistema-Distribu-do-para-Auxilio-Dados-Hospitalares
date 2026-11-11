@@ -876,14 +876,14 @@
     }
 
     .packet-halo {
-      fill: rgba(59, 130, 246, 0.4);
+      fill: rgba(249, 115, 22, 0.45);
       filter: blur(6px);
       animation: packetPulse 0.6s infinite alternate;
     }
 
     .packet-core {
       fill: #ffffff;
-      stroke: #3b82f6;
+      stroke: #f97316;
       stroke-width: 3;
     }
 
@@ -3314,16 +3314,16 @@
        Estilos Dedicados para os 2 Fluxos Concorrentes (Write & Read)
        ============================================================ */
     .pipe-write {
-      stroke: rgba(6, 182, 212, 0.28);
+      stroke: rgba(249, 115, 22, 0.28);
       stroke-width: 2.2px;
       stroke-dasharray: 6 5;
       fill: none;
       transition: all 0.35s ease;
     }
     .pipe-write.active-write-flow {
-      stroke: #38bdf8 !important;
+      stroke: #f97316 !important;
       stroke-width: 3.5px !important;
-      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.95)) !important;
+      filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.95)) !important;
       animation: pipeFlow 0.6s linear infinite !important;
       opacity: 1 !important;
     }
@@ -3341,6 +3341,34 @@
       filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.95)) !important;
       animation: pipeFlow 0.5s linear infinite !important;
       opacity: 1 !important;
+    }
+
+    /* Cores específicas de fluxo nos pipes LB ↔ Servidor */
+    .pipe.active-flow-write {
+      stroke: #f97316 !important;
+      stroke-width: 3.5px !important;
+      stroke-dasharray: 8 4 !important;
+      filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.85)) !important;
+      animation: pipeFlow 0.6s linear infinite !important;
+    }
+    .pipe.active-flow-read {
+      stroke: #34d399 !important;
+      stroke-width: 3.5px !important;
+      stroke-dasharray: 8 4 !important;
+      filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.85)) !important;
+      animation: pipeFlow 0.5s linear infinite !important;
+    }
+
+    /* Glow distinto no LB durante cada fluxo */
+    .node-lb.active-node-write .node-bg {
+      stroke: #f97316 !important;
+      color: #f97316 !important;
+      filter: drop-shadow(0 0 18px rgba(249, 115, 22, 0.9)) !important;
+    }
+    .node-lb.active-node-read .node-bg {
+      stroke: #10b981 !important;
+      color: #10b981 !important;
+      filter: drop-shadow(0 0 18px rgba(16, 185, 129, 0.9)) !important;
     }
 
     .dimmed-flow {
@@ -3666,8 +3694,14 @@
           <path id="pipe-read-m2" class="pipe pipe-read" d="M 640 100 C 640 170, 780 200, 680 290" />
           <path id="pipe-read-m3" class="pipe pipe-read" d="M 1020 100 C 1020 190, 790 325, 710 325" />
 
-          <!-- Middleware Apache Kafka -> Load Balancer (Fanout Multi-Group) -->
-          <path id="pipe-mw-lb" class="pipe pipe-mw" d="M 590 248 L 590 290" />
+          <!-- 1.5 WRITE FANOUT PIPES (Apache Kafka MOM :9092 ➔ 4 Servidores diretamente, sem passar pelo Load Balancer) -->
+          <path id="pipe-mw-s1" class="pipe pipe-write" d="M 435 220 C 310 240, 160 310, 160 420" />
+          <path id="pipe-mw-s2" class="pipe pipe-write" d="M 510 248 C 510 300, 445 350, 445 420" />
+          <path id="pipe-mw-s3" class="pipe pipe-write" d="M 670 248 C 670 300, 730 350, 730 420" />
+          <path id="pipe-mw-s4" class="pipe pipe-write" d="M 745 220 C 870 240, 1017 310, 1017 420" />
+
+          <!-- Conector de controle (opcional, desacoplado) -->
+          <path id="pipe-mw-lb" class="pipe pipe-mw" d="M 590 248 L 590 290" opacity="0.15" />
 
           <!-- Load Balancer -> 4 Servidores (Árvore de Leitura e Escrita Sincronizada) -->
           <path id="pipe-lb-s1" class="pipe pipe-s1" d="M 490 360 C 490 395, 160 380, 160 420" />
@@ -5191,6 +5225,10 @@
     const pipeCsvClient = document.getElementById('pipe-csv-client');
     const pipeClientMw = document.getElementById('pipe-client-mw');
     const pipeMwLb = document.getElementById('pipe-mw-lb');
+    const pipeMwS1 = document.getElementById('pipe-mw-s1');
+    const pipeMwS2 = document.getElementById('pipe-mw-s2');
+    const pipeMwS3 = document.getElementById('pipe-mw-s3');
+    const pipeMwS4 = document.getElementById('pipe-mw-s4');
     const pipeLbS1 = document.getElementById('pipe-lb-s1');
     const pipeLbS2 = document.getElementById('pipe-lb-s2');
     const pipeLbS3 = document.getElementById('pipe-lb-s3');
@@ -5340,13 +5378,17 @@
       [nodeCsv, nodeClient, nodeMw, nodeLb, nodeS1, nodeS2, nodeS3, nodeS4, nodeDb1, nodeDb2, nodeDb3, nodeDb4].forEach(n => {
         if (n) {
           n.classList.remove('active-node');
+          n.classList.remove('active-node-write');
+          n.classList.remove('active-node-read');
           n.classList.remove('active-replication');
           n.classList.remove('replication-blocked');
         }
       });
-      [pipeCsvClient, pipeClientMw, pipeMwLb, pipeLbS1, pipeLbS2, pipeLbS3, pipeLbS4, pipeS1Db, pipeS2Db, pipeS3Db, pipeS4Db].forEach(p => {
+      [pipeCsvClient, pipeClientMw, pipeMwLb, pipeMwS1, pipeMwS2, pipeMwS3, pipeMwS4, pipeLbS1, pipeLbS2, pipeLbS3, pipeLbS4, pipeS1Db, pipeS2Db, pipeS3Db, pipeS4Db].forEach(p => {
         if (p) {
           p.classList.remove('active-flow');
+          p.classList.remove('active-flow-write');
+          p.classList.remove('active-flow-read');
           p.classList.remove('active-replication');
           p.classList.remove('replication-blocked');
         }
@@ -5622,28 +5664,29 @@
           executarAnimacaoFluxoMiddleware(d);
           setStatus(`Apache Kafka: Tópico ${d.topico} | Partição P${d.particao}`, 'busy');
           addLog(d.timestamp, `[Kafka Broker :9092] Tópico ${d.topico} ➔ Partição P${d.particao} (Key: Paciente ${d.paciente_id}) | GZIP At-Least-Once`, 'mw');
-          animatePacketAlongPath(pipeMwLb, 350);
           break;
 
         case 'http_post':
           clearActiveNodes();
           nodeMw.classList.add('active-node');
-          setStatus(`Kafka Multi-Group: Fanout para consumidores dos nós → HTTP POST :8000`, 'busy');
-          addLog(d.timestamp, `[Kafka Multi-Group] 4 Consumer Groups ativos consumindo simultaneamente → POST :8000`, 'lb');
-          animatePacketAlongPath(pipeMwLb, 350);
+          setStatus(`Kafka Multi-Group: Fanout despachando para os nós backend...`, 'busy');
+          addLog(d.timestamp, `[Kafka Multi-Group] 4 Consumer Groups consumindo em paralelo ➔ Despacho aos nós SQLite`, 'mw');
           break;
 
         case 'lb_routing':
           clearActiveNodes();
-          nodeLb.classList.add('active-node');
+          nodeMw.classList.add('active-node');
           updateRoundRobinTurn(d.server_num);
-          setStatus(`Load Balancer: Round Robin direcionou para ${d.server_id}`, 'busy');
-          addLog(d.timestamp, `[LB :8000] Roteado via Round Robin → ${d.server_id}`, 'lb');
-          let pipe = pipeLbS1;
-          if (d.server_num === 2) pipe = pipeLbS2;
-          if (d.server_num === 3) pipe = pipeLbS3;
-          if (d.server_num === 4) pipe = pipeLbS4;
-          animatePacketAlongPath(pipe, 400);
+          setStatus(`MOM Fanout: Despachando diretamente para ${d.server_id}`, 'busy');
+          addLog(d.timestamp, `[MOM Fanout] Mensagem entregue ao nó ${d.server_id}`, 'mw');
+          let pipeMw = pipeMwS1;
+          if (d.server_num === 2) pipeMw = pipeMwS2;
+          if (d.server_num === 3) pipeMw = pipeMwS3;
+          if (d.server_num === 4) pipeMw = pipeMwS4;
+          if (pipeMw) pipeMw.classList.add('active-write-flow');
+          animatePacketAlongPath(pipeMw, 360, () => {
+            if (pipeMw) pipeMw.classList.remove('active-write-flow');
+          });
           break;
 
         case 'server_received':
@@ -5856,7 +5899,7 @@
           const sNumExt = parseInt((d.server_id || 'server-01').split('-')[1]);
           if (!isNaN(sNumExt)) {
             updateRoundRobinTurn(sNumExt);
-            animarNoPainelPrincipal(sNumExt, d.status_code !== 200);
+            animarNoPainelPrincipal(sNumExt, d.status_code !== 200, 'envio');
           }
           if (d.replicacao) {
             animarReplicacaoFanout(d.servidores_replicados);
@@ -6470,18 +6513,20 @@
         const readPipe = document.getElementById(`pipe-read-m${d.medico_id}`);
         if (medNode) {
           medNode.classList.add('active-node');
-          setTimeout(() => medNode.classList.remove('active-node'), 300);
+          setTimeout(() => medNode.classList.remove('active-node'), 350);
         }
         if (readPipe) {
           readPipe.classList.add('active-read-flow');
-          setTimeout(() => readPipe.classList.remove('active-read-flow'), 250);
+          animateReadPacketAlongPath(readPipe, 250, () => {
+            if (readPipe) readPipe.classList.remove('active-read-flow');
+          });
         }
       }
 
       const sNum = parseInt((d.server_id || 'server-01').split('-')[1]);
       if (!isNaN(sNum)) {
         updateRoundRobinTurn(sNum);
-        animarNoPainelPrincipal(sNum, d.erro);
+        animarNoPainelPrincipal(sNum, d.erro, d.tipo || 'envio');
       }
 
       // Renderizar barras e KPIs sincronizados com a taxa de atualização da tela (rAF)
@@ -6586,14 +6631,24 @@
     }
 
     // Animar nós no diagrama principal quando o teste de carga ou tráfego externo envia dados
+    // tipo: 'busca' = verde (read path), 'envio' = laranja (write path), default = genérico
     let lastAnimTimestamp = 0;
-    function animarNoPainelPrincipal(serverNum, isError) {
+    function animarNoPainelPrincipal(serverNum, isError, tipo) {
       const now = performance.now();
       const isHighFrequency = (now - lastAnimTimestamp) < 90;
       lastAnimTimestamp = now;
 
-      // Destacar Load Balancer
-      if (nodeLb) nodeLb.classList.add('active-node');
+      const isBusca = (tipo === 'busca');
+
+      // Destacar Load Balancer com cor do fluxo
+      if (nodeLb) {
+        if (isBusca) {
+          nodeLb.classList.add('active-node-read');
+        } else {
+          nodeLb.classList.add('active-node-write');
+        }
+        nodeLb.classList.add('active-node');
+      }
 
       // Selecionar pipe e nó do servidor correto
       let pipe, serverNode;
@@ -6602,25 +6657,35 @@
       else if (serverNum === 3) { pipe = pipeLbS3; serverNode = nodeS3; }
       else if (serverNum === 4) { pipe = pipeLbS4; serverNode = nodeS4; }
 
-      // Durante tráfego de alta frequência, usar iluminação CSS direta nos nós/pipes
-      // evitando o gargalo de recalcular comprimento de arcos SVG no DOM repetidamente
+      // Classe de fluxo colorida no pipe (laranja para write, verde para read)
+      const flowClass = isBusca ? 'active-flow-read' : 'active-flow-write';
+
       if (serverNode) serverNode.classList.add('active-node');
-      if (pipe) pipe.classList.add('active-flow');
+      if (pipe) pipe.classList.add(flowClass);
 
       setTimeout(() => {
         if (serverNode && !isError) serverNode.classList.remove('active-node');
-        if (pipe) pipe.classList.remove('active-flow');
-      }, 180);
+        if (pipe) pipe.classList.remove(flowClass);
+        if (nodeLb) {
+          nodeLb.classList.remove('active-node-write', 'active-node-read');
+        }
+      }, 220);
 
-      // Apenas acionar animação SVG de trajetória se houver folga na taxa de quadros
+      // Animação SVG de trajetória com pacote de cor correta
       if (!isHighFrequency && pipe) {
-        animatePacketAlongPath(pipe, 200, () => {
-          if (serverNode && !isError) {
-            setTimeout(() => {
-              if (serverNode) serverNode.classList.remove('active-node');
-            }, 150);
-          }
-        });
+        if (isBusca) {
+          animateReadPacketAlongPath(pipe, 200, () => {
+            if (serverNode && !isError) {
+              setTimeout(() => { if (serverNode) serverNode.classList.remove('active-node'); }, 150);
+            }
+          });
+        } else {
+          animatePacketAlongPath(pipe, 200, () => {
+            if (serverNode && !isError) {
+              setTimeout(() => { if (serverNode) serverNode.classList.remove('active-node'); }, 150);
+            }
+          });
+        }
       }
     }
 
@@ -7941,7 +8006,9 @@
 
       animateReadPacketAlongPath(readPipe, 320, () => {
         if (readPipe) readPipe.classList.remove('active-read-flow');
-        if (nodeLb) nodeLb.classList.add('active-node');
+        if (nodeLb) {
+          nodeLb.classList.add('active-node', 'active-node-read');
+        }
 
         let srvPipe = pipeLbS1;
         let srvNode = nodeS1;
@@ -7953,7 +8020,9 @@
         srvPipe.classList.add('active-read-flow');
         animateReadPacketAlongPath(srvPipe, 280, () => {
           srvPipe.classList.remove('active-read-flow');
-          if (nodeLb) nodeLb.classList.remove('active-node');
+          if (nodeLb) {
+            nodeLb.classList.remove('active-node', 'active-node-read');
+          }
           if (srvNode) srvNode.classList.add('active-node');
           if (dbNode) dbNode.classList.add('active-node');
 

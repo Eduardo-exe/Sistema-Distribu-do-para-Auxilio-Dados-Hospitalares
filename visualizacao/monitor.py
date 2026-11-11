@@ -297,14 +297,21 @@ class TesteCargaManager:
                                 resp = await client.get(f"{lb_url}/dados/{pid}")
                                 http_code = resp.status_code
                                 strat = resp.headers.get("x-adaptive-strategy", "")
-                                if resp.status_code == 200:
-                                    resp_data = resp.json()
+                                s_hdr = resp.headers.get("x-server-id", "")
+                                if not s_hdr:
+                                    s_node = resp.headers.get("x-node", "")
+                                    if s_node and s_node.rstrip("/")[-1].isdigit():
+                                        s_hdr = f"server-0{s_node.rstrip('/')[-1]}"
+
+                                if resp.status_code in (200, 404):
+                                    resp_data = resp.json() if resp.status_code == 200 else {}
                                     if isinstance(resp_data, list) and resp_data:
-                                        server_id = resp_data[-1].get("server_id", "server-01")
+                                        server_id = resp_data[-1].get("server_id", s_hdr or "server-01")
                                     elif isinstance(resp_data, dict):
-                                        server_id = resp_data.get("server_id", "server-01")
+                                        server_id = resp_data.get("server_id", s_hdr or "server-01")
                                     else:
-                                        server_id = "server-01"
+                                        server_id = s_hdr or "server-01"
+                                    erro = False
                                 else:
                                     erro = True
                             else:
@@ -1472,12 +1479,39 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                         "query_contadores": state.query_contadores,
                     }
                 elif resp.status_code == 404:
+                    s_id = resp.headers.get("X-Server-Id") or (
+                        f"server-0{resp.headers['X-Node'].rstrip('/')[-1]}" if resp.headers.get("X-Node") and resp.headers["X-Node"].rstrip("/")[-1].isdigit() else "server-01"
+                    )
+                    state.query_contadores["total"] += 1
+                    state.query_contadores["total_latencia_ms"] += latencia_ms
+                    state.query_contadores["latencia_media_ms"] = round(
+                        state.query_contadores["total_latencia_ms"] / max(1, state.query_contadores["total"]), 1
+                    )
+                    key = s_id if s_id in state.query_contadores else "server-01"
+                    state.query_contadores[key] += 1
+
+                    await state.broadcast("query_executed", {
+                        "paciente_id": paciente_id,
+                        "medico_id": str(medico_id),
+                        "medico_nome": cfg["nome"],
+                        "medico_especialidade": cfg["especialidade"],
+                        "server_id": s_id,
+                        "latencia_ms": round(latencia_ms, 1),
+                        "total_registros": 0,
+                        "ultimo_registro": None,
+                        "failover": False,
+                        "timestamp": datetime.now().strftime("%H:%M:%S"),
+                        "mensagem": f"🔍 [CONSULTA - {cfg['nome']}] Prontuário Paciente #{paciente_id} consultado em {s_id} ({latencia_ms:.1f}ms) — 0 medições.",
+                        "query_contadores": state.query_contadores,
+                    })
+
                     return JSONResponse(
                         status_code=404,
                         content={
                             "status": "nao_encontrado",
                             "paciente_id": paciente_id,
                             "medico_id": str(medico_id),
+                            "server_id": s_id,
                             "latencia_ms": round(latencia_ms, 1),
                             "mensagem": f"Paciente #{paciente_id} ainda não possui registros no banco.",
                         }

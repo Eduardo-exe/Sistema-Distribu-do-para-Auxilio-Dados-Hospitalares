@@ -239,3 +239,4 @@ if __name__ == "__main__":
         iniciar_cluster(com_cliente=args.com_cliente, abrir_browser=not args.no_browser)
     except SystemExit:
         encerrar_todos()
+

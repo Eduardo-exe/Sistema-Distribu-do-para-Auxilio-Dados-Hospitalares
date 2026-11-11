@@ -1000,6 +1000,7 @@ def criar_balanceador(
         if not balancer.nodes:
             return JSONResponse(status_code=503, content={"detail": "Nenhum servidor backend configurado"})
 
+        t_inicio = time.time()
         query_string = str(request.url.query)
         tentativas = len(balancer.nodes)
         falharam = []
@@ -1015,15 +1016,36 @@ def criar_balanceador(
                 url += f"?{query_string}"
 
             print(f"[BALANCEADOR] GET /dados [{tentativa + 1}/{tentativas}] → {servidor}")
+            node = balancer.nodes.get(servidor)
+            if node:
+                node.record_request()
             try:
                 response = await client.get(url)
+                latencia_ms = round((time.time() - t_inicio) * 1000)
+                if node:
+                    node.record_success(latencia_ms)
+
+                porta = servidor.rstrip("/").split(":")[-1]
+                s_id = f"server-0{int(porta)-8000}" if porta.isdigit() and 8001 <= int(porta) <= 8004 else "server-01"
+
                 resp_data = response.json()
-                headers = {"X-Failover": "true"} if falharam else {}
+                headers = {
+                    "X-Failover": "true" if falharam else "false",
+                    "X-Algorithm": balancer.algorithm.value,
+                    "X-Adaptive-Strategy": getattr(balancer, "_adaptive_last_decision", balancer.algorithm.value),
+                    "X-Node": servidor,
+                    "X-Server-Id": s_id,
+                    "X-Latency-Ms": str(latencia_ms),
+                }
                 return JSONResponse(status_code=response.status_code, content=resp_data, headers=headers)
             except (httpx.ConnectError, httpx.TimeoutException):
+                if node:
+                    node.record_failure()
                 falharam.append(servidor)
                 continue
             except Exception as e:
+                if node:
+                    node.record_failure()
                 return JSONResponse(status_code=500, content={"detail": str(e)})
 
         if balancer.servidores_reserva:
@@ -1035,7 +1057,15 @@ def criar_balanceador(
                 try:
                     response = await client.get(url)
                     resp_data = response.json()
-                    headers = {"X-Failover": "true"}
+                    porta = reserva.rstrip("/").split(":")[-1]
+                    s_id = f"server-0{int(porta)-8000}" if porta.isdigit() and 8001 <= int(porta) <= 8004 else "server-04"
+                    headers = {
+                        "X-Failover": "true",
+                        "X-Algorithm": balancer.algorithm.value,
+                        "X-Adaptive-Strategy": getattr(balancer, "_adaptive_last_decision", balancer.algorithm.value),
+                        "X-Node": reserva,
+                        "X-Server-Id": s_id,
+                    }
                     return JSONResponse(status_code=response.status_code, content=resp_data, headers=headers)
                 except Exception:
                     pass
@@ -1047,6 +1077,7 @@ def criar_balanceador(
         if not balancer.nodes:
             return JSONResponse(status_code=503, content={"detail": "Nenhum servidor backend configurado"})
 
+        t_inicio = time.time()
         tentativas = len(balancer.nodes)
         falharam = []
 
@@ -1057,15 +1088,36 @@ def criar_balanceador(
                 break
 
             print(f"[BALANCEADOR] GET /dados/{paciente_id} [{tentativa + 1}/{tentativas}] → {servidor}")
+            node = balancer.nodes.get(servidor)
+            if node:
+                node.record_request()
             try:
                 response = await client.get(f"{servidor}/dados/{paciente_id}")
+                latencia_ms = round((time.time() - t_inicio) * 1000)
+                if node:
+                    node.record_success(latencia_ms)
+
+                porta = servidor.rstrip("/").split(":")[-1]
+                s_id = f"server-0{int(porta)-8000}" if porta.isdigit() and 8001 <= int(porta) <= 8004 else "server-01"
+
                 resp_data = response.json()
-                headers = {"X-Failover": "true"} if falharam else {}
+                headers = {
+                    "X-Failover": "true" if falharam else "false",
+                    "X-Algorithm": balancer.algorithm.value,
+                    "X-Adaptive-Strategy": getattr(balancer, "_adaptive_last_decision", balancer.algorithm.value),
+                    "X-Node": servidor,
+                    "X-Server-Id": s_id,
+                    "X-Latency-Ms": str(latencia_ms),
+                }
                 return JSONResponse(status_code=response.status_code, content=resp_data, headers=headers)
             except (httpx.ConnectError, httpx.TimeoutException):
+                if node:
+                    node.record_failure()
                 falharam.append(servidor)
                 continue
             except Exception as e:
+                if node:
+                    node.record_failure()
                 return JSONResponse(status_code=500, content={"detail": str(e)})
 
         if balancer.servidores_reserva:
@@ -1074,7 +1126,15 @@ def criar_balanceador(
                 try:
                     response = await client.get(f"{reserva}/dados/{paciente_id}")
                     resp_data = response.json()
-                    headers = {"X-Failover": "true"}
+                    porta = reserva.rstrip("/").split(":")[-1]
+                    s_id = f"server-0{int(porta)-8000}" if porta.isdigit() and 8001 <= int(porta) <= 8004 else "server-04"
+                    headers = {
+                        "X-Failover": "true",
+                        "X-Algorithm": balancer.algorithm.value,
+                        "X-Adaptive-Strategy": getattr(balancer, "_adaptive_last_decision", balancer.algorithm.value),
+                        "X-Node": reserva,
+                        "X-Server-Id": s_id,
+                    }
                     return JSONResponse(status_code=response.status_code, content=resp_data, headers=headers)
                 except Exception:
                     pass

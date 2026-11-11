@@ -53,3 +53,4 @@ echo.
 echo O navegador será aberto automaticamente em http://localhost:5000.
 echo.
 pause
+

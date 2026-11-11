@@ -49,3 +49,4 @@ if %errorlevel% neq 0 (
     echo Ocorreu um erro ao executar o sistema.
     pause
 )
+

@@ -237,8 +237,13 @@ def criar_app(
             return JSONResponse(
                 status_code=404,
                 content={"detail": f"Nenhum registro encontrado para paciente {paciente_id}"},
+                headers={"X-Server-Id": _server_id},
             )
-        return registros
+        return JSONResponse(
+            status_code=200,
+            content=registros,
+            headers={"X-Server-Id": _server_id},
+        )
 
     @app.get("/health")
     def health_check():
