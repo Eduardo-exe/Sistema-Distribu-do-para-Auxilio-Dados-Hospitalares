@@ -38,6 +38,32 @@ import uvicorn
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from server.models import CSV_COLUMN_MAP, converter_registro_csv
 
+# Configuração dos 3 Médicos Especialistas e seus respectivos Datasets
+MEDICOS_CONFIG = {
+    "1": {
+        "nome": "Dr. Carlos (UTI)",
+        "especialidade": "Cardiologia / UTI",
+        "dataset": "dataset_medico_1_uti.csv",
+        "cor": "#f87171",
+        "perfil": "Cardiopatias e Hipertensão",
+    },
+    "2": {
+        "nome": "Dra. Beatriz (Emergência)",
+        "especialidade": "Trauma / Emergência",
+        "dataset": "dataset_medico_2_emergencia.csv",
+        "cor": "#fb923c",
+        "perfil": "Quedas, Traumas e Asma",
+    },
+    "3": {
+        "nome": "Dr. Lucas (Enfermaria)",
+        "especialidade": "Clínica Geral / Enfermaria",
+        "dataset": "dataset_medico_3_enfermaria.csv",
+        "cor": "#34d399",
+        "perfil": "Diabetes e Rotina Clínica",
+    },
+}
+
+
 
 
 # ============================================================
@@ -71,6 +97,21 @@ class MonitorState:
         self.fila_retencao: list[dict] = []
         self.recent_events: list[dict] = []
         self.event_counter: int = 0
+        # Suporte a Busca / Consultas de Prontuário (Read Path)
+        self.query_running: bool = False
+        self.query_task: asyncio.Task | None = None
+        self.query_interval: float = 2.5
+        self.query_contadores = {
+            "total": 0,
+            "sucesso": 0,
+            "erros": 0,
+            "latencia_media_ms": 0.0,
+            "total_latencia_ms": 0.0,
+            "server-01": 0,
+            "server-02": 0,
+            "server-03": 0,
+            "server-04": 0,
+        }
         self._load_csv()
 
     def _get_active_csv_path(self) -> str:
@@ -98,18 +139,17 @@ class MonitorState:
             for idx, row in enumerate(reader):
                 item = converter_registro_csv(row)
                 if self.medico_ativo == "1":
-                    item["medico"] = "Dr. Carlos (UTI)"
+                    m_id = "1"
                 elif self.medico_ativo == "2":
-                    item["medico"] = "Dra. Beatriz (Emergência)"
+                    m_id = "2"
                 elif self.medico_ativo == "3":
-                    item["medico"] = "Dr. Lucas (Enfermaria)"
+                    m_id = "3"
                 else:
-                    if idx % 3 == 0:
-                        item["medico"] = "Dr. Carlos (UTI)"
-                    elif idx % 3 == 1:
-                        item["medico"] = "Dra. Beatriz (Emergência)"
-                    else:
-                        item["medico"] = "Dr. Lucas (Enfermaria)"
+                    m_id = str((idx % 3) + 1)
+                cfg = MEDICOS_CONFIG[m_id]
+                item["medico_id"] = m_id
+                item["medico"] = cfg["nome"]
+                item["dataset_nome"] = cfg["dataset"]
                 self.records.append(item)
         print(f"[MONITOR] {len(self.records)} registros carregados de {os.path.basename(target_path)} (Médico: {self.medico_ativo})")
 
@@ -131,6 +171,21 @@ class MonitorState:
         if self.simulation_task and not self.simulation_task.done():
             self.simulation_task.cancel()
             self.simulation_task = None
+        if self.query_task and not self.query_task.done():
+            self.query_task.cancel()
+            self.query_task = None
+        self.query_running = False
+        self.query_contadores = {
+            "total": 0,
+            "sucesso": 0,
+            "erros": 0,
+            "latencia_media_ms": 0.0,
+            "total_latencia_ms": 0.0,
+            "server-01": 0,
+            "server-02": 0,
+            "server-03": 0,
+            "server-04": 0,
+        }
         self.fila_retencao = []
         KafkaMonitorMetrics.reset()
 
@@ -700,7 +755,9 @@ async def process_single(state: MonitorState) -> bool:
     await state.broadcast("csv_read", {
         "numero": numero,
         "dados": record,
-        "medico": record.get("medico", "Equipe Médica"),
+        "medico_id": record.get("medico_id", "1"),
+        "medico": record.get("medico", "Dr. Carlos (UTI)"),
+        "dataset": record.get("dataset_nome", "dataset_medico_1_uti.csv"),
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
     await asyncio.sleep(delay)
@@ -710,7 +767,8 @@ async def process_single(state: MonitorState) -> bool:
     # --- Etapa 2: CSV Sender preparando ---
     await state.broadcast("sending", {
         "numero": numero,
-        "medico": record.get("medico", "Equipe Médica"),
+        "medico_id": record.get("medico_id", "1"),
+        "medico": record.get("medico", "Dr. Carlos (UTI)"),
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     })
     await asyncio.sleep(delay * 0.6)
@@ -1211,6 +1269,9 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
             "limit": state.limit,
             "speed": state.speed,
             "contadores": state.contadores,
+            "query_running": state.query_running,
+            "query_contadores": state.query_contadores,
+            "medico_ativo": state.medico_ativo,
         }
 
     # ── Escalabilidade Dinâmica ──────────────────────────────
@@ -1287,11 +1348,16 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
 
     @app.get("/api/consulta/paciente/{paciente_id}")
     @app.post("/api/consulta/paciente/{paciente_id}")
-    async def api_consultar_prontuario(paciente_id: int):
+    async def api_consultar_prontuario(paciente_id: int, medico_id: str = None):
         """
         Executa busca distribuída do prontuário do paciente através do Load Balancer.
         Demonstra o Read Path com balanceamento de leitura e tolerância a falhas.
         """
+        import random
+        if not medico_id:
+            medico_id = random.choice(["1", "2", "3"])
+        cfg = MEDICOS_CONFIG.get(str(medico_id), MEDICOS_CONFIG["1"])
+
         t0 = time.time()
         url = f"{state.lb_url}/dados/{paciente_id}"
         try:
@@ -1306,26 +1372,42 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                     server_id = ultimo.get("server_id", "server-01")
                     is_failover = resp.headers.get("X-Failover") == "true"
 
+                    state.query_contadores["total"] += 1
+                    state.query_contadores["sucesso"] += 1
+                    state.query_contadores["total_latencia_ms"] += latencia_ms
+                    state.query_contadores["latencia_media_ms"] = round(
+                        state.query_contadores["total_latencia_ms"] / state.query_contadores["total"], 1
+                    )
+                    key = server_id if server_id in state.query_contadores else "server-01"
+                    state.query_contadores[key] += 1
+
                     await state.broadcast("query_executed", {
                         "paciente_id": paciente_id,
+                        "medico_id": str(medico_id),
+                        "medico_nome": cfg["nome"],
+                        "medico_especialidade": cfg["especialidade"],
                         "server_id": server_id,
                         "latencia_ms": round(latencia_ms, 1),
                         "total_registros": total_reg,
                         "ultimo_registro": ultimo,
                         "failover": is_failover,
                         "timestamp": datetime.now().strftime("%H:%M:%S"),
-                        "mensagem": f"🔍 [CONSULTA MÉDICA] Prontuário Paciente #{paciente_id} consultado! Atendido por {server_id} em {latencia_ms:.1f}ms ({total_reg} medições encontradas no banco).",
+                        "mensagem": f"🔍 [CONSULTA - {cfg['nome']}] Prontuário Paciente #{paciente_id} consultado! Atendido por {server_id} em {latencia_ms:.1f}ms ({total_reg} medições encontradas no banco).",
+                        "query_contadores": state.query_contadores,
                     })
 
                     return {
                         "status": "sucesso",
                         "paciente_id": paciente_id,
+                        "medico_id": str(medico_id),
+                        "medico_nome": cfg["nome"],
                         "server_id": server_id,
                         "latencia_ms": round(latencia_ms, 1),
                         "total_registros": total_reg,
                         "registros": registros,
                         "ultimo": ultimo,
                         "failover": is_failover,
+                        "query_contadores": state.query_contadores,
                     }
                 elif resp.status_code == 404:
                     return JSONResponse(
@@ -1333,6 +1415,7 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
                         content={
                             "status": "nao_encontrado",
                             "paciente_id": paciente_id,
+                            "medico_id": str(medico_id),
                             "latencia_ms": round(latencia_ms, 1),
                             "mensagem": f"Paciente #{paciente_id} ainda não possui registros no banco.",
                         }
@@ -1358,7 +1441,77 @@ def create_app(csv_path: str, lb_url: str) -> FastAPI:
             pid = int(state.records[idx].get("paciente_id", 1))
         else:
             pid = random.randint(1, 20)
-        return await api_consultar_prontuario(pid)
+        med_id = random.choice(["1", "2", "3"])
+        return await api_consultar_prontuario(pid, med_id)
+
+    @app.post("/api/busca/iniciar")
+    async def api_busca_iniciar(intervalo: float = 2.0):
+        """Inicia a busca contínua automática de prontuários (Read Path concorrente ao Envio)."""
+        if state.query_running:
+            return {"status": "ja_em_execucao"}
+        state.query_interval = max(0.5, float(intervalo))
+        state.query_running = True
+
+        async def _query_loop():
+            import random
+            try:
+                while state.query_running:
+                    if state.current_index > 0 and state.records:
+                        idx = random.randint(0, min(state.current_index - 1, len(state.records) - 1))
+                        pid = int(state.records[idx].get("paciente_id", random.randint(1, 20)))
+                    else:
+                        pid = random.randint(1, 20)
+                    med_id = random.choice(["1", "2", "3"])
+                    await api_consultar_prontuario(pid, med_id)
+                    await asyncio.sleep(state.query_interval / max(0.1, state.speed))
+            except asyncio.CancelledError:
+                pass
+            finally:
+                state.query_running = False
+
+        state.query_task = asyncio.create_task(_query_loop())
+        await state.broadcast("busca_iniciada", {
+            "status": "iniciado",
+            "intervalo": state.query_interval,
+            "mensagem": "🔍 Busca contínua de prontuários médicos iniciada (Read Path ativo concorrentemente)!",
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+        })
+        return {"status": "iniciado", "intervalo": state.query_interval}
+
+    @app.post("/api/busca/pausar")
+    async def api_busca_pausar():
+        """Pausa a busca contínua de prontuários."""
+        state.query_running = False
+        if state.query_task and not state.query_task.done():
+            state.query_task.cancel()
+            state.query_task = None
+        await state.broadcast("busca_pausada", {
+            "status": "pausado",
+            "mensagem": "Busca contínua de prontuários pausada.",
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+        })
+        return {"status": "pausado"}
+
+    @app.get("/api/busca/status")
+    async def api_busca_status():
+        """Retorna o status atual da busca contínua e contadores de leitura."""
+        return {
+            "running": state.query_running,
+            "intervalo": state.query_interval,
+            "contadores": state.query_contadores,
+        }
+
+    @app.post("/api/busca/proximo")
+    async def api_busca_proximo():
+        """Executa 1 consulta de prontuário sob demanda."""
+        import random
+        if state.current_index > 0 and state.records:
+            idx = random.randint(0, min(state.current_index - 1, len(state.records) - 1))
+            pid = int(state.records[idx].get("paciente_id", random.randint(1, 20)))
+        else:
+            pid = random.randint(1, 20)
+        med_id = random.choice(["1", "2", "3"])
+        return await api_consultar_prontuario(pid, med_id)
 
     # ── Gestão de Falhas e Resiliência (Chaos Engineering) ──
 

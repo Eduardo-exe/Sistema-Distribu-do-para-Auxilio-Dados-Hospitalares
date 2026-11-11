@@ -3309,6 +3309,70 @@
       font-weight: 600;
       color: #e2e8f0;
     }
+  
+    /* ============================================================
+       Estilos Dedicados para os 2 Fluxos Concorrentes (Write & Read)
+       ============================================================ */
+    .pipe-write {
+      stroke: rgba(6, 182, 212, 0.4);
+      stroke-width: 2.5;
+      stroke-dasharray: 6 5;
+      fill: none;
+      transition: all 0.3s ease;
+    }
+    .pipe-write.active-write-flow {
+      stroke: #38bdf8 !important;
+      stroke-width: 3.5px !important;
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.95)) !important;
+      animation: pipeFlow 0.6s linear infinite !important;
+    }
+
+    .pipe-read {
+      stroke: rgba(16, 185, 129, 0.4) !important;
+      stroke-width: 2.8px !important;
+      stroke-dasharray: 6 4 !important;
+      fill: none;
+      transition: all 0.3s ease;
+    }
+    .pipe-read.active-read-flow {
+      stroke: #34d399 !important;
+      stroke-width: 3.8px !important;
+      filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.95)) !important;
+      animation: pipeFlow 0.5s linear infinite !important;
+    }
+
+    .node-medico-card, .node-csv-card {
+      transition: transform 0.2s ease, filter 0.2s ease;
+      cursor: pointer;
+    }
+    .node-medico-card:hover .node-bg, .node-csv-card:hover .node-bg {
+      stroke: rgba(255, 255, 255, 0.5) !important;
+      stroke-width: 2px !important;
+    }
+    .node-medico-card.active-node .node-bg {
+      stroke-width: 2.8px !important;
+      animation: pulseGlow 1s ease-in-out infinite alternate !important;
+    }
+    .node-medico-1.active-node .node-bg { stroke: #f87171 !important; color: #f87171 !important; filter: drop-shadow(0 0 16px rgba(248, 113, 113, 0.8)) !important; }
+    .node-medico-2.active-node .node-bg { stroke: #fb923c !important; color: #fb923c !important; filter: drop-shadow(0 0 16px rgba(251, 146, 60, 0.8)) !important; }
+    .node-medico-3.active-node .node-bg { stroke: #34d399 !important; color: #34d399 !important; filter: drop-shadow(0 0 16px rgba(52, 211, 153, 0.8)) !important; }
+
+    .node-csv-card.active-node .node-bg {
+      stroke: #10b981 !important;
+      color: #10b981 !important;
+      stroke-width: 2.5px !important;
+      filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.8)) !important;
+    }
+
+    .ctrl-flow-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .ctrl-flow-label.write-label { color: #fb923c; }
+    .ctrl-flow-label.read-label { color: #34d399; }
+
   </style>
 </head>
 <body>
@@ -3354,55 +3418,61 @@
     </div>
 
     <!-- Linha 2: Controles de Simulação (Barra Unificada em Linha Única) -->
+        <!-- Linha 2: Controles de Simulação (Dois Fluxos Concorrentes: Envio & Busca) -->
     <div class="header-controls-row">
       <div class="controls-wrapper">
-        <!-- 1. Controles Principais de Simulação -->
-        <div class="ctrl-group ctrl-sim">
+        <!-- 1. FLUXO DE ENVIO (WRITE PATH) -->
+        <div class="ctrl-group">
+          <span class="ctrl-flow-label write-label">📤 Envio:</span>
           <div class="btn-group">
-            <button id="btn-start" class="btn btn-primary" title="Iniciar simulação automática">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="btn-lbl">Iniciar</span>
+            <button id="btn-envio" class="btn btn-primary" onclick="toggleEnvio()" title="Iniciar ou pausar envio contínuo de telemetria médica (Write Path via Kafka MOM)">
+              <span id="btn-envio-icon">▶️</span>
+              <span id="btn-envio-lbl">Iniciar Envio</span>
             </button>
-            <button id="btn-step" class="btn btn-step" title="Processar apenas a próxima requisição">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-              <span class="btn-lbl">Próximo</span>
-            </button>
-            <button id="btn-pause" class="btn btn-pause" title="Pausar simulação">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-              <span class="btn-lbl">Pausar</span>
-            </button>
-            <button id="btn-reset" class="btn btn-reset" title="Reiniciar contadores e posição">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-              <span class="btn-lbl">Reset</span>
+            <button id="btn-step" class="btn btn-step" onclick="passoEnvio()" title="Processar apenas a próxima telemetria médica">
+              <span class="btn-lbl">⏭️ 1 Envio</span>
             </button>
           </div>
         </div>
 
         <div class="ctrl-separator"></div>
 
-        <!-- 2. Ações Estratégicas (Scale-Out, Benchmark & Consulta de Prontuário) -->
-        <div class="ctrl-group ctrl-actions">
-          <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
-            <span id="reserva-icon">⚡</span>
-            <span id="reserva-label">Ativar Reserva</span>
-          </button>
-
-          <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
-            ⚡ Teste de Carga
-          </button>
-
-          <button id="btn-consulta-prontuario" class="btn btn-consulta" onclick="abrirModalConsulta()" title="Consultar Prontuário Médico (Read Path com Balanceamento)">
-            🔍 Consultar
-          </button>
-
-          <!-- Botões redundantes mantidos no DOM ocultos para integridade do JS -->
-          <button id="btn-vms-modal-action" style="display: none;"></button>
-          <button id="btn-mw-modal-action" style="display: none;"></button>
+        <!-- 2. FLUXO DE BUSCA (READ PATH) -->
+        <div class="ctrl-group">
+          <span class="ctrl-flow-label read-label">🔍 Busca:</span>
+          <div class="btn-group">
+            <button id="btn-busca" class="btn btn-consulta" onclick="toggleBusca()" title="Iniciar ou pausar busca contínua de prontuários em tempo real (Read Path via Load Balancer)">
+              <span id="btn-busca-icon">▶️</span>
+              <span id="btn-busca-lbl">Iniciar Busca</span>
+            </button>
+            <button id="btn-busca-passo" class="btn btn-step" onclick="passoBusca()" title="Consultar 1 prontuário aleatório no cluster">
+              <span class="btn-lbl">🔎 1 Consulta</span>
+            </button>
+            <button id="btn-consulta-prontuario" class="btn btn-step" onclick="abrirModalConsulta()" title="Consultar Prontuário Médico por ID Específico">
+              <span class="btn-lbl">📋 Por ID</span>
+            </button>
+          </div>
         </div>
 
         <div class="ctrl-separator"></div>
 
-        <!-- 3. Resiliência & Chaos Testing -->
+        <!-- 3. GESTÃO DO CLUSTER (Reset, Reserva & Teste de Carga) -->
+        <div class="ctrl-group ctrl-actions">
+          <button id="btn-reset" class="btn btn-reset" onclick="reiniciarTudo()" title="Reiniciar contadores e simulação de envio e busca">
+            <span>🔄 Reset</span>
+          </button>
+          <button id="btn-toggle-reserva" class="btn btn-reserve" title="Ativar ou desativar o Servidor 04 Reserva no Load Balancer">
+            <span id="reserva-icon">⚡</span>
+            <span id="reserva-label">Ativar Reserva</span>
+          </button>
+          <button id="btn-benchmark" class="btn-benchmark" title="Abrir painel de teste de carga">
+            ⚡ Teste de Carga
+          </button>
+        </div>
+
+        <div class="ctrl-separator"></div>
+
+        <!-- 4. RESILIÊNCIA & CHAOS TESTING -->
         <div class="ctrl-group ctrl-chaos">
           <div class="chaos-group" title="Simulação de Resiliência: Derrubar ou religar servidores">
             <span class="chaos-title"><span class="chaos-pulse"></span>Resiliência:</span>
@@ -3421,12 +3491,12 @@
 
         <div class="ctrl-separator"></div>
 
-        <!-- 4. Ajustes, Médico Ativo e Modo Foco -->
+        <!-- 5. AJUSTES, MÉDICO NO ENVIO E MODO FOCO -->
         <div class="ctrl-group ctrl-settings">
           <div class="control-setting ctrl-medicos" title="Selecionar equipe médica ou médico específico com seu respectivo dataset">
             <span>Médico:</span>
             <select id="sel-medico" onchange="trocarMedicoAtivo(this.value)">
-              <option value="todos" selected>👥 Todos (Equipe)</option>
+              <option value="todos" selected>👥 Todos (3 Concorrentes)</option>
               <option value="1">🩺🔴 Dr. Carlos (UTI)</option>
               <option value="2">🩺🟠 Dra. Beatriz (Emergência)</option>
               <option value="3">🩺🟢 Dr. Lucas (Enfermaria)</option>
@@ -3442,7 +3512,6 @@
               <option value="0">Todos</option>
             </select>
           </div>
-
           <div class="control-setting">
             <span>Vel:</span>
             <select id="sel-speed">
@@ -3451,12 +3520,17 @@
               <option value="2.0">2.0x</option>
             </select>
           </div>
-
           <label class="toggle-presentation" title="Ocultar painéis laterais e focar na topologia">
             <input type="checkbox" id="chk-presentation">
             <span>Foco</span>
           </label>
         </div>
+
+        <!-- Hidden elements for test and JS compatibility -->
+        <button id="btn-start" style="display:none;"></button>
+        <button id="btn-pause" style="display:none;"></button>
+        <button id="btn-vms-modal-action" style="display: none;"></button>
+        <button id="btn-mw-modal-action" style="display: none;"></button>
       </div>
     </div>
   </header>
@@ -3487,9 +3561,8 @@
         <span>👈 Deslize para navegar pela arquitetura distribuída 👉</span>
       </div>
       <div class="canvas-container">
-        <svg id="arch-canvas" viewBox="0 0 1180 700" preserveAspectRatio="xMidYMid meet">
+        <svg id="arch-canvas" viewBox="0 0 1180 740" preserveAspectRatio="xMidYMid meet">
           <defs>
-            <!-- Node Shadows and Filters -->
             <filter id="glow-filter" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="8" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -3503,6 +3576,18 @@
             <linearGradient id="grad-client" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stop-color="#0891b2" />
               <stop offset="100%" stop-color="#06b6d4" />
+            </linearGradient>
+            <linearGradient id="grad-m1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#dc2626" />
+              <stop offset="100%" stop-color="#f87171" />
+            </linearGradient>
+            <linearGradient id="grad-m2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ea580c" />
+              <stop offset="100%" stop-color="#fb923c" />
+            </linearGradient>
+            <linearGradient id="grad-m3" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#059669" />
+              <stop offset="100%" stop-color="#34d399" />
             </linearGradient>
             <linearGradient id="grad-mw" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stop-color="#c2410c" />
@@ -3537,14 +3622,23 @@
           <!-- ============================================== -->
           <!-- CONNECTION PIPES (Background Network Routing)   -->
           <!-- ============================================== -->
-          <!-- CSV -> Client -->
-          <path id="pipe-csv-client" class="pipe pipe-common" d="M 370 70 L 480 70" />
 
-          <!-- Client -> Middleware Apache Kafka (KRaft :9092) -->
-          <path id="pipe-client-mw" class="pipe pipe-mw" d="M 590 105 L 590 170" />
+          <!-- 1. WRITE PIPES (Médicos ➔ Apache Kafka MOM :9092) -->
+          <path id="pipe-write-m1" class="pipe pipe-write" d="M 300 100 C 300 145, 500 145, 500 170" />
+          <path id="pipe-write-m2" class="pipe pipe-write" d="M 683 100 C 683 140, 590 145, 590 170" />
+          <path id="pipe-write-m3" class="pipe pipe-write" d="M 1066 100 C 1066 145, 680 145, 680 170" />
+
+          <!-- Aliases de compatibilidade -->
+          <path id="pipe-csv-client" class="pipe pipe-common" d="M 200 67 L 220 67" style="display:none;" />
+          <path id="pipe-client-mw" class="pipe pipe-mw" d="M 590 100 L 590 170" style="display:none;" />
+
+          <!-- 2. READ PIPES (Médicos ➔ Load Balancer direto, bypassando Kafka) -->
+          <path id="pipe-read-m1" class="pipe pipe-read" d="M 340 100 C 340 210, 420 325, 470 325" />
+          <path id="pipe-read-m2" class="pipe pipe-read" d="M 630 100 C 630 190, 555 240, 555 290" />
+          <path id="pipe-read-m3" class="pipe pipe-read" d="M 1020 100 C 1020 210, 760 325, 710 325" />
 
           <!-- Middleware Apache Kafka -> Load Balancer (Fanout Multi-Group) -->
-          <path id="pipe-mw-lb" class="pipe pipe-mw" d="M 590 245 L 590 290" />
+          <path id="pipe-mw-lb" class="pipe pipe-mw" d="M 590 248 L 590 290" />
 
           <!-- Load Balancer -> Server 1 -->
           <path id="pipe-lb-s1" class="pipe pipe-s1" d="M 500 345 C 380 360, 160 370, 160 420" />
@@ -3575,16 +3669,16 @@
           <!-- VM BOUNDARY BOXES (Dashed outlines)            -->
           <!-- ============================================== -->
 
-          <!-- VM 1: CLIENTE (192.168.56.10) -->
-          <rect x="180" y="18" width="530" height="100" rx="14" ry="14"
-                fill="none" stroke="rgba(6, 182, 212, 0.3)" stroke-width="1.5"
+          <!-- VM 1: CLIENTE (3 MÉDICOS & 3 DATASETS) -->
+          <rect x="20" y="10" width="1140" height="98" rx="14" ry="14"
+                fill="none" stroke="rgba(6, 182, 212, 0.35)" stroke-width="1.5"
                 stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-cliente')" />
-          <rect x="182" y="20" width="145" height="22" rx="6" fill="rgba(6, 182, 212, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-cliente')" />
-          <text x="191" y="35" font-size="9" font-weight="700" fill="#06b6d4" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-cliente')">
-            🖥 VM-CLIENTE
+          <rect x="22" y="12" width="310" height="20" rx="6" fill="rgba(6, 182, 212, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-cliente')" />
+          <text x="32" y="26" font-size="9" font-weight="700" fill="#06b6d4" font-family="'JetBrains Mono', monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-cliente')">
+            🖥 VM-CLIENTE (192.168.56.10) — 3 Médicos &amp; 3 Datasets
           </text>
-          <text x="275" y="35" font-size="8" fill="rgba(6, 182, 212, 0.85)" font-family="JetBrains Mono, monospace">
-            192.168.56.10
+          <text x="250" y="26" font-size="8" fill="rgba(6, 182, 212, 0.85)" font-family="'JetBrains Mono', monospace">
+            Multi-Cliente
           </text>
 
           <!-- VM 2: MIDDLEWARE APACHE KAFKA (192.168.56.11) -->
@@ -3592,10 +3686,10 @@
                 fill="none" stroke="rgba(239, 68, 68, 0.3)" stroke-width="1.5"
                 stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-middleware')" />
           <rect x="422" y="155" width="195" height="22" rx="6" fill="rgba(239, 68, 68, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-middleware')" />
-          <text x="431" y="170" font-size="9" font-weight="700" fill="#ef4444" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-middleware')">
+          <text x="431" y="170" font-size="9" font-weight="700" fill="#ef4444" font-family="'JetBrains Mono', monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-middleware')">
             🖥 VM-MIDDLEWARE (KAFKA)
           </text>
-          <text x="575" y="170" font-size="8" fill="rgba(239, 68, 68, 0.85)" font-family="JetBrains Mono, monospace">
+          <text x="575" y="170" font-size="8" fill="rgba(239, 68, 68, 0.85)" font-family="'JetBrains Mono', monospace">
             192.168.56.11:9092
           </text>
 
@@ -3604,10 +3698,10 @@
                 fill="none" stroke="rgba(245, 158, 11, 0.3)" stroke-width="1.5"
                 stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-balanceador')" />
           <rect x="452" y="275" width="180" height="22" rx="6" fill="rgba(245, 158, 11, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-balanceador')" />
-          <text x="461" y="290" font-size="9" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-balanceador')">
+          <text x="461" y="290" font-size="9" font-weight="700" fill="#f59e0b" font-family="'JetBrains Mono', monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-balanceador')">
             🖥 VM-BALANCEADOR
           </text>
-          <text x="580" y="290" font-size="8" fill="rgba(245, 158, 11, 0.85)" font-family="JetBrains Mono, monospace">
+          <text x="580" y="290" font-size="8" fill="rgba(245, 158, 11, 0.85)" font-family="'JetBrains Mono', monospace">
             192.168.56.12:8000
           </text>
 
@@ -3616,10 +3710,10 @@
                 fill="none" stroke="rgba(59, 130, 246, 0.3)" stroke-width="1.5"
                 stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-01')" />
           <rect x="42" y="392" width="175" height="22" rx="6" fill="rgba(59, 130, 246, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-01')" />
-          <text x="50" y="407" font-size="9" font-weight="700" fill="#60a5fa" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-01')">
+          <text x="50" y="407" font-size="9" font-weight="700" fill="#60a5fa" font-family="'JetBrains Mono', monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-01')">
             🖥 VM-SERVIDOR-01
           </text>
-          <text x="148" y="407" font-size="8" fill="rgba(96, 165, 250, 0.85)" font-family="JetBrains Mono, monospace">
+          <text x="148" y="407" font-size="8" fill="rgba(96, 165, 250, 0.85)" font-family="'JetBrains Mono', monospace">
             192.168.56.13:8001
           </text>
 
@@ -3628,10 +3722,10 @@
                 fill="none" stroke="rgba(139, 92, 246, 0.3)" stroke-width="1.5"
                 stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-02')" />
           <rect x="327" y="392" width="175" height="22" rx="6" fill="rgba(139, 92, 246, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-02')" />
-          <text x="335" y="407" font-size="9" font-weight="700" fill="#a78bfa" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-02')">
+          <text x="335" y="407" font-size="9" font-weight="700" fill="#a78bfa" font-family="'JetBrains Mono', monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-02')">
             🖥 VM-SERVIDOR-02
           </text>
-          <text x="433" y="407" font-size="8" fill="rgba(167, 139, 250, 0.85)" font-family="JetBrains Mono, monospace">
+          <text x="433" y="407" font-size="8" fill="rgba(167, 139, 250, 0.85)" font-family="'JetBrains Mono', monospace">
             192.168.56.14:8002
           </text>
 
@@ -3640,10 +3734,10 @@
                 fill="none" stroke="rgba(236, 72, 153, 0.3)" stroke-width="1.5"
                 stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-03')" />
           <rect x="612" y="392" width="175" height="22" rx="6" fill="rgba(236, 72, 153, 0.15)" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-03')" />
-          <text x="620" y="407" font-size="9" font-weight="700" fill="#f472b6" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-03')">
+          <text x="620" y="407" font-size="9" font-weight="700" fill="#f472b6" font-family="'JetBrains Mono', monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-03')">
             🖥 VM-SERVIDOR-03
           </text>
-          <text x="718" y="407" font-size="8" fill="rgba(244, 114, 182, 0.85)" font-family="JetBrains Mono, monospace">
+          <text x="718" y="407" font-size="8" fill="rgba(244, 114, 182, 0.85)" font-family="'JetBrains Mono', monospace">
             192.168.56.15:8003
           </text>
 
@@ -3652,38 +3746,112 @@
                 fill="none" stroke="rgba(16, 185, 129, 0.35)" stroke-width="1.5"
                 stroke-dasharray="8 5" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-04')" />
           <rect x="897" y="392" width="205" height="22" rx="6" fill="rgba(16, 185, 129, 0.18)" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-04')" />
-          <text x="905" y="407" font-size="9" font-weight="700" fill="#34d399" font-family="JetBrains Mono, monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-04')">
+          <text x="905" y="407" font-size="9" font-weight="700" fill="#34d399" font-family="'JetBrains Mono', monospace" style="cursor: pointer;" onclick="abrirModalVM('vm-servidor-04')">
             🖥 VM-SERVIDOR-04 (RESERVA)
           </text>
-          <text x="1035" y="407" font-size="8" fill="rgba(52, 211, 153, 0.85)" font-family="JetBrains Mono, monospace">
+          <text x="1035" y="407" font-size="8" fill="rgba(52, 211, 153, 0.85)" font-family="'JetBrains Mono', monospace">
             192.168.56.16:8004
           </text>
 
 
           <!-- ============================================== -->
-          <!-- TOPOLOGY NODES                                 -->
+          <!-- TOPOLOGY NODES: 3 DATASETS & 3 MÉDICOS         -->
           <!-- ============================================== -->
 
-          <!-- 1. CSV DATASET NODE -->
-          <g id="node-csv" class="node-box node-csv" transform="translate(195, 35)">
-            <rect class="node-bg" width="175" height="70" />
-            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-csv)" />
-            <circle cx="32" cy="35" r="16" fill="rgba(16, 185, 129, 0.15)" />
-            <text x="32" y="40" font-size="16" text-anchor="middle">📄</text>
-            <text id="lbl-dataset-title" x="58" y="30" font-size="12" font-weight="700" fill="#f3f4f6">Datasets Clínicos</text>
-            <text id="lbl-dataset-file" x="58" y="46" font-size="9" fill="#9ca3af">3 Datasets (60k total)</text>
-            <text id="lbl-dataset-info" x="58" y="58" font-size="8.5" fill="#10b981" font-weight="600">Dados Reais Kaggle</text>
+          <!-- 1. DR. CARLOS (UTI) & DATASET 1 -->
+          <g id="node-csv-1" class="node-box node-csv-card" transform="translate(32, 34)">
+            <rect class="node-bg" width="168" height="66" />
+            <rect x="0" y="0" width="5" height="66" rx="2.5" fill="#f87171" />
+            <circle cx="26" cy="33" r="14" fill="rgba(248, 113, 113, 0.15)" />
+            <text x="26" y="38" font-size="14" text-anchor="middle">📄</text>
+            <text x="48" y="24" font-size="11" font-weight="700" fill="#f3f4f6">Dataset UTI (20k)</text>
+            <text x="48" y="38" font-size="8" fill="#9ca3af">dataset_medico_1_uti.csv</text>
+            <text x="48" y="52" font-size="7.5" fill="#f87171" font-weight="600">❤️ Cardíaco / Hipertensão</text>
           </g>
 
-          <!-- 2. CSV SENDER CLIENT NODE (Equipe Médica Concorrente) -->
-          <g id="node-client" class="node-box node-client" transform="translate(480, 35)">
-            <rect class="node-bg" width="220" height="70" />
-            <rect x="0" y="0" width="6" height="70" rx="3" fill="url(#grad-client)" />
-            <circle cx="32" cy="35" r="16" fill="rgba(6, 182, 212, 0.15)" />
-            <text id="lbl-cliente-icon" x="32" y="40" font-size="16" text-anchor="middle">🩺</text>
-            <text id="lbl-cliente-origem" x="58" y="28" font-size="11.5" font-weight="700" fill="#f3f4f6">Equipe Médica (3 Nós)</text>
-            <text id="lbl-cliente-sub" x="58" y="43" font-size="9" fill="#38bdf8">UTI • Emergência • Enfermaria</text>
-            <text id="lbl-cliente-info" x="58" y="58" font-size="8.5" fill="#34d399" font-weight="600">Ingestão & Consulta de Dados</text>
+          <path id="pipe-csv-m1" class="pipe pipe-common" d="M 200 67 L 220 67" />
+
+          <g id="node-medico-1" class="node-box node-medico-card node-medico-1" transform="translate(220, 34)">
+            <rect class="node-bg" width="160" height="66" />
+            <rect x="0" y="0" width="5" height="66" rx="2.5" fill="url(#grad-m1)" />
+            <circle cx="26" cy="33" r="14" fill="rgba(239, 68, 68, 0.15)" />
+            <text x="26" y="38" font-size="14" text-anchor="middle">🩺</text>
+            <text x="48" y="24" font-size="11" font-weight="700" fill="#f3f4f6">Dr. Carlos (UTI)</text>
+            <text x="48" y="38" font-size="8" fill="#f87171" font-weight="600">Cardiologia • Thread 1</text>
+            <text x="48" y="52" font-size="7.5" fill="#38bdf8">Envio &amp; Consulta</text>
+          </g>
+
+          <!-- 2. DRA. BEATRIZ (EMERGÊNCIA) & DATASET 2 -->
+          <g id="node-csv-2" class="node-box node-csv-card" transform="translate(415, 34)">
+            <rect class="node-bg" width="168" height="66" />
+            <rect x="0" y="0" width="5" height="66" rx="2.5" fill="#fb923c" />
+            <circle cx="26" cy="33" r="14" fill="rgba(251, 146, 60, 0.15)" />
+            <text x="26" y="38" font-size="14" text-anchor="middle">📄</text>
+            <text x="48" y="24" font-size="11" font-weight="700" fill="#f3f4f6">Dataset Emerg. (20k)</text>
+            <text x="48" y="38" font-size="8" fill="#9ca3af">dataset_medico_2_emerg.csv</text>
+            <text x="48" y="52" font-size="7.5" fill="#fb923c" font-weight="600">🚨 Quedas / Asma / Trauma</text>
+          </g>
+
+          <path id="pipe-csv-m2" class="pipe pipe-common" d="M 583 67 L 603 67" />
+
+          <g id="node-medico-2" class="node-box node-medico-card node-medico-2" transform="translate(603, 34)">
+            <rect class="node-bg" width="160" height="66" />
+            <rect x="0" y="0" width="5" height="66" rx="2.5" fill="url(#grad-m2)" />
+            <circle cx="26" cy="33" r="14" fill="rgba(249, 115, 22, 0.15)" />
+            <text x="26" y="38" font-size="14" text-anchor="middle">🩺</text>
+            <text x="48" y="24" font-size="11" font-weight="700" fill="#f3f4f6">Dra. Beatriz (Emerg.)</text>
+            <text x="48" y="38" font-size="8" fill="#fb923c" font-weight="600">Trauma • Thread 2</text>
+            <text x="48" y="52" font-size="7.5" fill="#38bdf8">Envio &amp; Consulta</text>
+          </g>
+
+          <!-- 3. DR. LUCAS (ENFERMARIA) & DATASET 3 -->
+          <g id="node-csv-3" class="node-box node-csv-card" transform="translate(798, 34)">
+            <rect class="node-bg" width="168" height="66" />
+            <rect x="0" y="0" width="5" height="66" rx="2.5" fill="#34d399" />
+            <circle cx="26" cy="33" r="14" fill="rgba(52, 211, 153, 0.15)" />
+            <text x="26" y="38" font-size="14" text-anchor="middle">📄</text>
+            <text x="48" y="24" font-size="11" font-weight="700" fill="#f3f4f6">Dataset Enferm. (20k)</text>
+            <text x="48" y="38" font-size="8" fill="#9ca3af">dataset_medico_3_enferm.csv</text>
+            <text x="48" y="52" font-size="7.5" fill="#34d399" font-weight="600">🩺 Diabetes / Rotina</text>
+          </g>
+
+          <path id="pipe-csv-m3" class="pipe pipe-common" d="M 966 67 L 986 67" />
+
+          <g id="node-medico-3" class="node-box node-medico-card node-medico-3" transform="translate(986, 34)">
+            <rect class="node-bg" width="160" height="66" />
+            <rect x="0" y="0" width="5" height="66" rx="2.5" fill="url(#grad-m3)" />
+            <circle cx="26" cy="33" r="14" fill="rgba(16, 185, 129, 0.15)" />
+            <text x="26" y="38" font-size="14" text-anchor="middle">🩺</text>
+            <text x="48" y="24" font-size="11" font-weight="700" fill="#f3f4f6">Dr. Lucas (Enferm.)</text>
+            <text x="48" y="38" font-size="8" fill="#34d399" font-weight="600">Clínica Geral • Thread 3</text>
+            <text x="48" y="52" font-size="7.5" fill="#38bdf8">Envio &amp; Consulta</text>
+          </g>
+
+          <!-- Hidden compatibility aliases -->
+          <g id="node-csv" style="display:none;"></g>
+          <g id="node-client" style="display:none;"></g>
+          <text id="lbl-dataset-title" style="display:none;">Datasets</text>
+          <text id="lbl-dataset-file" style="display:none;"></text>
+          <text id="lbl-dataset-info" style="display:none;"></text>
+          <text id="lbl-cliente-origem" style="display:none;"></text>
+          <text id="lbl-cliente-sub" style="display:none;"></text>
+          <text id="lbl-cliente-info" style="display:none;"></text>
+
+          <!-- BANNER CENTRAL EXPLICATIVO DOS 2 FLUXOS (WRITE & READ PATH) -->
+          <g id="banner-fluxos" transform="translate(130, 114)">
+            <rect x="0" y="0" width="920" height="26" rx="13" fill="rgba(15, 23, 42, 0.94)" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1.2"/>
+            <!-- Fluxo 1: Envio -->
+            <circle cx="18" cy="13" r="5.5" fill="#f97316"/>
+            <text x="30" y="17" font-size="9" font-weight="700" fill="#fb923c" font-family="'JetBrains Mono', monospace">
+              📤 FLUXO 1 (WRITE PATH): Médicos ➔ Apache Kafka MOM (:9092) ➔ Load Balancer ➔ 4 Nós SQLite (Replicação Fanout)
+            </text>
+            <!-- Divisor -->
+            <line x1="560" y1="4" x2="560" y2="22" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+            <!-- Fluxo 2: Busca -->
+            <circle cx="578" cy="13" r="5.5" fill="#10b981"/>
+            <text x="590" y="17" font-size="9" font-weight="700" fill="#34d399" font-family="'JetBrains Mono', monospace">
+              📥 FLUXO 2 (READ PATH): Médicos ➔ Load Balancer (:8000) ➔ SELECT SQLite
+            </text>
           </g>
 
           <!-- 2.5 MIDDLEWARE APACHE KAFKA NODE (KRaft Multi-Group Fanout) -->
@@ -3816,10 +3984,16 @@
             </text>
           </g>
 
-          <!-- FLYING PACKET ELEMENT -->
+          <!-- FLYING PACKET ELEMENT: WRITE PATH (Cyan / Laranja) -->
           <g id="flying-packet">
             <circle class="packet-halo" cx="0" cy="0" r="14" />
             <circle class="packet-core" cx="0" cy="0" r="7" />
+          </g>
+
+          <!-- FLYING PACKET ELEMENT: READ PATH (Esmeralda / Verde Radiante) -->
+          <g id="flying-packet-read" style="opacity: 0; pointer-events: none;">
+            <circle cx="0" cy="0" r="16" fill="rgba(16, 185, 129, 0.55)" style="filter: blur(5px);" />
+            <circle cx="0" cy="0" r="7.5" fill="#ffffff" stroke="#10b981" stroke-width="3" />
           </g>
         </svg>
 
@@ -3913,15 +4087,30 @@
           <div class="metrics-summary">
             <div class="metric-box">
               <div id="metric-total" class="metric-number total">0</div>
-              <div class="metric-caption">Total</div>
+              <div class="metric-caption">Envios (Total)</div>
             </div>
             <div class="metric-box">
               <div id="metric-success" class="metric-number success">0</div>
-              <div class="metric-caption">Sucesso</div>
+              <div class="metric-caption">Sucesso Write</div>
             </div>
             <div class="metric-box">
               <div id="metric-errors" class="metric-number errors">0</div>
-              <div class="metric-caption">Erros</div>
+              <div class="metric-caption">Erros Write</div>
+            </div>
+          </div>
+          <!-- Métricas Exclusivas do Fluxo de Leitura (Read Path) -->
+          <div class="metrics-summary" style="margin-top: -0.15rem; margin-bottom: 0.55rem;">
+            <div class="metric-box">
+              <div id="metric-queries" class="metric-number" style="color: #34d399;">0</div>
+              <div class="metric-caption">Leituras (Read)</div>
+            </div>
+            <div class="metric-box">
+              <div id="metric-query-lat" class="metric-number" style="color: #38bdf8;">0ms</div>
+              <div class="metric-caption">Latência Read</div>
+            </div>
+            <div class="metric-box">
+              <div id="metric-fluxos" class="metric-number" style="color: #a78bfa; font-size: 0.95rem; padding-top: 2px;">2 Fluxos</div>
+              <div class="metric-caption">Concorrentes</div>
             </div>
           </div>
 
@@ -5214,8 +5403,20 @@
           break;
 
         case 'query_executed':
-          addLog(d.timestamp, `[CONSULTA MÉDICA] Prontuário Paciente #${d.paciente_id} ➔ Atendido por ${d.server_id} em ${d.latencia_ms}ms (${d.total_registros} reg)`, 'complete');
-          animarConsultaNoDiagrama(d.server_id);
+          addLog(d.timestamp, `[CONSULTA MÉDICA - ${d.medico_nome || 'Dr. Carlos'}] Prontuário Paciente #${d.paciente_id} ➔ Atendido por ${d.server_id} em ${d.latencia_ms}ms (${d.total_registros} reg)`, 'consultas');
+          if (metricQueries) metricQueries.textContent = d.query_contadores ? d.query_contadores.total : (parseInt(metricQueries.textContent || 0) + 1);
+          if (metricQueryLat && d.latencia_ms) metricQueryLat.textContent = `${d.latencia_ms}ms`;
+          animarConsultaNoDiagrama(d.medico_id || '1', d.server_id, d.paciente_id, d.latencia_ms);
+          break;
+
+        case 'busca_iniciada':
+          setBuscaState(true);
+          addLog(d.timestamp, d.mensagem || 'Busca contínua de prontuários médicos iniciada (Read Path ativo)!', 'consultas');
+          break;
+
+        case 'busca_pausada':
+          setBuscaState(false);
+          addLog(d.timestamp, d.mensagem || 'Busca de prontuários médicos pausada.', 'consultas');
           break;
 
         case 'medico_selecionado':
@@ -5225,22 +5426,33 @@
 
         case 'csv_read':
           clearActiveNodes();
-          nodeCsv.classList.add('active-node');
+          const medId = String(d.medico_id || '1');
+          const activeCsvNode = document.getElementById(`node-csv-${medId}`) || nodeCsv;
+          const activeMedNode = document.getElementById(`node-medico-${medId}`) || nodeClient;
+          if (activeCsvNode) activeCsvNode.classList.add('active-node');
+          if (activeMedNode) activeMedNode.classList.add('active-node');
           const medLabel = d.medico ? ` [${d.medico}]` : '';
           setStatus(`Lendo registro #${d.numero}${medLabel}...`, 'busy');
           updatePatientCard(d.dados, d.numero);
           ultimoRegistroKafka = { ...d.dados, _numero: d.numero, _timestamp: d.timestamp };
           atualizarLiveMessageModal();
-          addLog(d.timestamp, `[CSV] Registro #${d.numero} lido (Paciente ${d.dados.paciente_id})`, 'csv');
-          animatePacketAlongPath(pipeCsvClient, 350);
+          addLog(d.timestamp, `[CSV - ${d.medico || 'Médico'}] Registro #${d.numero} lido (Paciente ${d.dados.paciente_id})`, 'csv');
+          const pipeM = document.getElementById(`pipe-csv-m${medId}`) || pipeCsvClient;
+          animatePacketAlongPath(pipeM, 250);
           break;
 
         case 'sending':
           clearActiveNodes();
-          nodeClient.classList.add('active-node');
-          setStatus(`Produtor Kafka preparando registro #${d.numero}...`, 'busy');
-          addLog(d.timestamp, `[Produtor Kafka] Registro #${d.numero} → Serialização JSON + Compressão GZIP`, 'client');
-          animatePacketAlongPath(pipeClientMw, 350);
+          const medIdSend = String(d.medico_id || '1');
+          const activeMedSend = document.getElementById(`node-medico-${medIdSend}`) || nodeClient;
+          if (activeMedSend) activeMedSend.classList.add('active-node');
+          setStatus(`Produtor [${d.medico || 'Médico'}] preparando telemetria #${d.numero}...`, 'busy');
+          addLog(d.timestamp, `[Produtor - ${d.medico || 'Médico'}] Telemetria #${d.numero} → Envio ao Kafka MOM (:9092)`, 'client');
+          const pipeWriteM = document.getElementById(`pipe-write-m${medIdSend}`) || pipeClientMw;
+          if (pipeWriteM) pipeWriteM.classList.add('active-write-flow');
+          animatePacketAlongPath(pipeWriteM, 300, () => {
+            if (pipeWriteM) pipeWriteM.classList.remove('active-write-flow');
+          });
           break;
 
         case 'kafka_stage':
@@ -7292,6 +7504,179 @@
         });
       });
     }
+  
+    // ============================================================
+    // Gerenciamento dos 2 Fluxos Concorrentes: Envio (Write) & Busca (Read)
+    // ============================================================
+    let isEnvioRunning = false;
+    let isBuscaRunning = false;
+
+    // Referências dos 3 Médicos e 3 Datasets
+    const nodeCsv1 = document.getElementById('node-csv-1');
+    const nodeCsv2 = document.getElementById('node-csv-2');
+    const nodeCsv3 = document.getElementById('node-csv-3');
+    const nodeMedico1 = document.getElementById('node-medico-1');
+    const nodeMedico2 = document.getElementById('node-medico-2');
+    const nodeMedico3 = document.getElementById('node-medico-3');
+
+    const pipeWriteM1 = document.getElementById('pipe-write-m1');
+    const pipeWriteM2 = document.getElementById('pipe-write-m2');
+    const pipeWriteM3 = document.getElementById('pipe-write-m3');
+    const pipeReadM1 = document.getElementById('pipe-read-m1');
+    const pipeReadM2 = document.getElementById('pipe-read-m2');
+    const pipeReadM3 = document.getElementById('pipe-read-m3');
+
+    const btnEnvio = document.getElementById('btn-envio');
+    const btnEnvioIcon = document.getElementById('btn-envio-icon');
+    const btnEnvioLbl = document.getElementById('btn-envio-lbl');
+    const btnBusca = document.getElementById('btn-busca');
+    const btnBuscaIcon = document.getElementById('btn-busca-icon');
+    const btnBuscaLbl = document.getElementById('btn-busca-lbl');
+
+    const metricQueries = document.getElementById('metric-queries');
+    const metricQueryLat = document.getElementById('metric-query-lat');
+
+    // 1. Controle do Fluxo de Envio (Write Path)
+    async function toggleEnvio() {
+      if (isEnvioRunning) {
+        await fetch(`${API_BASE}/api/pausar`, { method: 'POST' });
+        setEnvioState(false);
+      } else {
+        const lim = selLimit ? parseInt(selLimit.value) : 12;
+        const vel = selSpeed ? parseFloat(selSpeed.value) : 1.0;
+        await fetch(`${API_BASE}/api/iniciar?limite=${lim}&velocidade=${vel}`, { method: 'POST' });
+        setEnvioState(true);
+      }
+    }
+
+    function setEnvioState(running) {
+      isEnvioRunning = running;
+      if (btnEnvioIcon) btnEnvioIcon.textContent = running ? '⏸️' : '▶️';
+      if (btnEnvioLbl) btnEnvioLbl.textContent = running ? 'Pausar Envio' : 'Iniciar Envio';
+      if (btnEnvio) {
+        if (running) {
+          btnEnvio.classList.remove('btn-primary');
+          btnEnvio.classList.add('btn-pause');
+        } else {
+          btnEnvio.classList.add('btn-primary');
+          btnEnvio.classList.remove('btn-pause');
+        }
+      }
+      setSimulationRunning(running);
+    }
+
+    async function passoEnvio() {
+      if (isEnvioRunning) return;
+      await fetch(`${API_BASE}/api/proximo`, { method: 'POST' });
+    }
+
+    // 2. Controle do Fluxo de Busca (Read Path)
+    async function toggleBusca() {
+      if (isBuscaRunning) {
+        await fetch(`${API_BASE}/api/busca/pausar`, { method: 'POST' });
+        setBuscaState(false);
+      } else {
+        await fetch(`${API_BASE}/api/busca/iniciar?intervalo=2.0`, { method: 'POST' });
+        setBuscaState(true);
+      }
+    }
+
+    function setBuscaState(running) {
+      isBuscaRunning = running;
+      if (btnBuscaIcon) btnBuscaIcon.textContent = running ? '⏸️' : '▶️';
+      if (btnBuscaLbl) btnBuscaLbl.textContent = running ? 'Pausar Busca' : 'Iniciar Busca';
+      if (btnBusca) {
+        if (running) {
+          btnBusca.classList.add('btn-pause');
+        } else {
+          btnBusca.classList.remove('btn-pause');
+        }
+      }
+    }
+
+    async function passoBusca() {
+      await fetch(`${API_BASE}/api/busca/proximo`, { method: 'POST' });
+    }
+
+    // 3. Reiniciar Tudo (Envio + Busca + Contadores)
+    async function reiniciarTudo() {
+      await fetch(`${API_BASE}/api/reiniciar`, { method: 'POST' });
+      await fetch(`${API_BASE}/api/busca/pausar`, { method: 'POST' });
+      setEnvioState(false);
+      setBuscaState(false);
+      clearActiveNodes();
+      if (metricQueries) metricQueries.textContent = '0';
+      if (metricQueryLat) metricQueryLat.textContent = '0ms';
+    }
+
+    // Animação de voo do pacote de LEITURA (Read Path)
+    function animateReadPacketAlongPath(pathElement, duration = 300, onComplete = null) {
+      const readPacket = document.getElementById('flying-packet-read');
+      if (!pathElement || !readPacket) {
+        if (onComplete) onComplete();
+        return;
+      }
+      const length = pathElement.getTotalLength();
+      const startTime = performance.now();
+      readPacket.style.opacity = '1';
+
+      function step(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const point = pathElement.getPointAtLength(progress * length);
+        readPacket.setAttribute('transform', `translate(${point.x}, ${point.y})`);
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          setTimeout(() => {
+            readPacket.style.opacity = '0';
+            if (onComplete) onComplete();
+          }, 40);
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    // Animar Consulta no Diagrama com Médicos Individuais e Read Path
+    function animarConsultaNoDiagrama(medicoId = '1', serverId = 'server-01', pacienteId = null, latenciaMs = null) {
+      const mId = String(medicoId || '1');
+      const medNode = document.getElementById(`node-medico-${mId}`) || nodeMedico1;
+      const readPipe = document.getElementById(`pipe-read-m${mId}`) || pipeReadM1;
+
+      if (medNode) medNode.classList.add('active-node');
+      if (readPipe) readPipe.classList.add('active-read-flow');
+
+      animateReadPacketAlongPath(readPipe, 320, () => {
+        if (readPipe) readPipe.classList.remove('active-read-flow');
+        if (nodeLb) nodeLb.classList.add('active-node');
+
+        let srvPipe = pipeLbS1;
+        let srvNode = nodeS1;
+        let dbNode = nodeDb1;
+        if (serverId && serverId.includes('02')) { srvPipe = pipeLbS2; srvNode = nodeS2; dbNode = nodeDb2; }
+        if (serverId && serverId.includes('03')) { srvPipe = pipeLbS3; srvNode = nodeS3; dbNode = nodeDb3; }
+        if (serverId && serverId.includes('04')) { srvPipe = pipeLbS4; srvNode = nodeS4; dbNode = nodeDb4; }
+
+        srvPipe.classList.add('active-read-flow');
+        animateReadPacketAlongPath(srvPipe, 280, () => {
+          srvPipe.classList.remove('active-read-flow');
+          if (nodeLb) nodeLb.classList.remove('active-node');
+          if (srvNode) srvNode.classList.add('active-node');
+          if (dbNode) dbNode.classList.add('active-node');
+
+          setTimeout(() => {
+            if (srvNode) srvNode.classList.remove('active-node');
+            if (dbNode) dbNode.classList.remove('active-node');
+            if (medNode) {
+              medNode.classList.add('active-node');
+              setTimeout(() => medNode.classList.remove('active-node'), 500);
+            }
+          }, 300);
+        });
+      });
+    }
+
   </script>
   <!-- Modal: Consulta de Prontuário Médico (Read Path) -->
   <div id="modal-consulta" class="modal-overlay" style="display: none;">

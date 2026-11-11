@@ -99,4 +99,41 @@ class TestMonitorMultiMedicosEConsulta:
         assert "Dr. Carlos" in html
         assert "Dra. Beatriz" in html
         assert "Dr. Lucas" in html
+        # Verificação dos 3 datasets e médicos individuais no SVG
+        assert "node-csv-1" in html
+        assert "node-csv-2" in html
+        assert "node-csv-3" in html
+        assert "node-medico-1" in html
+        assert "node-medico-2" in html
+        assert "node-medico-3" in html
+        # Verificação dos dois fluxos explícitos (Write e Read Path)
+        assert "btn-envio" in html
+        assert "btn-busca" in html
+        assert "WRITE PATH" in html
+        assert "READ PATH" in html
+        assert "pipe-write-m1" in html
+        assert "pipe-read-m1" in html
+
+    def test_endpoints_busca_continua_e_status(self, app_client):
+        # Status inicial de busca
+        resp = app_client.get("/api/busca/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["running"] is False
+        assert "contadores" in data
+
+        # Iniciar busca
+        resp_ini = app_client.post("/api/busca/iniciar?intervalo=1.5")
+        assert resp_ini.status_code == 200
+        assert resp_ini.json()["status"] == "iniciado"
+
+        # Status após iniciar
+        resp_st = app_client.get("/api/busca/status")
+        assert resp_st.json()["running"] is True
+
+        # Pausar busca
+        resp_pause = app_client.post("/api/busca/pausar")
+        assert resp_pause.status_code == 200
+        assert resp_pause.json()["status"] == "pausado"
+
 
